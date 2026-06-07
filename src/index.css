@@ -1,0 +1,38 @@
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --gold: #C9A84C;
+  --gold-light: #E8D08A;
+  --gold-dark: #8B6914;
+  --night: #0A0C14;
+  --night2: #0F1220;
+  --night3: #151929;
+  --night4: #1C2235;
+  --dim: #252D45;
+  --muted: #8892AA;
+  --text: #D4DCF0;
+  --bright: #EEF2FF;
+  --cosmo: #4F8FE8;
+  --enterprise: #7B5CF0;
+  --success: #2EC08A;
+  --warn: #E8943A;
+  --danger: #E84F4F;
+  --border: rgba(201,168,76,0.15);
+  --border2: rgba(201,168,76,0.3);
+}
+
+html, body, #root {
+  height: 100%;
+  background: var(--night);
+  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font-family: 'Outfit', sans-serif; cursor: pointer; }
+input { font-family: 'Outfit', sans-serif; }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--night2); }
+::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }

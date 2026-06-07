@@ -1,0 +1,25 @@
+
+added 72 packages, and audited 73 packages in 24s
+
+7 packages are looking for funding
+  run `npm fund` for details
+
+2 moderate severity vulnerabilities
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+
+> atherium-admin@1.0.0 build
+> vite build
+
+vite v5.4.21 building for production...
+transforming...
+✓ 79 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.81 kB │ gzip:   0.45 kB
+dist/assets/index-B52iu6ok.css    0.84 kB │ gzip:   0.46 kB
+dist/assets/index-YqVKpC6G.js   387.13 kB │ gzip: 108.84 kB
+✓ built in 2.63s

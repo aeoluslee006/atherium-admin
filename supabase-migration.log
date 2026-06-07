@@ -1,0 +1,11 @@
+ENV:SUPABASE_SERVICE_ROLE_KEY=not set
+RETAIL_OS:SUPABASE_SERVICE_ROLE_KEY=not set
+LOCAL:VITE_SUPABASE_URL=set len=40
+LOCAL:VITE_SUPABASE_ANON_KEY=set len=208
+
+configured_url=https://hgsuzanclpnzlskttkok.supabase.co
+using_project_url=yes
+GET https://hgsuzanclpnzlskttkok.supabase.co/rest/v1/atherium_customers?limit=1
+status=404
+statusText=Not Found
+body={"code":"PGRST205","details":null,"hint":"Perhaps you meant the table 'public.customers'","message":"Could not find the table 'public.atherium_customers' in the schema cache"}

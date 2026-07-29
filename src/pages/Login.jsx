@@ -28,18 +28,23 @@ export default function Login({ onSignedIn }) {
         <div className="login-thread login-thread-1" aria-hidden="true" />
         <div className="login-thread login-thread-2" aria-hidden="true" />
         <div className="login-thread login-thread-3" aria-hidden="true" />
+        <div className="login-thread login-thread-4" aria-hidden="true" />
         <div className="login-brand-content">
-          <div>
+          <div className="brand-block">
             <div className="grid-logo">ATHERIUM</div>
+            <div className="grid-gold-line" aria-hidden="true" />
             <div className="grid-tag">Holdings Administration</div>
           </div>
           <blockquote className="grid-quote">
-            &ldquo;Stewardship of enterprises, across every location, in one place.&rdquo;
+            &ldquo;Stewardship of enterprises,
+            <br />
+            across every location, in one place.&rdquo;
           </blockquote>
         </div>
       </aside>
 
       <div className="login-form-column">
+        <div className="login-form-shift">
         <div style={s.card}>
         <div style={s.logoMark}>
           <div style={s.logoA} />
@@ -81,6 +86,7 @@ export default function Login({ onSignedIn }) {
             {loading ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
+        </div>
         </div>
       </div>
     </div>

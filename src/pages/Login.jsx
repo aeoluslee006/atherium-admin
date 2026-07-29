@@ -25,7 +25,6 @@ export default function Login({ onSignedIn }) {
     <div className="login-page">
       <aside className="login-brand-panel">
         <div className="login-dot-grid" aria-hidden="true" />
-        <div className="login-thread login-thread-1" aria-hidden="true" />
         <div className="login-thread login-thread-2" aria-hidden="true" />
         <div className="login-thread login-thread-3" aria-hidden="true" />
         <div className="login-thread login-thread-4" aria-hidden="true" />

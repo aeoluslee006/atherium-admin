@@ -29,6 +29,13 @@ html, body, #root {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Bump UI text ~20%; height/width compensate so footer controls stay visible */
+#root {
+  zoom: 1.2;
+  height: calc(100vh / 1.2);
+  width: calc(100vw / 1.2);
+}
+
 button { font-family: 'Outfit', sans-serif; cursor: pointer; }
 input { font-family: 'Outfit', sans-serif; }
 

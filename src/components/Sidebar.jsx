@@ -62,8 +62,8 @@ export default function Sidebar({ activePage, setActivePage, userEmail = 'Admin'
         </div>
         {onSignOut && (
           <button type="button" onClick={onSignOut} style={s.signOutBtn}>
-            <i className="ti ti-logout" style={{ fontSize: 14 }} aria-hidden="true" />
-            Sign out
+            <i className="ti ti-logout" style={{ fontSize: 16 }} aria-hidden="true" />
+            Log out
           </button>
         )}
       </div>
@@ -95,12 +95,12 @@ const s = {
     color: 'var(--muted)', transition: 'all 0.2s',
   },
   navItemActive: { color: 'var(--gold)', borderLeftColor: 'var(--gold)', background: 'rgba(201,168,76,0.05)' },
-  footer: { padding: '16px 20px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 10 },
+  footer: { padding: '16px 20px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 10, flexShrink: 0 },
   userChip: { display: 'flex', alignItems: 'center', gap: 8 },
   signOutBtn: {
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-    width: '100%', padding: '8px 12px', borderRadius: 8, fontSize: 11,
-    border: '1px solid var(--border)', background: 'transparent', color: 'var(--muted)',
+    width: '100%', padding: '10px 12px', borderRadius: 8, fontSize: 13, fontWeight: 500,
+    border: '1px solid var(--border2)', background: 'rgba(201,168,76,0.1)', color: 'var(--gold-light)',
   },
   avatar: {
     width: 28, height: 28, borderRadius: '50%',

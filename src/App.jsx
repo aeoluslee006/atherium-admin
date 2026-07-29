@@ -58,7 +58,7 @@ export default function App() {
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       <Sidebar activePage={activePage} setActivePage={setActivePage} userEmail={userEmail} onSignOut={handleSignOut} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar activePage={activePage} />
+        <Topbar activePage={activePage} userEmail={userEmail} onSignOut={handleSignOut} />
         <main style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
           {pages[activePage] || <Dashboard />}
         </main>

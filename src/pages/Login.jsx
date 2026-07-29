@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { supabase } from '../lib/supabase'
+import './Login.css'
 
 export default function Login({ onSignedIn }) {
   const [email, setEmail] = useState('')
@@ -21,8 +22,25 @@ export default function Login({ onSignedIn }) {
   }
 
   return (
-    <div style={s.page}>
-      <div style={s.card}>
+    <div className="login-page">
+      <aside className="login-brand-panel">
+        <div className="login-dot-grid" aria-hidden="true" />
+        <div className="login-thread login-thread-1" aria-hidden="true" />
+        <div className="login-thread login-thread-2" aria-hidden="true" />
+        <div className="login-thread login-thread-3" aria-hidden="true" />
+        <div className="login-brand-content">
+          <div>
+            <div className="grid-logo">ATHERIUM</div>
+            <div className="grid-tag">Holdings Administration</div>
+          </div>
+          <blockquote className="grid-quote">
+            &ldquo;Stewardship of enterprises, across every location, in one place.&rdquo;
+          </blockquote>
+        </div>
+      </aside>
+
+      <div className="login-form-column">
+        <div style={s.card}>
         <div style={s.logoMark}>
           <div style={s.logoA} />
           <div>
@@ -63,20 +81,13 @@ export default function Login({ onSignedIn }) {
             {loading ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
+        </div>
       </div>
     </div>
   )
 }
 
 const s = {
-  page: {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: 'var(--night)',
-    padding: 24,
-  },
   card: {
     width: '100%',
     maxWidth: 400,

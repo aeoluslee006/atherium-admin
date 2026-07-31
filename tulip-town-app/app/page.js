@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 async function getLatestPosts() {
   try {
     return await supabaseRest(
-      'posts?select=id,title,category,city,is_pinned,created_at&order=is_pinned.desc,created_at.desc&limit=12'
+      'posts?select=id,title,category_slug,city,is_pinned,created_at&order=is_pinned.desc,created_at.desc&limit=12'
     );
   } catch {
     return [];

@@ -6,6 +6,12 @@ export const CATEGORIES = [
     desc: '사이트 공지 · Site announcements',
   },
   {
+    slug: 'guide',
+    nameKo: '정착 가이드',
+    nameEn: 'Settlement Guide',
+    desc: 'DMV·병원·마트 등 필수 정보 · Local essentials',
+  },
+  {
     slug: 'free',
     nameKo: '자유게시판',
     nameEn: 'Free Board',

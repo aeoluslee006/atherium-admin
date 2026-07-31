@@ -17,7 +17,7 @@ export default async function BoardPage({ params }) {
   let posts = [];
   try {
     posts = await supabaseRest(
-      `posts?select=id,title,city,is_pinned,created_at&category=eq.${encodeURIComponent(
+      `posts?select=id,title,city,is_pinned,created_at&category_slug=eq.${encodeURIComponent(
         params.slug
       )}&order=is_pinned.desc,created_at.desc`
     );

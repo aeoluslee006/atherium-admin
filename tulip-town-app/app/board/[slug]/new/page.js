@@ -34,7 +34,7 @@ export default function NewPostPage() {
           title,
           body,
           city,
-          category: params.slug,
+          category_slug: params.slug,
           author_id: sessionData.session.user.id,
         })
         .select('id')

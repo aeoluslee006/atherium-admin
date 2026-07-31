@@ -30,7 +30,7 @@ export default async function PostPage({ params }) {
     );
   }
 
-  const category = getCategory(post.category);
+  const category = getCategory(post.category_slug);
 
   return (
     <div className="container">
@@ -42,7 +42,7 @@ export default async function PostPage({ params }) {
                 {category.nameKo} · {category.nameEn}
               </Link>
             ) : (
-              post.category
+              post.category_slug
             )}
           </div>
           <h2 className="section-title" style={{ marginBottom: 4 }}>

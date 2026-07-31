@@ -70,9 +70,8 @@ a {
   display: block;
   height: 72px;
   width: auto;
-  border-radius: 10px;
   object-fit: contain;
-  background: #000;
+  background: transparent;
 }
 
 .brand-text {

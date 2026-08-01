@@ -55,7 +55,6 @@ export default function App() {
   }
 
   const userEmail = session.user?.email || 'Admin'
-  const isTtkc = activePage === 'ttkc'
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
@@ -67,16 +66,7 @@ export default function App() {
           onSignOut={handleSignOut}
           onNavigate={setActivePage}
         />
-        <main
-          style={{
-            flex: 1,
-            overflow: isTtkc ? 'hidden' : 'auto',
-            padding: isTtkc ? 0 : 24,
-            display: isTtkc ? 'flex' : 'block',
-            flexDirection: 'column',
-            minHeight: 0,
-          }}
-        >
+        <main style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
           {pages[activePage] || <Dashboard />}
         </main>
       </div>

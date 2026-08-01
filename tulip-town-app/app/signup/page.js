@@ -7,6 +7,8 @@ import { supabase } from '../../lib/supabaseClient';
 
 export default function SignupPage() {
   const router = useRouter();
+  const [displayName, setDisplayName] = useState('');
+  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -19,8 +21,34 @@ export default function SignupPage() {
     setMessage('');
     setSaving(true);
     try {
-      const { data, error: signError } = await supabase.auth.signUp({ email, password });
+      const { data, error: signError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            display_name: displayName.trim(),
+            phone: phone.trim(),
+          },
+        },
+      });
       if (signError) throw signError;
+
+      if (data.user) {
+        const baseProfile = {
+          id: data.user.id,
+          display_name: displayName.trim() || email.split('@')[0],
+        };
+        const fullProfile = {
+          ...baseProfile,
+          email,
+          phone: phone.trim() || null,
+        };
+        const { error: profileError } = await supabase.from('profiles').upsert(fullProfile);
+        if (profileError) {
+          await supabase.from('profiles').upsert(baseProfile);
+        }
+      }
+
       if (data.session) {
         router.push('/');
         router.refresh();
@@ -38,6 +66,21 @@ export default function SignupPage() {
     <div className="container">
       <h2 className="section-title">회원가입 · Sign up</h2>
       <form className="card form-card" onSubmit={handleSubmit}>
+        <label htmlFor="displayName">이름</label>
+        <input
+          id="displayName"
+          value={displayName}
+          onChange={(e) => setDisplayName(e.target.value)}
+          required
+        />
+        <label htmlFor="phone">전화 번호</label>
+        <input
+          id="phone"
+          type="tel"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="예: 616-555-0100"
+        />
         <label htmlFor="email">이메일</label>
         <input
           id="email"

@@ -1,5 +1,6 @@
 import './globals.css';
 import Header from '../components/Header';
+import VisitTracker from '../components/VisitTracker';
 
 export const metadata = {
   title: 'Tulip Town Korean Community',
@@ -10,6 +11,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="ko">
       <body>
+        <VisitTracker />
         <Header />
         <main>{children}</main>
         <footer className="footer">

@@ -21,18 +21,18 @@ export function ttkcClient() {
 export async function requireAtheriumUser(req) {
   const header = req.headers.authorization || req.headers.Authorization || ''
   const token = header.startsWith('Bearer ') ? header.slice(7) : null
-  if (!token) return null
+  if (!token) return { user: null, reason: 'missing_token' }
 
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL
   const anon = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY
-  if (!url || !anon) return null
+  if (!url || !anon) return { user: null, reason: 'missing_atherium_env' }
 
   const supabase = createClient(url, anon, {
     auth: { persistSession: false, autoRefreshToken: false },
   })
   const { data, error } = await supabase.auth.getUser(token)
-  if (error || !data?.user) return null
-  return data.user
+  if (error || !data?.user) return { user: null, reason: error?.message || 'invalid_token' }
+  return { user: data.user, reason: null }
 }
 
 export function sendJson(res, status, body) {

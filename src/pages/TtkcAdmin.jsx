@@ -27,6 +27,9 @@ function memberStatus(row) {
   return { label: '정상', tone: 'ok' }
 }
 
+const SQL_EDITOR = 'https://supabase.com/dashboard/project/lyikgkjhkmppvciicxfm/sql/new'
+const SQL_FILE = '/atherium_admin_schema.sql'
+
 export default function TtkcAdmin() {
   const [stats, setStats] = useState(null)
   const [members, setMembers] = useState([])
@@ -34,7 +37,10 @@ export default function TtkcAdmin() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [hint, setHint] = useState('')
+  const [schemaReady, setSchemaReady] = useState(null)
   const [busyId, setBusyId] = useState('')
+  const [sqlText, setSqlText] = useState('')
+  const [copied, setCopied] = useState(false)
 
   const load = useCallback(async (query = '') => {
     setLoading(true)
@@ -47,14 +53,34 @@ export default function TtkcAdmin() {
       setStats(overview.stats || null)
       setMembers(list.members || [])
       setHint(overview.setupHint || list.setupHint || '')
+      setSchemaReady(overview.schemaReady !== false && list.schemaReady !== false)
     } catch (err) {
       setError(err.message || '불러오기 실패')
       setStats(null)
       setMembers([])
+      setSchemaReady(false)
     } finally {
       setLoading(false)
     }
   }, [])
+
+  useEffect(() => {
+    fetch(SQL_FILE)
+      .then((r) => (r.ok ? r.text() : ''))
+      .then((text) => setSqlText(text || ''))
+      .catch(() => setSqlText(''))
+  }, [])
+
+  async function copySql() {
+    if (!sqlText) return
+    try {
+      await navigator.clipboard.writeText(sqlText)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      setError('클립보드 복사에 실패했습니다. 아래 SQL 파일을 직접 열어 복사하세요.')
+    }
+  }
 
   useEffect(() => {
     load('')
@@ -128,7 +154,37 @@ export default function TtkcAdmin() {
         ))}
       </div>
 
-      {hint ? <div style={s.hintBanner}>{hint}</div> : null}
+      {schemaReady === false && (
+        <div style={s.setupBox}>
+          <div style={s.setupTitle}>아직 데이터베이스 설정이 안 되어 있어요</div>
+          <div style={s.setupBody}>
+            화면/API는 배포됐지만, Tulip Town Supabase에 관리용 SQL이 한 번도 실행되지 않아서
+            방문자·전화·포인트·정지/해지가 동작하지 않습니다. 아래 순서대로 한 번만 실행하면 됩니다.
+          </div>
+          <ol style={s.setupList}>
+            <li>아래 <b>SQL 복사</b>를 누릅니다.</li>
+            <li>
+              <a href={SQL_EDITOR} target="_blank" rel="noopener noreferrer" style={s.setupLink}>
+                Supabase SQL Editor 열기
+              </a>
+              에 붙여넣고 Run 합니다.
+            </li>
+            <li>이 페이지에서 <b>새로고침</b>을 누릅니다.</li>
+          </ol>
+          <div style={s.setupActions}>
+            <button type="button" style={s.setupBtn} onClick={copySql} disabled={!sqlText}>
+              {copied ? '복사됨 ✓' : 'SQL 복사'}
+            </button>
+            <a href={SQL_FILE} target="_blank" rel="noopener noreferrer" style={s.setupBtnGhost}>
+              SQL 파일 열기
+            </a>
+            <a href={SQL_EDITOR} target="_blank" rel="noopener noreferrer" style={s.setupBtnGhost}>
+              SQL Editor
+            </a>
+          </div>
+          {hint ? <div style={{ marginTop: 10, fontSize: 11, opacity: 0.85 }}>{hint}</div> : null}
+        </div>
+      )}
       {error ? <div style={s.errorBanner}>{error}</div> : null}
 
       <div style={s.panel}>
@@ -294,15 +350,36 @@ const s = {
     fontVariantNumeric: 'tabular-nums',
   },
   cardSub: { marginTop: 6, fontSize: 11, color: 'var(--muted)' },
-  hintBanner: {
-    marginBottom: 12,
-    padding: '10px 12px',
+  setupBox: {
+    marginBottom: 16,
+    padding: '16px 18px',
+    borderRadius: 12,
+    border: '1px solid rgba(232,148,58,0.45)',
+    background: 'rgba(232,148,58,0.1)',
+    color: '#f3c08a',
+  },
+  setupTitle: { fontSize: 14, fontWeight: 600, color: '#ffd19a', marginBottom: 8 },
+  setupBody: { fontSize: 12, lineHeight: 1.5, marginBottom: 10 },
+  setupList: { margin: '0 0 12px 18px', padding: 0, fontSize: 12, lineHeight: 1.7 },
+  setupLink: { color: '#ffd19a', fontWeight: 600 },
+  setupActions: { display: 'flex', gap: 8, flexWrap: 'wrap' },
+  setupBtn: {
+    padding: '8px 14px',
     borderRadius: 8,
-    border: '1px solid rgba(232,148,58,0.35)',
-    background: 'rgba(232,148,58,0.08)',
-    color: '#f0b57a',
+    border: '1px solid rgba(201,168,76,0.5)',
+    background: 'rgba(201,168,76,0.2)',
+    color: 'var(--gold-light)',
     fontSize: 12,
-    lineHeight: 1.45,
+    fontWeight: 600,
+  },
+  setupBtnGhost: {
+    padding: '8px 14px',
+    borderRadius: 8,
+    border: '1px solid rgba(243,192,138,0.35)',
+    background: 'transparent',
+    color: '#f3c08a',
+    fontSize: 12,
+    textDecoration: 'none',
   },
   errorBanner: {
     marginBottom: 12,

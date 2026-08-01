@@ -10,8 +10,13 @@ import {
 export default async function handler(req, res) {
   if (req.method !== 'PATCH') return sendJson(res, 405, { error: 'Method not allowed' })
 
-  const user = await requireAtheriumUser(req)
-  if (!user) return sendJson(res, 401, { error: 'Unauthorized' })
+  const auth = await requireAtheriumUser(req)
+  if (!auth.user) {
+    return sendJson(res, 401, {
+      error: 'Unauthorized',
+      reason: auth.reason,
+    })
+  }
 
   const id = req.query?.id
   if (!id) return sendJson(res, 400, { error: 'Missing member id' })

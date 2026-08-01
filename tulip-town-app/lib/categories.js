@@ -9,7 +9,7 @@ export const CATEGORIES = [
     slug: 'guide',
     nameKo: '정착 가이드',
     nameEn: 'Settlement Guide',
-    desc: 'DMV·병원·마트 등 필수 정보 · Local essentials',
+    desc: '새로 오셨나요? 여기서 시작하세요 · New to the area? Start here',
   },
   {
     slug: 'free',

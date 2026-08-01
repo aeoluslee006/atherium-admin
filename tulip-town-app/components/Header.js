@@ -132,15 +132,15 @@ export default function Header() {
           </div>
         </div>
 
-        <nav className="main-nav">
+        <nav className="main-nav" aria-label="주요 게시판">
           {CATEGORIES.map((cat) => (
             <Link key={cat.slug} href={`/board/${cat.slug}`} className="nav-item">
-              <span className="nav-icon">{NAV_ICONS[cat.slug]}</span>
+              <span className="nav-icon" aria-hidden="true">{NAV_ICONS[cat.slug]}</span>
               <span>{cat.nameKo}</span>
             </Link>
           ))}
           <Link href="/directory" className="nav-item">
-            <span className="nav-icon">{NAV_ICONS.directory}</span>
+            <span className="nav-icon" aria-hidden="true">{NAV_ICONS.directory}</span>
             <span>업체 디렉토리</span>
           </Link>
         </nav>

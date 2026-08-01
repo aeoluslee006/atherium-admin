@@ -15,12 +15,6 @@ const NAV = [
       label: 'TTKC / Tulip Town',
       href: 'https://tulip-town-app.vercel.app',
     },
-    {
-      id: null,
-      icon: 'ti-shield-lock',
-      label: 'TTKC Admin',
-      href: 'https://tulip-town-app.vercel.app/admin',
-    },
   ]},
   { section: 'System', items: [
     { id: null, icon: 'ti-credit-card', label: 'Billing' },

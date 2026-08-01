@@ -64,16 +64,28 @@ const NAV_ICONS = {
 
 export default function Header() {
   const [session, setSession] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
+    async function loadProfile(userId) {
+      if (!userId) {
+        setIsAdmin(false);
+        return;
+      }
+      const { data } = await supabase.from('profiles').select('is_admin').eq('id', userId).maybeSingle();
+      setIsAdmin(!!data?.is_admin);
+    }
+
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setLoaded(true);
+      loadProfile(data.session?.user?.id);
     });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
+      loadProfile(newSession?.user?.id);
     });
     return () => listener.subscription.unsubscribe();
   }, []);
@@ -99,6 +111,11 @@ export default function Header() {
           <div className="auth-area">
             {loaded && session ? (
               <>
+                {isAdmin ? (
+                  <Link href="/admin" className="admin-link">
+                    관리자
+                  </Link>
+                ) : null}
                 <span className="auth-email">{session.user.email}</span>
                 <button type="button" onClick={handleLogout}>
                   로그아웃

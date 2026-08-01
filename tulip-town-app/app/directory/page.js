@@ -3,14 +3,15 @@ import { supabaseRest } from '../../lib/supabaseRest';
 
 export const dynamic = 'force-dynamic';
 
-export default async function DirectoryPage() {
-  let businesses = [];
+export default async function DirectoryPage({ searchParams }) {
+  const checkout = searchParams?.checkout;
+  let sponsors = [];
   try {
-    businesses = await supabaseRest(
-      'businesses?select=*&order=is_sponsored.desc,name.asc'
+    sponsors = await supabaseRest(
+      'sponsors?select=*&status=eq.approved&order=created_at.desc'
     );
   } catch {
-    businesses = [];
+    sponsors = [];
   }
 
   return (
@@ -22,25 +23,32 @@ export default async function DirectoryPage() {
         </Link>
       </div>
 
-      {businesses?.some((b) => b.is_sponsored) ? (
+      {checkout === 'success' ? (
+        <div className="sponsor-banner">
+          <span className="sponsor-badge">Payment</span>
+          <span>결제가 완료되었습니다. 승인 반영까지 잠시 걸릴 수 있습니다.</span>
+        </div>
+      ) : null}
+
+      {sponsors?.length ? (
         <div className="sponsor-banner">
           <span className="sponsor-badge">Sponsored</span>
-          <span>스폰서 업체가 상단에 노출됩니다.</span>
+          <span>월 구독 스폰서 업체가 디렉토리에 노출됩니다.</span>
         </div>
       ) : null}
 
       <div className="category-grid">
-        {businesses?.length ? (
-          businesses.map((biz) => (
-            <div key={biz.id} className={biz.is_sponsored ? 'sponsor-card' : 'category-card'}>
-              {biz.is_sponsored ? <div className="sponsor-badge">Sponsored</div> : null}
-              <div className="ko" style={{ marginTop: biz.is_sponsored ? 8 : 0 }}>
-                {biz.name}
+        {sponsors?.length ? (
+          sponsors.map((biz) => (
+            <div key={biz.id} className="sponsor-card">
+              <div className="sponsor-badge">Sponsored</div>
+              <div className="ko" style={{ marginTop: 8 }}>
+                {biz.business_name}
               </div>
               <div className="en">{biz.category || 'Business'}</div>
               <div className="desc">
                 {biz.city ? `${biz.city} · ` : ''}
-                {biz.phone || biz.website || biz.description || ''}
+                {biz.website_url || biz.description || ''}
               </div>
             </div>
           ))

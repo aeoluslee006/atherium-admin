@@ -19,6 +19,16 @@ export default function Topbar({ activePage, userEmail, onSignOut }) {
           <div style={{ ...s.dot, background: 'var(--enterprise)' }} />
           Cosmoenterprise
         </div>
+        <a
+          href="https://tulip-town-app.vercel.app"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ ...s.badge, ...s.badgeTtkc, textDecoration: 'none' }}
+          title="Open TTKC"
+        >
+          <div style={{ ...s.dot, background: 'var(--tulip, #d94f8c)' }} />
+          TTKC
+        </a>
         <button style={s.iconBtn} aria-label="Notifications">
           <i className="ti ti-bell" style={{ fontSize: 16 }} aria-hidden="true" />
         </button>
@@ -49,6 +59,7 @@ const s = {
   },
   badgeCosmo: { borderColor: 'rgba(79,143,232,0.4)', color: 'var(--cosmo)', background: 'rgba(79,143,232,0.08)' },
   badgeEnt: { borderColor: 'rgba(123,92,240,0.4)', color: 'var(--enterprise)', background: 'rgba(123,92,240,0.08)' },
+  badgeTtkc: { borderColor: 'rgba(217,79,140,0.45)', color: '#e87aaa', background: 'rgba(217,79,140,0.1)', cursor: 'pointer' },
   dot: { width: 6, height: 6, borderRadius: '50%' },
   iconBtn: {
     width: 32, height: 32, borderRadius: 8, background: 'var(--night3)',

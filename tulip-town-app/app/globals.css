@@ -68,12 +68,13 @@ a {
   align-items: center;
   gap: 5px;
   text-align: center;
-  max-width: min(920px, 100%);
-  padding: 0 180px;
+  max-width: min(1100px, 100%);
+  padding: 0 200px;
 }
 
 .brand-main {
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: center;
   gap: 12px;
@@ -82,7 +83,7 @@ a {
 
 .brand-logo {
   display: block;
-  height: 58px;
+  height: 52px;
   width: auto;
   object-fit: contain;
   background: transparent;
@@ -162,22 +163,28 @@ a {
 
 .main-nav {
   display: flex;
+  align-items: stretch;
+  justify-content: space-between;
   gap: 4px;
-  flex-wrap: wrap;
+  width: 100%;
   padding: 8px 0 12px;
   border-top: 1px solid var(--border);
 }
 
 .nav-item {
+  flex: 1 1 0;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 3px;
-  padding: 10px 16px 6px;
+  padding: 10px 6px 6px;
   border-radius: 10px;
   color: var(--ink);
   font-size: 12px;
   font-weight: 500;
+  text-align: center;
+  min-width: 0;
 }
 
 .nav-icon {
@@ -214,7 +221,7 @@ main {
 
 .category-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
   margin-bottom: 36px;
 }
@@ -430,6 +437,10 @@ label {
   .brand {
     padding: 0 150px;
   }
+
+  .category-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 900px) {
@@ -448,6 +459,21 @@ label {
 
   .brand-tagline {
     font-size: 12px;
+  }
+
+  .main-nav {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 2px;
+  }
+
+  .nav-item {
+    flex: 1 1 calc(25% - 4px);
+    min-width: 72px;
+  }
+
+  .category-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -490,5 +516,15 @@ label {
 
   .auth-email {
     display: none;
+  }
+
+  .nav-item {
+    flex: 1 1 calc(33.33% - 4px);
+    font-size: 11px;
+    padding: 8px 4px 4px;
+  }
+
+  .category-grid {
+    grid-template-columns: 1fr;
   }
 }

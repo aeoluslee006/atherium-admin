@@ -10,10 +10,9 @@ const NAV = [
     { id: null, icon: 'ti-building-store', label: 'Cosmonova' },
     { id: null, icon: 'ti-building-skyscraper', label: 'Cosmoenterprise' },
     {
-      id: null,
+      id: 'ttkc',
       icon: 'ti-flower',
       label: 'TTKC / Tulip Town',
-      href: 'https://tulip-town-app.vercel.app',
     },
   ]},
   { section: 'System', items: [

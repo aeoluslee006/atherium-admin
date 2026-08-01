@@ -4,6 +4,7 @@ import Topbar from './components/Topbar'
 import Dashboard from './pages/Dashboard'
 import Customers from './pages/Customers'
 import Reports from './pages/Reports'
+import TtkcAdmin from './pages/TtkcAdmin'
 import Login from './pages/Login'
 import { supabase } from './lib/supabase'
 
@@ -50,16 +51,32 @@ export default function App() {
     dashboard: <Dashboard />,
     customers: <Customers />,
     reports: <Reports />,
+    ttkc: <TtkcAdmin />,
   }
 
   const userEmail = session.user?.email || 'Admin'
+  const isTtkc = activePage === 'ttkc'
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       <Sidebar activePage={activePage} setActivePage={setActivePage} userEmail={userEmail} onSignOut={handleSignOut} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar activePage={activePage} userEmail={userEmail} onSignOut={handleSignOut} />
-        <main style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
+        <Topbar
+          activePage={activePage}
+          userEmail={userEmail}
+          onSignOut={handleSignOut}
+          onNavigate={setActivePage}
+        />
+        <main
+          style={{
+            flex: 1,
+            overflow: isTtkc ? 'hidden' : 'auto',
+            padding: isTtkc ? 0 : 24,
+            display: isTtkc ? 'flex' : 'block',
+            flexDirection: 'column',
+            minHeight: 0,
+          }}
+        >
           {pages[activePage] || <Dashboard />}
         </main>
       </div>

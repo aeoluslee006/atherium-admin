@@ -39,9 +39,9 @@ a {
 }
 
 .container {
-  max-width: 1200px;
+  max-width: 1480px;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 28px;
 }
 
 .site-header {
@@ -51,43 +51,48 @@ a {
   border-bottom: 1px solid var(--border);
 }
 
-/* 3-column header: logo left | title center | auth right */
+/* Brand (logo + title) centered as one unit; auth stays right */
 .header-top {
   display: grid;
-  grid-template-columns: minmax(80px, 1fr) auto minmax(80px, 1fr);
+  grid-template-columns: 1fr;
   align-items: center;
-  column-gap: 20px;
+  justify-items: center;
+  position: relative;
+  min-height: 84px;
   padding-bottom: 16px;
 }
 
-.brand-logo-link {
-  justify-self: start;
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  text-align: center;
+  max-width: min(920px, 100%);
+  padding: 0 180px;
+}
+
+.brand-main {
   display: flex;
   align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-width: 0;
 }
 
 .brand-logo {
   display: block;
-  height: 72px;
+  height: 58px;
   width: auto;
   object-fit: contain;
   background: transparent;
-}
-
-.brand-text {
-  justify-self: center;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  min-width: 0;
+  flex-shrink: 0;
 }
 
 .brand-name {
-  font-size: 26px;
+  font-size: clamp(20px, 2.1vw, 28px);
   font-weight: 800;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.35px;
   line-height: 1.15;
   background: linear-gradient(120deg, var(--tulip-purple), var(--tulip-pink));
   -webkit-background-clip: text;
@@ -97,17 +102,24 @@ a {
 }
 
 .brand-tagline {
+  display: block;
+  width: 100%;
+  text-align: center;
   font-size: 13.5px;
   color: var(--ink-soft);
-  letter-spacing: 0.1px;
+  letter-spacing: 0.15px;
 }
 
 .auth-area {
-  justify-self: end;
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   align-items: center;
   gap: 10px;
   font-size: 14px;
+  z-index: 1;
 }
 
 .auth-email {
@@ -409,14 +421,29 @@ label {
   text-align: center;
 }
 
+@media (max-width: 1100px) {
+  .container {
+    max-width: 100%;
+    padding: 0 20px;
+  }
+
+  .brand {
+    padding: 0 150px;
+  }
+}
+
 @media (max-width: 900px) {
+  .brand {
+    padding: 0 120px;
+  }
+
   .brand-name {
-    font-size: 20px;
     white-space: normal;
+    text-align: left;
   }
 
   .brand-logo {
-    height: 56px;
+    height: 48px;
   }
 
   .brand-tagline {
@@ -426,32 +453,39 @@ label {
 
 @media (max-width: 640px) {
   .header-top {
-    grid-template-columns: auto 1fr;
-    grid-template-areas:
-      'logo auth'
-      'title title';
-    row-gap: 10px;
+    min-height: 0;
+    justify-items: stretch;
+    padding-top: 4px;
   }
 
-  .brand-logo-link {
-    grid-area: logo;
+  .brand {
+    padding: 0;
+    padding-right: 0;
+    align-items: flex-start;
+    text-align: left;
+    max-width: calc(100% - 150px);
+    justify-self: start;
   }
 
-  .brand-text {
-    grid-area: title;
-    justify-self: center;
-  }
-
-  .auth-area {
-    grid-area: auth;
+  .brand-main {
+    justify-content: flex-start;
   }
 
   .brand-name {
-    font-size: 18px;
+    font-size: 17px;
   }
 
   .brand-logo {
-    height: 48px;
+    height: 42px;
+  }
+
+  .brand-tagline {
+    text-align: left;
+  }
+
+  .auth-area {
+    top: 8px;
+    transform: none;
   }
 
   .auth-email {

@@ -88,12 +88,11 @@ export default function Header() {
     <header className="site-header">
       <div className="container">
         <div className="header-top">
-          <Link href="/" className="brand-logo-link" aria-label="Tulip Town home">
-            <img src="/logo.png" alt="Tulip Town" className="brand-logo" />
-          </Link>
-
-          <Link href="/" className="brand-text">
-            <span className="brand-name">TULIP TOWN KOREAN COMMUNITY</span>
+          <Link href="/" className="brand" aria-label="Tulip Town home">
+            <span className="brand-main">
+              <img src="/logo.png" alt="" className="brand-logo" />
+              <span className="brand-name">TULIP TOWN KOREAN COMMUNITY</span>
+            </span>
             <span className="brand-tagline">Serving Holland, Grand Rapids &amp; West Michigan</span>
           </Link>
 

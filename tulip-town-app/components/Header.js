@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '../lib/supabaseClient';
 import { CATEGORIES } from '../lib/categories';
 
@@ -94,11 +94,18 @@ function buildMainNav() {
 
 const MAIN_NAV = buildMainNav();
 
+function isNavActive(pathname, href) {
+  if (!pathname || !href) return false;
+  if (href === '/') return pathname === '/';
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 export default function Header() {
   const [session, setSession] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const router = useRouter();
+  const pathname = usePathname() || '';
 
   useEffect(() => {
     async function loadProfile(userId) {
@@ -165,20 +172,37 @@ export default function Header() {
         </div>
 
         <nav className="main-nav" aria-label="주요 게시판">
-          {MAIN_NAV.map((item) => (
-            <Link key={item.key} href={item.href} className="nav-item">
-              <span className="nav-icon" aria-hidden="true">
-                {NAV_ICONS[item.key]}
-              </span>
-              <span>{item.nameKo}</span>
-            </Link>
-          ))}
-          <Link href="/directory" className="nav-item">
-            <span className="nav-icon" aria-hidden="true">
-              {NAV_ICONS.directory}
-            </span>
-            <span>업체 디렉토리</span>
-          </Link>
+          {MAIN_NAV.map((item) => {
+            const active = isNavActive(pathname, item.href);
+            return (
+              <Link
+                key={item.key}
+                href={item.href}
+                className={`nav-item${active ? ' is-active' : ''}`}
+                aria-current={active ? 'page' : undefined}
+              >
+                <span className="nav-icon" aria-hidden="true">
+                  {NAV_ICONS[item.key]}
+                </span>
+                <span>{item.nameKo}</span>
+              </Link>
+            );
+          })}
+          {(() => {
+            const active = isNavActive(pathname, '/directory');
+            return (
+              <Link
+                href="/directory"
+                className={`nav-item${active ? ' is-active' : ''}`}
+                aria-current={active ? 'page' : undefined}
+              >
+                <span className="nav-icon" aria-hidden="true">
+                  {NAV_ICONS.directory}
+                </span>
+                <span>업체 디렉토리</span>
+              </Link>
+            );
+          })()}
         </nav>
       </div>
     </header>

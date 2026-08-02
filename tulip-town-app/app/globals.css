@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600&display=swap');
+
 :root {
   --tulip-pink: #d94f8c;
   --tulip-purple: #6b3fa0;
@@ -9,15 +11,18 @@
   --ink-soft: #6b7280;
   --bg: #ffffff;
   --card-bg: #ffffff;
-  --border: #e5e7eb;
+  --border: #edf0f3;
   --sponsor-bg: #fff8e8;
   --sponsor-border: #f0d99a;
-  --radius: 12px;
+  --radius: 14px;
+  --row-line: #f1f3f5;
+  --card-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 
-  /* Typefaces: Noto Sans KR (본문/UI) · Plus Jakarta (영문 브랜드) */
+  /* Typefaces: Noto Sans KR (본문/UI) · Plus Jakarta (영문 브랜드) · Caveat (태그라인) */
   --font-sans: var(--font-noto-sans-kr), 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
   --font-display: var(--font-plus-jakarta), var(--font-noto-sans-kr), 'Plus Jakarta Sans', 'Noto Sans KR',
     sans-serif;
+  --font-script: var(--font-caveat), 'Caveat', cursive;
 
   /* Type scale */
   --text-xs: 0.75rem; /* 12 */
@@ -61,10 +66,8 @@ textarea {
   font-family: var(--font-sans);
 }
 
-/* 영문 브랜드만 display 폰트 — 본문·한글 제목은 Noto */
-.brand-name,
-.brand-tagline,
-.wf-ads-kicker {
+/* 영문 브랜드명만 display 폰트 — 태그라인은 Caveat */
+.brand-name {
   font-family: var(--font-display);
 }
 
@@ -143,7 +146,7 @@ a {
 }
 
 .brand-name {
-  font-size: clamp(1.25rem, 2.1vw, 1.75rem);
+  font-size: 24px;
   font-weight: 800;
   letter-spacing: 0.04em;
   line-height: var(--leading-tight);
@@ -158,10 +161,12 @@ a {
   display: block;
   width: 100%;
   text-align: center;
-  font-size: var(--text-sm);
-  font-weight: 500;
-  color: var(--ink-soft);
-  letter-spacing: 0.02em;
+  font-family: var(--font-script), 'Caveat', cursive;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--tulip-purple);
+  letter-spacing: 0.01em;
+  line-height: 1.2;
 }
 
 .auth-area {
@@ -268,10 +273,19 @@ main {
   line-height: var(--leading-tight);
 }
 
+.card,
+.category-card,
+.sponsor-card,
+.premium-ad-card,
+.wf-box,
+.wf-ads-card {
+  border: 1px solid #edf0f3;
+  border-radius: 14px;
+  box-shadow: var(--card-shadow);
+}
+
 .card {
   background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
   padding: 18px 20px;
 }
 
@@ -284,8 +298,6 @@ main {
 
 .category-card {
   background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
   padding: 18px;
   transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
 }
@@ -297,10 +309,10 @@ main {
 }
 
 .category-card .ko {
-  font-weight: 700;
-  font-size: var(--text-base);
+  font-weight: 600;
+  font-size: 15.5px;
   color: var(--ink);
-  line-height: var(--leading-snug);
+  line-height: 1.5;
 }
 
 .category-card .en {
@@ -317,13 +329,22 @@ main {
   line-height: var(--leading-snug);
 }
 
+.post-row,
+.featured-post-row,
+.news-row,
+.wf-featured-row,
+.wf-list-row {
+  border: 0;
+  border-bottom: 1px solid var(--row-line);
+  box-shadow: none;
+}
+
 .post-row {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
   gap: 10px;
   padding: 12px 0;
-  border-bottom: 1px solid var(--border);
 }
 
 .post-row:last-child {
@@ -331,10 +352,10 @@ main {
 }
 
 .post-title {
-  font-size: var(--text-base);
+  font-size: 15.5px;
   font-weight: 600;
   color: var(--ink);
-  line-height: var(--leading-snug);
+  line-height: 1.5;
 }
 
 .post-pinned {
@@ -344,7 +365,8 @@ main {
 }
 
 .post-meta {
-  font-size: var(--text-xs);
+  font-size: 12px;
+  font-weight: 400;
   color: var(--ink-soft);
   white-space: nowrap;
 }
@@ -456,9 +478,8 @@ label {
 }
 
 .sponsor-card {
-  border: 1px solid var(--sponsor-border);
   background: var(--sponsor-bg);
-  border-radius: var(--radius);
+  border-color: var(--sponsor-border);
   padding: 16px;
 }
 
@@ -519,7 +540,7 @@ label {
   }
 
   .brand-tagline {
-    font-size: var(--text-xs);
+    font-size: 16px;
   }
 
   .main-nav {
@@ -559,7 +580,7 @@ label {
   }
 
   .brand-name {
-    font-size: var(--text-lg);
+    font-size: 20px;
   }
 
   .brand-logo {
@@ -723,9 +744,8 @@ main:has(.home-page) {
 
 .wf-box {
   background: #fff;
-  border: 1.5px solid #c5ceda;
-  border-radius: 6px;
   min-width: 0;
+  overflow: hidden;
 }
 
 /* 1) 특별광고 — 좌우 반반, 크게 */
@@ -742,9 +762,8 @@ main:has(.home-page) {
   justify-content: center;
   min-height: 140px;
   padding: 20px 26px;
-  border-radius: 6px;
   color: #fff;
-  border: 1px solid transparent;
+  border-color: transparent;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -769,7 +788,8 @@ main:has(.home-page) {
 }
 
 .wf-ads-card--empty .wf-ads-kicker {
-  font-size: var(--text-xl);
+  font-size: 18px;
+  font-weight: 700;
   letter-spacing: 0.06em;
 }
 
@@ -789,23 +809,23 @@ main:has(.home-page) {
 }
 
 .wf-ads-kicker {
-  font-size: var(--text-sm);
+  font-size: 18px;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0.04em;
   opacity: 0.95;
 }
 
 .wf-ads-name {
   margin-top: 6px;
-  font-size: var(--text-2xl);
-  font-weight: 800;
-  line-height: var(--leading-tight);
+  font-size: 15.5px;
+  font-weight: 600;
+  line-height: 1.5;
 }
 
 .wf-ads-meta {
   margin-top: 6px;
-  font-size: var(--text-sm);
+  font-size: 12px;
+  font-weight: 400;
   opacity: 0.92;
 }
 
@@ -838,8 +858,8 @@ main:has(.home-page) {
 .wf-news-thumbs {
   display: flex;
   flex-direction: column;
-  border-right: 1.5px solid #c5ceda;
-  background: #f3f7fc;
+  border-right: 1px solid var(--row-line);
+  background: #f8fafc;
 }
 
 .wf-news-thumb {
@@ -852,7 +872,7 @@ main:has(.home-page) {
   min-height: 120px;
   padding: 14px 12px;
   border: 0;
-  border-bottom: 1.5px solid #c5ceda;
+  border-bottom: 1px solid var(--row-line);
   background: transparent;
   text-align: left;
   cursor: pointer;
@@ -905,10 +925,10 @@ main:has(.home-page) {
 }
 
 .wf-news-thumb-title {
-  font-size: var(--text-sm);
+  font-size: 15.5px;
   font-weight: 600;
   color: var(--ink);
-  line-height: var(--leading-snug);
+  line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
@@ -934,23 +954,24 @@ main:has(.home-page) {
 
 .wf-news-detail-head {
   padding: 18px 22px 14px;
-  border-bottom: 1px solid #e4eaf2;
+  border-bottom: 1px solid var(--row-line);
 }
 
 .wf-news-detail-meta {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: var(--text-sm);
+  font-size: 12px;
+  font-weight: 400;
   color: var(--ink-soft);
   margin-bottom: 8px;
 }
 
 .wf-news-detail-title {
   margin: 0;
-  font-size: var(--text-xl);
-  font-weight: 700;
-  line-height: var(--leading-snug);
+  font-size: 15.5px;
+  font-weight: 600;
+  line-height: 1.5;
   color: var(--ink);
 }
 
@@ -1043,7 +1064,8 @@ main:has(.home-page) {
 }
 
 .wf-news-article-card-host {
-  font-size: var(--text-sm);
+  font-size: 12px;
+  font-weight: 400;
   color: var(--ink-soft);
 }
 
@@ -1105,13 +1127,13 @@ main:has(.home-page) {
 }
 
 .wf-featured-title {
-  padding: 20px 18px;
-  border-bottom: 1.5px solid #c5ceda;
+  padding: 18px;
+  border-bottom: 1px solid var(--row-line);
   text-align: center;
-  font-size: var(--text-xl);
-  font-weight: 800;
+  font-size: 18px;
+  font-weight: 700;
   color: var(--ink);
-  background: #f7f9fc;
+  background: #f8fafc;
 }
 
 .wf-featured-list {
@@ -1124,8 +1146,7 @@ main:has(.home-page) {
 
 .wf-featured-row {
   display: block;
-  padding: 18px 22px;
-  border-bottom: 1px solid #e4eaf2;
+  padding: 16px 22px;
 }
 
 .wf-featured-list li:last-child .wf-featured-row {
@@ -1136,16 +1157,17 @@ main:has(.home-page) {
   display: flex;
   justify-content: space-between;
   gap: 10px;
-  font-size: var(--text-sm);
+  font-size: 12px;
+  font-weight: 400;
   color: var(--ink-soft);
   margin-bottom: 6px;
 }
 
 .wf-featured-name {
-  font-size: var(--text-lg);
-  font-weight: 700;
+  font-size: 15.5px;
+  font-weight: 600;
   color: var(--ink);
-  line-height: var(--leading-snug);
+  line-height: 1.5;
 }
 
 .wf-featured-row:hover .wf-featured-name {
@@ -1168,14 +1190,32 @@ main:has(.home-page) {
 }
 
 .wf-bottom-col {
+  position: relative;
   padding: 22px 24px 16px;
   min-width: 0;
   display: flex;
   flex-direction: column;
 }
 
+.wf-bottom-col::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+}
+
+.wf-bottom-col:first-child::before {
+  background: var(--mi-green);
+}
+
+.wf-bottom-col:last-child::before {
+  background: var(--tulip-pink);
+}
+
 .wf-bottom-divider {
-  background: #c5ceda;
+  background: var(--row-line);
 }
 
 .wf-bottom-head {
@@ -1185,19 +1225,20 @@ main:has(.home-page) {
   gap: 12px;
   margin-bottom: 12px;
   padding-bottom: 12px;
-  border-bottom: 1px solid #e4eaf2;
+  border-bottom: 1px solid var(--row-line);
 }
 
 .wf-bottom-head h2 {
   margin: 0;
-  font-size: var(--text-xl);
+  font-size: 18px;
   font-weight: 700;
   color: var(--ink);
   line-height: var(--leading-tight);
 }
 
 .wf-bottom-head a {
-  font-size: var(--text-sm);
+  font-size: 12px;
+  font-weight: 400;
   color: var(--ink-soft);
 }
 
@@ -1218,7 +1259,6 @@ main:has(.home-page) {
   align-items: baseline;
   gap: 14px;
   padding: 14px 0;
-  border-bottom: 1px solid #eef2f7;
 }
 
 .wf-list li:last-child .wf-list-row {
@@ -1226,10 +1266,10 @@ main:has(.home-page) {
 }
 
 .wf-list-title {
-  font-size: var(--text-md);
+  font-size: 15.5px;
   font-weight: 600;
   color: var(--ink);
-  line-height: var(--leading-snug);
+  line-height: 1.5;
   min-width: 0;
 }
 
@@ -1238,7 +1278,8 @@ main:has(.home-page) {
 }
 
 .wf-list-date {
-  font-size: var(--text-sm);
+  font-size: 12px;
+  font-weight: 400;
   color: var(--ink-soft);
   white-space: nowrap;
 }

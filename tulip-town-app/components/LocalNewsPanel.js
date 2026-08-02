@@ -75,12 +75,7 @@ export default function LocalNewsPanel({ items = [] }) {
   }, [slots, active, firstIndex]);
 
   const selected = slots[active];
-  const summary =
-    selected?.summary ||
-    selected?.body ||
-    (selected
-      ? `${selected.source || '지역'} 소식입니다. 왼쪽에서 다른 항목을 고르면 이 칸 내용이 바뀝니다.`
-      : '');
+  const summary = selected?.summary || selected?.body || '';
 
   return (
     <div className="wf-box wf-news">
@@ -118,12 +113,6 @@ export default function LocalNewsPanel({ items = [] }) {
         aria-labelledby={`wf-news-tab-${active + 1}`}
         key={selected?.id || `empty-${active}`}
       >
-        {usingDemo ? (
-          <div className="wf-news-demo-note">
-            샘플 뉴스입니다. Supabase `local_news`에 등록하면 실제 기사로 바뀝니다.
-          </div>
-        ) : null}
-
         {selected ? (
           <article className="wf-news-article">
             <div className="wf-news-detail-head">
@@ -140,7 +129,7 @@ export default function LocalNewsPanel({ items = [] }) {
             </div>
 
             <div className="wf-news-article-body">
-              <p className="wf-news-article-summary">{summary}</p>
+              {summary ? <p className="wf-news-article-summary">{summary}</p> : null}
 
               <div className="wf-news-article-card" data-slot={active + 1}>
                 <div className="wf-news-article-card-source">{selected.source || '지역 뉴스'}</div>
@@ -160,16 +149,11 @@ export default function LocalNewsPanel({ items = [] }) {
                   <p className="wf-news-article-missing">연결할 뉴스 주소가 없습니다.</p>
                 )}
               </div>
-
-              <p className="wf-news-article-hint">
-                왼쪽 목록을 누르면 이 칸의 제목과 내용이 바뀝니다.
-              </p>
             </div>
           </article>
         ) : (
           <div className="wf-news-detail-empty">
             <div className="wf-news-placeholder">지역 뉴스 내용보기</div>
-            <p>왼쪽에서 뉴스를 선택하세요.</p>
           </div>
         )}
       </div>

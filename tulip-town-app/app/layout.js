@@ -1,7 +1,7 @@
 import './globals.css';
 import Header from '../components/Header';
 import VisitTracker from '../components/VisitTracker';
-import { Noto_Sans_KR, Plus_Jakarta_Sans } from 'next/font/google';
+import { Caveat, Noto_Sans_KR, Plus_Jakarta_Sans } from 'next/font/google';
 
 const notoSansKr = Noto_Sans_KR({
   subsets: ['latin'],
@@ -17,6 +17,13 @@ const plusJakarta = Plus_Jakarta_Sans({
   display: 'swap',
 });
 
+const caveat = Caveat({
+  subsets: ['latin'],
+  weight: ['600'],
+  variable: '--font-caveat',
+  display: 'swap',
+});
+
 export const metadata = {
   title: 'Tulip Town Korean Community',
   description: 'Serving Holland, Grand Rapids & West Michigan — 미시간 서부 한인 커뮤니티',
@@ -24,7 +31,15 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="ko" className={`${notoSansKr.variable} ${plusJakarta.variable}`}>
+    <html lang="ko" className={`${notoSansKr.variable} ${plusJakarta.variable} ${caveat.variable}`}>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body className={notoSansKr.className}>
         <VisitTracker />
         <Header />

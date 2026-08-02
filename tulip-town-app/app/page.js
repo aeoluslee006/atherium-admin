@@ -38,7 +38,7 @@ async function getHomeData() {
       'sponsors?select=id,business_name,category,city,description,website_url,discount_text,tier,listing_type,status&listing_type=eq.banner&status=eq.approved&tier=eq.premium&order=created_at.desc&limit=2'
     ),
     safeRest(
-      'local_news?select=id,title,source,url,published_at,is_active&is_active=eq.true&order=published_at.desc&limit=4'
+      'local_news?select=id,title,source,url,summary,published_at,is_active&is_active=eq.true&order=published_at.desc&limit=4'
     ),
     safeRest(
       'posts?select=id,title,body,category_slug,created_at,is_featured&is_featured=eq.true&order=created_at.desc&limit=10'

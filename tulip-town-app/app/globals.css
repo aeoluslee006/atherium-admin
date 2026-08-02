@@ -1145,7 +1145,7 @@ main:has(.home-page) {
   font-size: var(--text-lg);
   font-weight: 700;
   color: var(--ink);
-  line-height: 1.35;
+  line-height: var(--leading-snug);
 }
 
 .wf-featured-row:hover .wf-featured-name {
@@ -1191,8 +1191,9 @@ main:has(.home-page) {
 .wf-bottom-head h2 {
   margin: 0;
   font-size: var(--text-xl);
-  font-weight: 800;
+  font-weight: 700;
   color: var(--ink);
+  line-height: var(--leading-tight);
 }
 
 .wf-bottom-head a {

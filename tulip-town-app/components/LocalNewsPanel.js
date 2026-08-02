@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { formatNewsDate, hostnameOf } from '../lib/localNews';
 
 const DEMO_NEWS = [
   {
@@ -41,24 +43,6 @@ const DEMO_NEWS = [
   },
 ];
 
-function formatDate(value) {
-  if (!value) return '';
-  try {
-    return new Date(value).toLocaleDateString('ko-KR');
-  } catch {
-    return '';
-  }
-}
-
-function hostnameOf(url) {
-  if (!url) return '';
-  try {
-    return new URL(url).hostname.replace(/^www\./, '');
-  } catch {
-    return '';
-  }
-}
-
 export default function LocalNewsPanel({ items = [] }) {
   const usingDemo = !Array.isArray(items) || items.length === 0;
 
@@ -81,6 +65,9 @@ export default function LocalNewsPanel({ items = [] }) {
     <div className="wf-box wf-news">
       <div className="panel-header">
         <h2 className="panel-title">지역 뉴스</h2>
+        <Link href="/news" className="panel-more">
+          더보기
+        </Link>
       </div>
 
       <div className="wf-news-body">
@@ -126,7 +113,7 @@ export default function LocalNewsPanel({ items = [] }) {
                   {selected.published_at ? (
                     <>
                       <span aria-hidden="true">·</span>
-                      <time dateTime={selected.published_at}>{formatDate(selected.published_at)}</time>
+                      <time dateTime={selected.published_at}>{formatNewsDate(selected.published_at)}</time>
                     </>
                   ) : null}
                 </div>

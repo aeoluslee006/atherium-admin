@@ -18,12 +18,6 @@ export const CATEGORIES = [
     desc: '자유롭게 이야기해요 · General talk',
   },
   {
-    slug: 'qna',
-    nameKo: '질문답변',
-    nameEn: 'Q&A',
-    desc: '궁금한 걸 물어보세요 · Ask the community',
-  },
-  {
     slug: 'housing',
     nameKo: '렌트/부동산',
     nameEn: 'Housing',

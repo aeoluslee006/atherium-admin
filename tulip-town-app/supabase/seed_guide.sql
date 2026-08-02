@@ -1,13 +1,15 @@
 -- TTKC: Settlement Guide category + pinned posts (idempotent)
 -- Run in Supabase SQL editor for project lyikgkjhkmppvciicxfm
 
--- Fixed sort order map (notice=0, guide=1, then the rest)
+-- Fixed sort order map (notice=0, guide=1, free=2, housing=3, …)
+-- 지역뉴스는 categories가 아니라 local_news + /news 라우트
+DELETE FROM public.categories WHERE slug = 'qna';
 UPDATE public.categories SET sort_order = 0 WHERE slug = 'notice';
 UPDATE public.categories SET sort_order = 2 WHERE slug = 'free';
-UPDATE public.categories SET sort_order = 3 WHERE slug = 'qna';
-UPDATE public.categories SET sort_order = 4 WHERE slug = 'housing';
-UPDATE public.categories SET sort_order = 5 WHERE slug = 'market';
-UPDATE public.categories SET sort_order = 6 WHERE slug = 'jobs';
+UPDATE public.categories SET sort_order = 3 WHERE slug = 'housing';
+UPDATE public.categories SET sort_order = 4 WHERE slug = 'market';
+UPDATE public.categories SET sort_order = 5 WHERE slug = 'jobs';
+UPDATE public.categories SET sort_order = 6 WHERE slug = 'clubs';
 
 INSERT INTO public.categories (slug, name_ko, name_en, description, sort_order)
 VALUES (

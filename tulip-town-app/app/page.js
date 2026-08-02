@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import LocalNewsPanel from '../components/LocalNewsPanel';
 import { getCategory } from '../lib/categories';
+import { isExampleLocalNews } from '../lib/localNews';
 import { supabaseRest } from '../lib/supabaseRest';
 
 export const dynamic = 'force-dynamic';
@@ -30,14 +31,6 @@ async function safeRest(path) {
   } catch {
     return [];
   }
-}
-
-function isExampleLocalNews(row) {
-  // Ignore the placeholder rows from the example INSERT (제목 1 / 출처명 / 기사URL)
-  if (!row) return true;
-  if (row.url === 'https://기사URL') return true;
-  if (row.source === '출처명' && /^제목\s*\d+$/.test(String(row.title || ''))) return true;
-  return false;
 }
 
 async function getHomeData() {

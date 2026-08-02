@@ -26,11 +26,13 @@ const NAV_ICONS = {
       <path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-4 4V6Z" />
     </svg>
   ),
-  qna: (
+  news: (
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M9.5 9.3a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1 1-1 1.9" />
-      <circle cx="12" cy="17" r="0.9" fill="currentColor" stroke="none" />
+      <path d="M4 5h12a2 2 0 0 1 2 2v12H6a2 2 0 0 1-2-2V5Z" />
+      <path d="M18 7h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-4" />
+      <path d="M7 9h7" />
+      <path d="M7 13h7" />
+      <path d="M7 17h4" />
     </svg>
   ),
   housing: (
@@ -69,6 +71,28 @@ const NAV_ICONS = {
     </svg>
   ),
 };
+
+/** Board categories + 지역뉴스 inserted after 자유게시판 */
+function buildMainNav() {
+  const items = [];
+  for (const cat of CATEGORIES) {
+    items.push({
+      key: cat.slug,
+      nameKo: cat.nameKo,
+      href: `/board/${cat.slug}`,
+    });
+    if (cat.slug === 'free') {
+      items.push({
+        key: 'news',
+        nameKo: '지역뉴스',
+        href: '/news',
+      });
+    }
+  }
+  return items;
+}
+
+const MAIN_NAV = buildMainNav();
 
 export default function Header() {
   const [session, setSession] = useState(null);
@@ -141,14 +165,18 @@ export default function Header() {
         </div>
 
         <nav className="main-nav" aria-label="주요 게시판">
-          {CATEGORIES.map((cat) => (
-            <Link key={cat.slug} href={`/board/${cat.slug}`} className="nav-item">
-              <span className="nav-icon" aria-hidden="true">{NAV_ICONS[cat.slug]}</span>
-              <span>{cat.nameKo}</span>
+          {MAIN_NAV.map((item) => (
+            <Link key={item.key} href={item.href} className="nav-item">
+              <span className="nav-icon" aria-hidden="true">
+                {NAV_ICONS[item.key]}
+              </span>
+              <span>{item.nameKo}</span>
             </Link>
           ))}
           <Link href="/directory" className="nav-item">
-            <span className="nav-icon" aria-hidden="true">{NAV_ICONS.directory}</span>
+            <span className="nav-icon" aria-hidden="true">
+              {NAV_ICONS.directory}
+            </span>
             <span>업체 디렉토리</span>
           </Link>
         </nav>

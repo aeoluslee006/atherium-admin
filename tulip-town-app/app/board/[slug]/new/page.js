@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getCategory } from '../../../../lib/categories';
+import { FREE_BOARD_TAGS, isValidFreeBoardTag } from '../../../../lib/freeBoardTags';
 import { supabase } from '../../../../lib/supabaseClient';
 
 const CITIES = ['Holland', 'Grand Rapids', 'Zeeland', 'Hudsonville', 'Other'];
@@ -12,6 +13,8 @@ export default function NewPostPage() {
   const params = useParams();
   const router = useRouter();
   const category = getCategory(params.slug);
+  const isFree = params.slug === 'free';
+  const [subcategory, setSubcategory] = useState('');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [city, setCity] = useState('Holland');
@@ -23,6 +26,11 @@ export default function NewPostPage() {
     setError('');
     setSaving(true);
     try {
+      if (isFree && !isValidFreeBoardTag(subcategory)) {
+        setError('서브카테고리를 선택해 주세요.');
+        return;
+      }
+
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
         setError('글을 쓰려면 로그인이 필요합니다.');
@@ -41,15 +49,21 @@ export default function NewPostPage() {
         setError(`계정이 ${new Date(profile.suspended_until).toLocaleString('ko-KR')}까지 정지되었습니다.`);
         return;
       }
+
+      const payload = {
+        title,
+        body,
+        city,
+        category_slug: params.slug,
+        author_id: sessionData.session.user.id,
+      };
+      if (isFree) {
+        payload.subcategory = subcategory;
+      }
+
       const { data, error: insertError } = await supabase
         .from('posts')
-        .insert({
-          title,
-          body,
-          city,
-          category_slug: params.slug,
-          author_id: sessionData.session.user.id,
-        })
+        .insert(payload)
         .select('id')
         .single();
       if (insertError) throw insertError;
@@ -72,14 +86,42 @@ export default function NewPostPage() {
   return (
     <div className="container">
       <div className="row-between">
-        <h2 className="section-title">
-          {category.nameKo} 글쓰기
-        </h2>
+        <h2 className="section-title">{category.nameKo} 글쓰기</h2>
         <Link href={`/board/${params.slug}`} className="btn btn-outline">
           목록
         </Link>
       </div>
       <form className="card form-card" onSubmit={handleSubmit}>
+        {isFree ? (
+          <fieldset className="free-subcat-fieldset">
+            <legend>
+              서브카테고리 <span className="required-mark">필수</span>
+            </legend>
+            <p className="hint-text free-subcat-hint">글을 쓰기 전에 주제를 먼저 선택해 주세요.</p>
+            <div className="free-subcat-options" role="radiogroup" aria-label="서브카테고리">
+              {FREE_BOARD_TAGS.map((tag) => {
+                const selected = subcategory === tag.slug;
+                return (
+                  <label
+                    key={tag.slug}
+                    className={`free-subcat-option${selected ? ' is-selected' : ''}`}
+                  >
+                    <input
+                      type="radio"
+                      name="subcategory"
+                      value={tag.slug}
+                      checked={selected}
+                      onChange={() => setSubcategory(tag.slug)}
+                      required
+                    />
+                    <span>{tag.nameKo}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
+        ) : null}
+
         <label htmlFor="title">제목</label>
         <input id="title" value={title} onChange={(e) => setTitle(e.target.value)} required />
         <label htmlFor="city">지역</label>
@@ -93,7 +135,7 @@ export default function NewPostPage() {
         <label htmlFor="body">내용</label>
         <textarea id="body" value={body} onChange={(e) => setBody(e.target.value)} required />
         {error ? <div className="error-text">{error}</div> : null}
-        <button className="btn" type="submit" disabled={saving}>
+        <button className="btn" type="submit" disabled={saving || (isFree && !subcategory)}>
           {saving ? '등록 중…' : '등록'}
         </button>
       </form>

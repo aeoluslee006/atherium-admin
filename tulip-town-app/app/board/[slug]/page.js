@@ -1,10 +1,15 @@
 import Link from 'next/link';
+import FreeBoardPage from '../../../components/FreeBoardPage';
 import { getCategory } from '../../../lib/categories';
 import { supabaseRest } from '../../../lib/supabaseRest';
 
 export const dynamic = 'force-dynamic';
 
-export default async function BoardPage({ params }) {
+export default async function BoardPage({ params, searchParams }) {
+  if (params.slug === 'free') {
+    return <FreeBoardPage searchParams={searchParams} />;
+  }
+
   const category = getCategory(params.slug);
   if (!category) {
     return (

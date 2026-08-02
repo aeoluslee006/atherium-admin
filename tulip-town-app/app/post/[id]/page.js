@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import CommentForm from '../../../components/CommentForm';
 import { getCategory } from '../../../lib/categories';
+import { getFreeBoardTagLabel } from '../../../lib/freeBoardTags';
 import { supabaseRest } from '../../../lib/supabaseRest';
 
 export const dynamic = 'force-dynamic';
@@ -31,6 +32,8 @@ export default async function PostPage({ params }) {
   }
 
   const category = getCategory(post.category_slug);
+  const freeTagLabel =
+    post.category_slug === 'free' ? getFreeBoardTagLabel(post.subcategory) : '';
 
   return (
     <div className="container">
@@ -47,6 +50,7 @@ export default async function PostPage({ params }) {
           </div>
           <h2 className="section-title" style={{ marginBottom: 4 }}>
             {post.is_pinned ? <span className="post-pinned">[공지]</span> : null}
+            {freeTagLabel ? <span className="subcat-badge">{freeTagLabel}</span> : null}
             {post.title}
           </h2>
           <div className="hint-text">

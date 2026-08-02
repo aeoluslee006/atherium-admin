@@ -79,7 +79,7 @@ export default function LocalNewsPanel({ items = [] }) {
     selected?.summary ||
     selected?.body ||
     (selected
-      ? `${selected.source || '지역'} 소식입니다. 왼쪽 뉴스 ${active + 1}을 선택하셨습니다. 아래 버튼으로 원문을 새 창에서 볼 수 있습니다.`
+      ? `${selected.source || '지역'} 소식입니다. 왼쪽에서 다른 항목을 고르면 이 칸 내용이 바뀝니다.`
       : '');
 
   return (
@@ -96,12 +96,16 @@ export default function LocalNewsPanel({ items = [] }) {
               aria-selected={isActive}
               aria-controls="wf-news-panel"
               id={`wf-news-tab-${n}`}
-              aria-label={item?.title ? `뉴스 ${n}: ${item.title}` : `뉴스 ${n}`}
+              aria-label={item?.title || `지역 뉴스 ${n}`}
               className={`wf-news-thumb${isActive ? ' is-active' : ''}${item ? '' : ' is-empty'}`}
               onClick={() => setActive(index)}
               disabled={!item}
             >
-              <span className="wf-news-thumb-label">뉴스 {n}</span>
+              {item ? (
+                <span className="wf-news-thumb-title">{item.title}</span>
+              ) : (
+                <span className="wf-news-thumb-title wf-news-thumb-title--muted">비어 있음</span>
+              )}
             </button>
           );
         })}
@@ -124,7 +128,6 @@ export default function LocalNewsPanel({ items = [] }) {
           <article className="wf-news-article">
             <div className="wf-news-detail-head">
               <div className="wf-news-detail-meta">
-                <span className="wf-news-detail-slot">뉴스 {active + 1}</span>
                 <span>{selected.source || 'News'}</span>
                 {selected.published_at ? (
                   <>
@@ -140,7 +143,6 @@ export default function LocalNewsPanel({ items = [] }) {
               <p className="wf-news-article-summary">{summary}</p>
 
               <div className="wf-news-article-card" data-slot={active + 1}>
-                <div className="wf-news-article-card-kicker">선택됨 · 뉴스 {active + 1}</div>
                 <div className="wf-news-article-card-source">{selected.source || '지역 뉴스'}</div>
                 {hostnameOf(selected.url) ? (
                   <div className="wf-news-article-card-host">{hostnameOf(selected.url)}</div>
@@ -160,7 +162,7 @@ export default function LocalNewsPanel({ items = [] }) {
               </div>
 
               <p className="wf-news-article-hint">
-                왼쪽 뉴스 1–4를 누르면 이 칸의 제목과 내용이 바뀝니다.
+                왼쪽 목록을 누르면 이 칸의 제목과 내용이 바뀝니다.
               </p>
             </div>
           </article>

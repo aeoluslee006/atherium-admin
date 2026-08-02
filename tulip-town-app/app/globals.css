@@ -13,6 +13,10 @@
   --sponsor-bg: #fff8e8;
   --sponsor-border: #f0d99a;
   --radius: 12px;
+  /* Cosmonova font stack (same families as cosmonova.io) */
+  --font-sans: var(--font-ibm-plex-sans), var(--font-inter), 'IBM Plex Sans', 'Inter', sans-serif;
+  --font-display: var(--font-plus-jakarta), var(--font-ibm-plex-sans), 'Plus Jakarta Sans', 'IBM Plex Sans',
+    'Inter', sans-serif;
 }
 
 * {
@@ -26,11 +30,29 @@ body {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', Roboto,
-    sans-serif;
+  font-family: var(--font-sans);
   background: var(--bg);
   color: var(--ink);
   line-height: 1.5;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: var(--font-sans);
+}
+
+.brand-name,
+.section-title,
+.wf-ads-name,
+.wf-ads-kicker,
+.wf-featured-title,
+.wf-bottom-head h2,
+.wf-news-detail-title,
+.wf-news-thumb-label,
+.category-card .ko {
+  font-family: var(--font-display);
 }
 
 a {
@@ -1077,16 +1099,18 @@ main:has(.home-page) {
 
   .wf-mid,
   .wf-news,
-  .wf-featured {
+  .wf-featured,
+  .wf-news-detail {
     min-height: 0;
   }
 
   .wf-news {
-    min-height: auto;
+    grid-template-columns: 132px minmax(0, 1fr);
+    min-height: 420px;
   }
 
-  .wf-news-row {
-    min-height: 100px;
+  .wf-news-detail {
+    min-height: 420px;
   }
 
   .wf-bottom {
@@ -1118,16 +1142,42 @@ main:has(.home-page) {
     font-size: 24px;
   }
 
-  .wf-news-row {
-    grid-template-columns: 92px minmax(0, 1fr);
-    min-height: 92px;
+  .wf-news {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .wf-news-thumbs {
+    flex-direction: row;
+    overflow-x: auto;
+    border-right: none;
+    border-bottom: 1.5px solid #c5ceda;
   }
 
   .wf-news-thumb {
-    font-size: 16px;
+    flex: 0 0 120px;
+    min-height: 88px;
+    border-bottom: none;
+    border-right: 1px solid #c5ceda;
   }
 
-  .wf-news-title,
+  .wf-news-thumb:last-child {
+    border-right: none;
+  }
+
+  .wf-news-thumb.is-active {
+    box-shadow: inset 0 -3px 0 var(--accent);
+  }
+
+  .wf-news-detail-title {
+    font-size: 18px;
+  }
+
+  .wf-news-frame-wrap,
+  .wf-news-frame {
+    min-height: 280px;
+  }
+
   .wf-news-placeholder {
     font-size: 16px;
   }

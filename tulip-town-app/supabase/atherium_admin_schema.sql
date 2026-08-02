@@ -41,25 +41,58 @@ create policy "anon insert site_visits"
 drop policy if exists "no public read site_visits" on public.site_visits;
 -- reads go through security definer RPCs only
 
--- Keep profile email in sync on signup
+-- Keep profile fields in sync on signup (matches current signup form)
+alter table public.profiles
+  add column if not exists first_name text,
+  add column if not exists last_name text,
+  add column if not exists username text;
+
+create unique index if not exists profiles_username_lower_uidx
+  on public.profiles (lower(username))
+  where username is not null and btrim(username) <> '';
+
 create or replace function public.handle_new_user_profile()
 returns trigger
 language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  v_username text;
+  v_first text;
+  v_last text;
+  v_phone text;
+  v_display text;
 begin
-  insert into public.profiles (id, email, display_name, phone)
+  v_username := nullif(lower(trim(coalesce(new.raw_user_meta_data->>'username', ''))), '');
+  v_first := nullif(trim(coalesce(new.raw_user_meta_data->>'first_name', '')), '');
+  v_last := nullif(trim(coalesce(new.raw_user_meta_data->>'last_name', '')), '');
+  v_phone := nullif(trim(coalesce(new.raw_user_meta_data->>'phone', '')), '');
+  v_display := coalesce(
+    v_username,
+    nullif(trim(coalesce(new.raw_user_meta_data->>'display_name', '')), ''),
+    split_part(coalesce(new.email, ''), '@', 1)
+  );
+
+  insert into public.profiles (
+    id, email, phone, first_name, last_name, username, display_name
+  )
   values (
     new.id,
     new.email,
-    coalesce(new.raw_user_meta_data->>'display_name', split_part(coalesce(new.email, ''), '@', 1)),
-    nullif(new.raw_user_meta_data->>'phone', '')
+    v_phone,
+    v_first,
+    v_last,
+    v_username,
+    v_display
   )
   on conflict (id) do update
-    set email = excluded.email,
-        display_name = coalesce(public.profiles.display_name, excluded.display_name),
-        phone = coalesce(public.profiles.phone, excluded.phone);
+    set email = coalesce(excluded.email, public.profiles.email),
+        phone = coalesce(excluded.phone, public.profiles.phone),
+        first_name = coalesce(excluded.first_name, public.profiles.first_name),
+        last_name = coalesce(excluded.last_name, public.profiles.last_name),
+        username = coalesce(excluded.username, public.profiles.username),
+        display_name = coalesce(excluded.display_name, public.profiles.display_name);
   return new;
 end;
 $$;

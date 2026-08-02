@@ -101,15 +101,16 @@ export default async function HomePage() {
         {ads.map((ad, idx) => {
           if (!ad) {
             return (
-              <div key={`ad-empty-${idx}`} className={`wf-ads-card wf-ads-card--${idx + 1} wf-ads-card--empty`}>
-                <div className="wf-ads-kicker">특별광고</div>
+              <div key={`ad-empty-${idx}`} className="wf-ads-card premium-ad-card wf-ads-card--empty">
+                <div className="wf-ads-kicker">Premium</div>
+                <div className="wf-ads-name wf-ads-name--placeholder">특별광고</div>
               </div>
             );
           }
           const body = (
             <>
+              <div className="wf-ads-kicker">Premium</div>
               {ad.discount_text ? <span className="wf-ads-badge">{ad.discount_text}</span> : null}
-              <div className="wf-ads-kicker">특별광고</div>
               <div className="wf-ads-name">{ad.business_name}</div>
               <div className="wf-ads-meta">
                 {[ad.category, ad.city].filter(Boolean).join(' · ')}
@@ -123,12 +124,12 @@ export default async function HomePage() {
               href={ad.website_url}
               target="_blank"
               rel="noopener noreferrer"
-              className={`wf-ads-card wf-ads-card--${idx + 1}`}
+              className="wf-ads-card premium-ad-card"
             >
               {body}
             </a>
           ) : (
-            <div key={ad.id} className={`wf-ads-card wf-ads-card--${idx + 1}`}>
+            <div key={ad.id} className="wf-ads-card premium-ad-card">
               {body}
             </div>
           );
@@ -169,7 +170,7 @@ export default async function HomePage() {
 
       {/* 3구역 — 동호회 / 중고장터 */}
       <section className="wf-box wf-bottom" aria-label="동호회와 중고장터">
-        <div className="wf-bottom-col">
+        <div className="wf-bottom-col clubs-latest">
           <div className="wf-bottom-head">
             <h2>동호회 최신 글</h2>
             <Link href="/board/clubs">더보기</Link>
@@ -177,7 +178,7 @@ export default async function HomePage() {
           <SimpleRows posts={clubPosts} empty="동호회 게시글이 아직 없습니다." />
         </div>
         <div className="wf-bottom-divider" aria-hidden="true" />
-        <div className="wf-bottom-col">
+        <div className="wf-bottom-col market-latest">
           <div className="wf-bottom-head">
             <h2>중고 장터 최신글</h2>
             <Link href="/board/market">더보기</Link>

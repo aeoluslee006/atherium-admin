@@ -650,37 +650,38 @@ label {
   color: var(--tulip-purple);
 }
 
-/* ===== Home wireframe layout (첫 페이지.xlsx) ===== */
+/* ===== Home wireframe layout (첫 페이지.xlsx) — large panels only ===== */
 .home-page {
-  padding-bottom: 8px;
+  padding-bottom: 28px;
+}
+
+main:has(.home-page) {
+  padding-top: 22px;
+  padding-bottom: 40px;
 }
 
 .wf-box {
   background: #fff;
-  border: 1px solid #cfd6e0;
-  border-radius: 4px;
+  border: 1.5px solid #c5ceda;
+  border-radius: 6px;
   min-width: 0;
 }
 
-/* 1) 특별광고 — 좌우 반반 */
+/* 1) 특별광고 — 좌우 반반, 크게 */
 .wf-ads {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  margin-bottom: 16px;
-}
-
-.wf-ads--one {
-  grid-template-columns: 1fr;
+  gap: 18px;
+  margin-bottom: 20px;
 }
 
 .wf-ads-card {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  min-height: 150px;
-  padding: 22px 24px;
-  border-radius: 4px;
+  min-height: 230px;
+  padding: 32px 34px;
+  border-radius: 6px;
   color: #fff;
   border: 1px solid transparent;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
@@ -688,16 +689,27 @@ label {
 
 .wf-ads-card--1 {
   background:
-    radial-gradient(120% 100% at 100% 0%, rgba(255, 255, 255, 0.25), transparent 55%),
+    radial-gradient(120% 100% at 100% 0%, rgba(255, 255, 255, 0.28), transparent 55%),
     linear-gradient(135deg, #ff3f87 0%, #8b3cf5 50%, #1f8fe0 100%);
-  box-shadow: 0 8px 22px rgba(123, 60, 240, 0.2);
+  box-shadow: 0 12px 28px rgba(123, 60, 240, 0.22);
 }
 
 .wf-ads-card--2 {
   background:
-    radial-gradient(120% 100% at 0% 0%, rgba(255, 255, 255, 0.22), transparent 50%),
+    radial-gradient(120% 100% at 0% 0%, rgba(255, 255, 255, 0.24), transparent 50%),
     linear-gradient(145deg, #ff6a3d 0%, #e23a8c 45%, #5b4bff 100%);
-  box-shadow: 0 8px 22px rgba(226, 58, 140, 0.2);
+  box-shadow: 0 12px 28px rgba(226, 58, 140, 0.22);
+}
+
+.wf-ads-card--empty {
+  align-items: center;
+  text-align: center;
+  opacity: 0.95;
+}
+
+.wf-ads-card--empty .wf-ads-kicker {
+  font-size: 28px;
+  letter-spacing: 1px;
 }
 
 .wf-ads-card:hover {
@@ -706,49 +718,51 @@ label {
 
 .wf-ads-badge {
   align-self: flex-start;
-  margin-bottom: 8px;
-  font-size: 11px;
+  margin-bottom: 12px;
+  font-size: 13px;
   font-weight: 800;
   color: #7a4a00;
   background: #ffe566;
   border-radius: 999px;
-  padding: 4px 10px;
+  padding: 6px 12px;
 }
 
 .wf-ads-kicker {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 700;
-  letter-spacing: 0.4px;
-  opacity: 0.92;
+  letter-spacing: 0.5px;
+  opacity: 0.95;
 }
 
 .wf-ads-name {
-  margin-top: 6px;
-  font-size: 22px;
+  margin-top: 10px;
+  font-size: 30px;
   font-weight: 800;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
 .wf-ads-meta {
-  margin-top: 4px;
-  font-size: 12.5px;
-  opacity: 0.9;
-}
-
-.wf-ads-desc {
-  margin: 8px 0 0;
-  font-size: 13px;
-  line-height: 1.4;
+  margin-top: 8px;
+  font-size: 15px;
   opacity: 0.92;
 }
 
-/* 2) 지역뉴스 | 좋은글  ≈ 60:40 */
+.wf-ads-desc {
+  margin: 12px 0 0;
+  font-size: 15px;
+  line-height: 1.45;
+  opacity: 0.95;
+  max-width: 36em;
+}
+
+/* 2) 지역뉴스 | 좋은글  ≈ 60:40 — 페이지 중앙을 크게 차지 */
 .wf-mid {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
-  gap: 14px;
-  margin-bottom: 16px;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  gap: 18px;
+  margin-bottom: 20px;
   align-items: stretch;
+  min-height: 520px;
 }
 
 .wf-news {
@@ -756,13 +770,15 @@ label {
   flex-direction: column;
   padding: 0;
   overflow: hidden;
+  min-height: 520px;
 }
 
 .wf-news-row {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
-  min-height: 88px;
-  border-bottom: 1px solid #cfd6e0;
+  grid-template-columns: 140px minmax(0, 1fr);
+  flex: 1 1 25%;
+  min-height: 120px;
+  border-bottom: 1.5px solid #c5ceda;
   background: #fff;
 }
 
@@ -778,9 +794,9 @@ label {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-right: 1px solid #cfd6e0;
-  background: #f7f9fc;
-  font-size: 14px;
+  border-right: 1.5px solid #c5ceda;
+  background: #f3f7fc;
+  font-size: 20px;
   font-weight: 800;
   color: var(--accent-dark);
 }
@@ -789,24 +805,24 @@ label {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 14px 16px;
-  gap: 4px;
+  padding: 22px 26px;
+  gap: 8px;
 }
 
 .wf-news-title {
-  font-size: 15px;
+  font-size: 20px;
   font-weight: 700;
   line-height: 1.35;
   color: var(--ink);
 }
 
 .wf-news-sub {
-  font-size: 12.5px;
+  font-size: 14px;
   color: var(--ink-soft);
 }
 
 .wf-news-placeholder {
-  font-size: 14px;
+  font-size: 18px;
   color: #9aa3b2;
 }
 
@@ -819,16 +835,17 @@ label {
   flex-direction: column;
   padding: 0;
   overflow: hidden;
+  min-height: 520px;
 }
 
 .wf-featured-title {
-  padding: 14px 16px;
-  border-bottom: 1px solid #cfd6e0;
+  padding: 20px 18px;
+  border-bottom: 1.5px solid #c5ceda;
   text-align: center;
-  font-size: 16px;
+  font-size: 22px;
   font-weight: 800;
   color: var(--ink);
-  background: #fafbfd;
+  background: #f7f9fc;
 }
 
 .wf-featured-list {
@@ -836,12 +853,13 @@ label {
   margin: 0;
   padding: 0;
   flex: 1;
+  overflow: auto;
 }
 
 .wf-featured-row {
   display: block;
-  padding: 12px 16px;
-  border-bottom: 1px solid #e8edf4;
+  padding: 18px 22px;
+  border-bottom: 1px solid #e4eaf2;
 }
 
 .wf-featured-list li:last-child .wf-featured-row {
@@ -851,14 +869,14 @@ label {
 .wf-featured-meta {
   display: flex;
   justify-content: space-between;
-  gap: 8px;
-  font-size: 11.5px;
+  gap: 10px;
+  font-size: 13px;
   color: var(--ink-soft);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .wf-featured-name {
-  font-size: 14.5px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--ink);
   line-height: 1.35;
@@ -869,48 +887,50 @@ label {
 }
 
 .wf-featured-excerpt {
-  margin: 4px 0 0;
-  font-size: 12.5px;
+  margin: 6px 0 0;
+  font-size: 14px;
   color: var(--ink-soft);
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
 /* 3) 동호회 | 중고장터 — 하나의 큰 박스 */
 .wf-bottom {
   display: grid;
-  grid-template-columns: 1fr 1px 1fr;
-  margin-bottom: 28px;
+  grid-template-columns: 1fr 1.5px 1fr;
+  min-height: 320px;
   overflow: hidden;
 }
 
 .wf-bottom-col {
-  padding: 14px 16px 10px;
+  padding: 22px 24px 16px;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .wf-bottom-divider {
-  background: #cfd6e0;
+  background: #c5ceda;
 }
 
 .wf-bottom-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 8px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #e8edf4;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e4eaf2;
 }
 
 .wf-bottom-head h2 {
   margin: 0;
-  font-size: 15px;
+  font-size: 20px;
   font-weight: 800;
   color: var(--ink);
 }
 
 .wf-bottom-head a {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--ink-soft);
 }
 
@@ -922,14 +942,15 @@ label {
   list-style: none;
   margin: 0;
   padding: 0;
+  flex: 1;
 }
 
 .wf-list-row {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 12px;
-  padding: 10px 0;
+  gap: 14px;
+  padding: 14px 0;
   border-bottom: 1px solid #eef2f7;
 }
 
@@ -938,7 +959,7 @@ label {
 }
 
 .wf-list-title {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--ink);
   min-width: 0;
@@ -949,20 +970,23 @@ label {
 }
 
 .wf-list-date {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--ink-soft);
   white-space: nowrap;
 }
 
 .wf-empty {
-  padding: 22px 12px;
+  padding: 36px 16px;
   text-align: center;
   color: var(--ink-soft);
-  font-size: 13.5px;
+  font-size: 16px;
 }
 
-.home-boards {
-  margin-top: 8px;
+.wf-empty--grow {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 @media (max-width: 960px) {
@@ -971,32 +995,76 @@ label {
     grid-template-columns: 1fr;
   }
 
+  .wf-mid,
+  .wf-news,
+  .wf-featured {
+    min-height: 0;
+  }
+
+  .wf-news {
+    min-height: auto;
+  }
+
+  .wf-news-row {
+    min-height: 100px;
+  }
+
   .wf-bottom {
     grid-template-columns: 1fr;
+    min-height: 0;
   }
 
   .wf-bottom-divider {
-    height: 1px;
+    height: 1.5px;
     width: 100%;
   }
 }
 
 @media (max-width: 640px) {
+  .wf-ads {
+    gap: 12px;
+  }
+
   .wf-ads-card {
-    min-height: 120px;
-    padding: 18px 16px;
+    min-height: 170px;
+    padding: 24px 20px;
+  }
+
+  .wf-ads-card--empty .wf-ads-kicker {
+    font-size: 22px;
   }
 
   .wf-ads-name {
-    font-size: 18px;
+    font-size: 24px;
   }
 
   .wf-news-row {
-    grid-template-columns: 76px minmax(0, 1fr);
-    min-height: 76px;
+    grid-template-columns: 92px minmax(0, 1fr);
+    min-height: 92px;
   }
 
   .wf-news-thumb {
-    font-size: 12.5px;
+    font-size: 16px;
+  }
+
+  .wf-news-title,
+  .wf-news-placeholder {
+    font-size: 16px;
+  }
+
+  .wf-featured-title {
+    font-size: 18px;
+  }
+
+  .wf-featured-name {
+    font-size: 16px;
+  }
+
+  .wf-bottom-head h2 {
+    font-size: 17px;
+  }
+
+  .wf-list-title {
+    font-size: 15px;
   }
 }

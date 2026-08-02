@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { CATEGORIES, getCategory } from '../lib/categories';
+import { getCategory } from '../lib/categories';
 import { supabaseRest } from '../lib/supabaseRest';
 
 export const dynamic = 'force-dynamic';
@@ -13,7 +13,7 @@ function formatDate(value) {
   }
 }
 
-function excerpt(text, max = 90) {
+function excerpt(text, max = 110) {
   if (!text) return '';
   const plain = String(text)
     .replace(/<[^>]+>/g, ' ')
@@ -32,32 +32,33 @@ async function safeRest(path) {
 }
 
 async function getHomeData() {
-  const [premiumAds, localNews, featuredPosts, clubPosts, marketPosts, latestPosts] =
-    await Promise.all([
-      safeRest(
-        'sponsors?select=id,business_name,category,city,description,website_url,discount_text,tier,listing_type,status&listing_type=eq.banner&status=eq.approved&tier=eq.premium&order=created_at.desc&limit=2'
-      ),
-      safeRest(
-        'local_news?select=id,title,source,url,published_at,is_active&is_active=eq.true&order=published_at.desc&limit=4'
-      ),
-      safeRest(
-        'posts?select=id,title,body,category_slug,created_at,is_featured&is_featured=eq.true&order=created_at.desc&limit=10'
-      ),
-      safeRest(
-        'posts?select=id,title,created_at&category_slug=eq.clubs&order=created_at.desc&limit=5'
-      ),
-      safeRest(
-        'posts?select=id,title,created_at&category_slug=eq.market&order=created_at.desc&limit=5'
-      ),
-      safeRest(
-        'posts?select=id,title,category_slug,city,is_pinned,created_at&order=is_pinned.desc,created_at.desc&limit=12'
-      ),
-    ]);
+  const [premiumAds, localNews, featuredPosts, clubPosts, marketPosts] = await Promise.all([
+    safeRest(
+      'sponsors?select=id,business_name,category,city,description,website_url,discount_text,tier,listing_type,status&listing_type=eq.banner&status=eq.approved&tier=eq.premium&order=created_at.desc&limit=2'
+    ),
+    safeRest(
+      'local_news?select=id,title,source,url,published_at,is_active&is_active=eq.true&order=published_at.desc&limit=4'
+    ),
+    safeRest(
+      'posts?select=id,title,body,category_slug,created_at,is_featured&is_featured=eq.true&order=created_at.desc&limit=10'
+    ),
+    safeRest(
+      'posts?select=id,title,created_at&category_slug=eq.clubs&order=created_at.desc&limit=6'
+    ),
+    safeRest(
+      'posts?select=id,title,created_at&category_slug=eq.market&order=created_at.desc&limit=6'
+    ),
+  ]);
 
-  return { premiumAds, localNews, featuredPosts, clubPosts, marketPosts, latestPosts };
+  return { premiumAds, localNews, featuredPosts, clubPosts, marketPosts };
 }
 
-/** Always render 4 news slots like the wireframe (뉴스 1~4). */
+function padAds(ads) {
+  const rows = Array.isArray(ads) ? [...ads] : [];
+  while (rows.length < 2) rows.push(null);
+  return rows.slice(0, 2);
+}
+
 function newsSlots(localNews) {
   const rows = Array.isArray(localNews) ? localNews : [];
   return Array.from({ length: 4 }, (_, i) => rows[i] || null);
@@ -82,54 +83,52 @@ function SimpleRows({ posts, empty }) {
 }
 
 export default async function HomePage() {
-  const { premiumAds, localNews, featuredPosts, clubPosts, marketPosts, latestPosts } =
-    await getHomeData();
+  const { premiumAds, localNews, featuredPosts, clubPosts, marketPosts } = await getHomeData();
+  const ads = padAds(premiumAds);
   const slots = newsSlots(localNews);
 
   return (
     <div className="container home-page">
-      {/* 1구역 — 특별광고 50:50 (엑셀: 좌우 큰 박스 2개) */}
-      {premiumAds?.length ? (
-        <section
-          className={`wf-ads${premiumAds.length === 1 ? ' wf-ads--one' : ''}`}
-          aria-label="특별광고"
-        >
-          {premiumAds.map((ad, idx) => {
-            const body = (
-              <>
-                {ad.discount_text ? (
-                  <span className="wf-ads-badge">{ad.discount_text}</span>
-                ) : null}
+      {/* 1구역 — 특별광고 50:50 (엑셀처럼 항상 2칸, 크게) */}
+      <section className="wf-ads" aria-label="특별광고">
+        {ads.map((ad, idx) => {
+          if (!ad) {
+            return (
+              <div key={`ad-empty-${idx}`} className={`wf-ads-card wf-ads-card--${idx + 1} wf-ads-card--empty`}>
                 <div className="wf-ads-kicker">특별광고</div>
-                <div className="wf-ads-name">{ad.business_name}</div>
-                <div className="wf-ads-meta">
-                  {[ad.category, ad.city].filter(Boolean).join(' · ')}
-                </div>
-                {ad.description ? (
-                  <p className="wf-ads-desc">{excerpt(ad.description, 70)}</p>
-                ) : null}
-              </>
-            );
-            return ad.website_url ? (
-              <a
-                key={ad.id}
-                href={ad.website_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`wf-ads-card wf-ads-card--${idx + 1}`}
-              >
-                {body}
-              </a>
-            ) : (
-              <div key={ad.id} className={`wf-ads-card wf-ads-card--${idx + 1}`}>
-                {body}
               </div>
             );
-          })}
-        </section>
-      ) : null}
+          }
+          const body = (
+            <>
+              {ad.discount_text ? <span className="wf-ads-badge">{ad.discount_text}</span> : null}
+              <div className="wf-ads-kicker">특별광고</div>
+              <div className="wf-ads-name">{ad.business_name}</div>
+              <div className="wf-ads-meta">
+                {[ad.category, ad.city].filter(Boolean).join(' · ')}
+              </div>
+              {ad.description ? <p className="wf-ads-desc">{excerpt(ad.description, 90)}</p> : null}
+            </>
+          );
+          return ad.website_url ? (
+            <a
+              key={ad.id}
+              href={ad.website_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`wf-ads-card wf-ads-card--${idx + 1}`}
+            >
+              {body}
+            </a>
+          ) : (
+            <div key={ad.id} className={`wf-ads-card wf-ads-card--${idx + 1}`}>
+              {body}
+            </div>
+          );
+        })}
+      </section>
 
-      {/* 2구역 — 지역뉴스(좌 ~60%) / 좋은글(우 ~40%) */}
+      {/* 2구역 — 지역뉴스(좌) / 좋은글(우) */}
       <section className="wf-mid" aria-label="지역뉴스와 좋은글">
         <div className="wf-box wf-news">
           {slots.map((item, index) => {
@@ -183,7 +182,7 @@ export default async function HomePage() {
                       </div>
                       <div className="wf-featured-name">{post.title}</div>
                       {post.body ? (
-                        <p className="wf-featured-excerpt">{excerpt(post.body, 72)}</p>
+                        <p className="wf-featured-excerpt">{excerpt(post.body, 90)}</p>
                       ) : null}
                     </Link>
                   </li>
@@ -191,12 +190,12 @@ export default async function HomePage() {
               })}
             </ul>
           ) : (
-            <div className="wf-empty">아직 지정된 좋은글이 없습니다.</div>
+            <div className="wf-empty wf-empty--grow">아직 지정된 좋은글이 없습니다.</div>
           )}
         </div>
       </section>
 
-      {/* 3구역 — 하나의 큰 박스 안 좌우: 동호회 / 중고장터 */}
+      {/* 3구역 — 동호회 / 중고장터 한 박스 */}
       <section className="wf-box wf-bottom" aria-label="동호회와 중고장터">
         <div className="wf-bottom-col">
           <div className="wf-bottom-head">
@@ -212,43 +211,6 @@ export default async function HomePage() {
             <Link href="/board/market">더보기</Link>
           </div>
           <SimpleRows posts={marketPosts} empty="중고장터 게시글이 아직 없습니다." />
-        </div>
-      </section>
-
-      {/* 와이어프레임 아래 — 기존 게시판/최신글 유지 */}
-      <section className="home-boards">
-        <h2 className="section-title">게시판 · Boards</h2>
-        <div className="category-grid">
-          {CATEGORIES.map((cat) => (
-            <Link key={cat.slug} href={`/board/${cat.slug}`} className="category-card">
-              <div className="ko">{cat.nameKo}</div>
-              <div className="en">{cat.nameEn}</div>
-              <div className="desc">{cat.desc}</div>
-            </Link>
-          ))}
-          <Link href="/directory" className="category-card">
-            <div className="ko">업체 디렉토리</div>
-            <div className="en">Business Directory</div>
-            <div className="desc">한인 업체 · Local Korean businesses</div>
-          </Link>
-        </div>
-
-        <h2 className="section-title">최신 글 · Latest posts</h2>
-        <div className="card">
-          {latestPosts?.length ? (
-            latestPosts.map((post) => (
-              <Link key={post.id} href={`/post/${post.id}`} className="post-row">
-                <span className="post-title">
-                  {post.is_pinned ? <span className="post-pinned">[공지]</span> : null}
-                  {post.city ? <span className="city-tag">{post.city}</span> : null}
-                  {post.title}
-                </span>
-                <span className="post-meta">{formatDate(post.created_at)}</span>
-              </Link>
-            ))
-          ) : (
-            <div className="empty-state">아직 게시글이 없습니다. 첫 글을 남겨보세요!</div>
-          )}
         </div>
       </section>
     </div>

@@ -5,23 +5,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 
-const US_STATES = [
-  'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
-  'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
-  'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
-  'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
-  'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY', 'DC',
-];
-
 function normalizeUsername(value) {
   return String(value || '')
     .trim()
     .toLowerCase()
     .replace(/\s+/g, '');
-}
-
-function formatAddressLine({ street, city, state, zip }) {
-  return `${street}, ${city}, ${state} ${zip}`.replace(/\s+/g, ' ').trim();
 }
 
 export default function SignupPage() {
@@ -30,10 +18,6 @@ export default function SignupPage() {
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [street, setStreet] = useState('');
-  const [city, setCity] = useState('');
-  const [state, setState] = useState('MI');
-  const [zip, setZip] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
@@ -50,10 +34,6 @@ export default function SignupPage() {
     const first = firstName.trim();
     const last = lastName.trim();
     const phoneValue = phone.trim();
-    const streetValue = street.trim();
-    const cityValue = city.trim();
-    const stateValue = state.trim().toUpperCase();
-    const zipValue = zip.trim();
     const publicId = normalizeUsername(username);
 
     try {
@@ -65,18 +45,6 @@ export default function SignupPage() {
         setError('전화번호를 입력해 주세요.');
         return;
       }
-      if (!streetValue || !cityValue || !stateValue || !zipValue) {
-        setError('집주소(거리명, 도시, 주, 우편번호)를 모두 입력해 주세요.');
-        return;
-      }
-      if (!/^[A-Z]{2}$/.test(stateValue)) {
-        setError('주(State)를 선택해 주세요.');
-        return;
-      }
-      if (!/^\d{5}(-\d{4})?$/.test(zipValue)) {
-        setError('우편번호는 12345 또는 12345-6789 형식으로 입력해 주세요.');
-        return;
-      }
       if (!/^[a-z0-9._-]{3,20}$/.test(publicId)) {
         setError('아이디는 영문 소문자/숫자/._- 3~20자로 입력해 주세요.');
         return;
@@ -85,13 +53,6 @@ export default function SignupPage() {
         setError('비밀번호 확인이 일치하지 않습니다.');
         return;
       }
-
-      const addressValue = formatAddressLine({
-        street: streetValue,
-        city: cityValue,
-        state: stateValue,
-        zip: zipValue,
-      });
 
       const [{ data: takenByUsername }, { data: takenByDisplay }] = await Promise.all([
         supabase.from('profiles').select('id').eq('username', publicId).maybeSingle(),
@@ -110,11 +71,6 @@ export default function SignupPage() {
             first_name: first,
             last_name: last,
             phone: phoneValue,
-            address: addressValue,
-            address_street: streetValue,
-            address_city: cityValue,
-            address_state: stateValue,
-            address_zip: zipValue,
             username: publicId,
             display_name: publicId,
           },
@@ -129,11 +85,6 @@ export default function SignupPage() {
           phone: phoneValue,
           first_name: first,
           last_name: last,
-          address: addressValue,
-          address_street: streetValue,
-          address_city: cityValue,
-          address_state: stateValue,
-          address_zip: zipValue,
           username: publicId,
           display_name: publicId,
         };
@@ -144,7 +95,6 @@ export default function SignupPage() {
             email,
             phone: phoneValue,
             display_name: publicId,
-            address: addressValue,
           });
         }
       }
@@ -209,62 +159,6 @@ export default function SignupPage() {
           autoComplete="email"
           required
         />
-
-        <fieldset className="address-fieldset">
-          <legend>집주소</legend>
-
-          <label htmlFor="street">거리명 · Street</label>
-          <input
-            id="street"
-            value={street}
-            onChange={(e) => setStreet(e.target.value)}
-            placeholder="123 Main St"
-            autoComplete="street-address"
-            required
-          />
-
-          <div className="form-row-city-state-zip">
-            <div className="form-field-city">
-              <label htmlFor="city">도시 · City</label>
-              <input
-                id="city"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="Holland"
-                autoComplete="address-level2"
-                required
-              />
-            </div>
-            <div className="form-field-state">
-              <label htmlFor="state">주 · State</label>
-              <select
-                id="state"
-                value={state}
-                onChange={(e) => setState(e.target.value)}
-                autoComplete="address-level1"
-                required
-              >
-                {US_STATES.map((code) => (
-                  <option key={code} value={code}>
-                    {code}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="form-field-zip">
-              <label htmlFor="zip">우편번호 · ZIP</label>
-              <input
-                id="zip"
-                value={zip}
-                onChange={(e) => setZip(e.target.value)}
-                placeholder="49423"
-                autoComplete="postal-code"
-                inputMode="numeric"
-                required
-              />
-            </div>
-          </div>
-        </fieldset>
 
         <label htmlFor="username">아이디</label>
         <input

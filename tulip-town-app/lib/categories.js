@@ -41,6 +41,12 @@ export const CATEGORIES = [
     nameEn: 'Jobs',
     desc: '구인 · 구직 · Hiring & job seeking',
   },
+  {
+    slug: 'clubs',
+    nameKo: '동호회',
+    nameEn: 'Clubs',
+    desc: '취미 · 모임 · Interest groups & clubs',
+  },
 ];
 
 export function getCategory(slug) {

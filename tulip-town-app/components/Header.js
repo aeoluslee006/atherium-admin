@@ -52,6 +52,14 @@ const NAV_ICONS = {
       <line x1="3" y1="12" x2="21" y2="12" />
     </svg>
   ),
+  clubs: (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="9" cy="8" r="3" />
+      <circle cx="16" cy="9" r="2.5" />
+      <path d="M3.5 19c.6-3 2.8-4.5 5.5-4.5S14 16 14.5 19" />
+      <path d="M13 15.2c1.2-.7 2.6-1 4-.8 2 .3 3.5 1.6 4 3.6" />
+    </svg>
+  ),
   directory: (
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <rect x="4" y="3" width="10" height="18" />

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import LocalNewsPanel from '../components/LocalNewsPanel';
 import { getCategory } from '../lib/categories';
 import { supabaseRest } from '../lib/supabaseRest';
 
@@ -59,11 +60,6 @@ function padAds(ads) {
   return rows.slice(0, 2);
 }
 
-function newsSlots(localNews) {
-  const rows = Array.isArray(localNews) ? localNews : [];
-  return Array.from({ length: 4 }, (_, i) => rows[i] || null);
-}
-
 function SimpleRows({ posts, empty }) {
   if (!posts?.length) {
     return <div className="wf-empty">{empty}</div>;
@@ -85,11 +81,10 @@ function SimpleRows({ posts, empty }) {
 export default async function HomePage() {
   const { premiumAds, localNews, featuredPosts, clubPosts, marketPosts } = await getHomeData();
   const ads = padAds(premiumAds);
-  const slots = newsSlots(localNews);
 
   return (
     <div className="container home-page">
-      {/* 1구역 — 특별광고 50:50 (엑셀처럼 항상 2칸, 크게) */}
+      {/* 1구역 — 특별광고 50:50 */}
       <section className="wf-ads" aria-label="특별광고">
         {ads.map((ad, idx) => {
           if (!ad) {
@@ -128,44 +123,9 @@ export default async function HomePage() {
         })}
       </section>
 
-      {/* 2구역 — 지역뉴스(좌) / 좋은글(우) */}
+      {/* 2구역 — 지역뉴스(축소판→전체) / 좋은글 */}
       <section className="wf-mid" aria-label="지역뉴스와 좋은글">
-        <div className="wf-box wf-news">
-          {slots.map((item, index) => {
-            const n = index + 1;
-            if (!item) {
-              return (
-                <div key={`empty-${n}`} className="wf-news-row wf-news-row--empty">
-                  <div className="wf-news-thumb">
-                    <span>뉴스 {n}</span>
-                  </div>
-                  <div className="wf-news-content">
-                    <div className="wf-news-placeholder">지역 뉴스 내용보기</div>
-                  </div>
-                </div>
-              );
-            }
-            return (
-              <a
-                key={item.id}
-                href={item.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="wf-news-row"
-              >
-                <div className="wf-news-thumb">
-                  <span>뉴스 {n}</span>
-                </div>
-                <div className="wf-news-content">
-                  <div className="wf-news-title">{item.title}</div>
-                  <div className="wf-news-sub">
-                    {[item.source, formatDate(item.published_at)].filter(Boolean).join(' · ')}
-                  </div>
-                </div>
-              </a>
-            );
-          })}
-        </div>
+        <LocalNewsPanel items={localNews || []} />
 
         <div className="wf-box wf-featured">
           <div className="wf-featured-title">좋은 글</div>
@@ -195,7 +155,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* 3구역 — 동호회 / 중고장터 한 박스 */}
+      {/* 3구역 — 동호회 / 중고장터 */}
       <section className="wf-box wf-bottom" aria-label="동호회와 중고장터">
         <div className="wf-bottom-col">
           <div className="wf-bottom-head">

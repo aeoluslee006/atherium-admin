@@ -19,6 +19,14 @@ function withFrameAncestors(response) {
   return response;
 }
 
+function passThrough(request) {
+  return withFrameAncestors(
+    NextResponse.next({
+      request: { headers: request.headers },
+    })
+  );
+}
+
 function redirectToLogin(request) {
   const login = new URL('/login', request.url);
   login.searchParams.set('next', `${request.nextUrl.pathname}${request.nextUrl.search}`);
@@ -26,11 +34,17 @@ function redirectToLogin(request) {
 }
 
 export async function middleware(request) {
-  let response = withFrameAncestors(
-    NextResponse.next({
-      request: { headers: request.headers },
-    })
-  );
+  const path = request.nextUrl.pathname;
+  const isAdminRoute = path.startsWith('/admin');
+  const isMemberWriteRoute =
+    /^\/board\/[^/]+\/new\/?$/.test(path) || /^\/directory\/new\/?$/.test(path);
+
+  // Board/directory browse pages stay public
+  if (!isAdminRoute && !isMemberWriteRoute) {
+    return passThrough(request);
+  }
+
+  let response = passThrough(request);
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
@@ -39,12 +53,12 @@ export async function middleware(request) {
       },
       set(name, value, options) {
         request.cookies.set({ name, value, ...options });
-        response = withFrameAncestors(NextResponse.next({ request: { headers: request.headers } }));
+        response = passThrough(request);
         response.cookies.set({ name, value, ...options });
       },
       remove(name, options) {
         request.cookies.set({ name, value: '', ...options });
-        response = withFrameAncestors(NextResponse.next({ request: { headers: request.headers } }));
+        response = passThrough(request);
         response.cookies.set({ name, value: '', ...options });
       },
     },
@@ -54,21 +68,14 @@ export async function middleware(request) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const path = request.nextUrl.pathname;
-  const isAdminRoute = path.startsWith('/admin');
-  const isMemberWriteRoute =
-    /^\/board\/[^/]+\/new\/?$/.test(path) || /^\/directory\/new\/?$/.test(path);
-
   if (!user) {
     return redirectToLogin(request);
   }
 
-  // Board/directory write pages: any logged-in member
   if (isMemberWriteRoute && !isAdminRoute) {
     return response;
   }
 
-  // Admin routes: admin only
   if (isAdminRoute) {
     const { data: profile } = await supabase
       .from('profiles')
@@ -85,5 +92,5 @@ export async function middleware(request) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/board/:slug/new', '/directory/new'],
+  matcher: ['/admin/:path*', '/board/:path*', '/directory/:path*'],
 };

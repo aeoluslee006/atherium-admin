@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getCategory } from '../../../../lib/categories';
-import { FREE_BOARD_TAGS, isValidFreeBoardTag } from '../../../../lib/freeBoardTags';
+import { FREE_BOARD_WRITE_TAGS, isValidFreeBoardWriteTag } from '../../../../lib/freeBoardTags';
 import { supabase } from '../../../../lib/supabaseClient';
 
 const CITIES = ['Holland', 'Grand Rapids', 'Zeeland', 'Hudsonville', 'Other'];
@@ -26,7 +26,7 @@ export default function NewPostPage() {
     setError('');
     setSaving(true);
     try {
-      if (isFree && !isValidFreeBoardTag(subcategory)) {
+      if (isFree && !isValidFreeBoardWriteTag(subcategory)) {
         setError('서브카테고리를 선택해 주세요.');
         return;
       }
@@ -59,6 +59,8 @@ export default function NewPostPage() {
       };
       if (isFree) {
         payload.subcategory = subcategory;
+        // 좋은글 선택 시 목록 필터(is_featured)와 맞춤
+        payload.is_featured = subcategory === 'featured';
       }
 
       const { data, error: insertError } = await supabase

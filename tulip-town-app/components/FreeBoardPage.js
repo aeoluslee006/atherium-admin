@@ -11,26 +11,23 @@ function formatDate(value) {
   }
 }
 
-function buildHref({ tab, tag }) {
-  const params = new URLSearchParams();
-  if (tab && tab !== 'latest') params.set('tab', tab);
-  if (tag && tag !== 'all') params.set('tag', tag);
-  const qs = params.toString();
-  return qs ? `/board/free?${qs}` : '/board/free';
+function buildHref(tag) {
+  if (!tag || tag === 'all') return '/board/free';
+  return `/board/free?tag=${encodeURIComponent(tag)}`;
 }
 
 export default async function FreeBoardPage({ searchParams = {} }) {
-  const tab = searchParams.tab === 'featured' ? 'featured' : 'latest';
-  const tag = isValidFreeBoardTag(searchParams.tag) ? searchParams.tag : 'all';
+  const rawTag = searchParams.tag || 'all';
+  const isFeaturedFilter = rawTag === 'featured';
+  const tag = isFeaturedFilter ? 'featured' : isValidFreeBoardTag(rawTag) ? rawTag : 'all';
 
   let posts = [];
   try {
     let path =
       'posts?select=id,title,subcategory,created_at,is_featured&category_slug=eq.free';
-    if (tab === 'featured') {
+    if (isFeaturedFilter) {
       path += '&is_featured=eq.true';
-    }
-    if (tag !== 'all') {
+    } else if (tag !== 'all') {
       path += `&subcategory=eq.${encodeURIComponent(tag)}`;
     }
     path += '&order=created_at.desc';
@@ -41,56 +38,45 @@ export default async function FreeBoardPage({ searchParams = {} }) {
 
   return (
     <div className="container">
-      <div className="row-between">
-        <div>
-          <h2 className="section-title" style={{ marginBottom: 4 }}>
-            자유게시판 · Free Board
-          </h2>
-          <div className="hint-text">자유롭게 이야기해요 · General talk</div>
-        </div>
-        <Link href="/board/free/new" className="btn">
-          글쓰기
-        </Link>
-      </div>
+      <header className="free-board-head">
+        <h2 className="section-title" style={{ marginBottom: 4 }}>
+          자유게시판 · Free Board
+        </h2>
+        <div className="hint-text">자유롭게 이야기해요 · General talk</div>
+      </header>
 
       <div className="wf-box free-board">
-        <div className="free-board-tabs" role="tablist" aria-label="자유게시판 정렬">
+        <div className="free-board-chips" role="list" aria-label="카테고리 필터">
           <Link
-            href={buildHref({ tab: 'latest', tag })}
-            role="tab"
-            aria-selected={tab === 'latest'}
-            className={`free-board-tab${tab === 'latest' ? ' is-active' : ''}`}
-          >
-            최신글
-          </Link>
-          <Link
-            href={buildHref({ tab: 'featured', tag })}
-            role="tab"
-            aria-selected={tab === 'featured'}
-            className={`free-board-tab${tab === 'featured' ? ' is-active' : ''}`}
-          >
-            좋은글
-          </Link>
-        </div>
-
-        <div className="free-board-chips" role="list" aria-label="서브카테고리 필터">
-          <Link
-            href={buildHref({ tab, tag: 'all' })}
+            href={buildHref('all')}
             role="listitem"
             className={`free-board-chip${tag === 'all' ? ' is-active' : ''}`}
           >
             전체
           </Link>
+          <Link
+            href={buildHref('featured')}
+            role="listitem"
+            className={`free-board-chip${tag === 'featured' ? ' is-active' : ''}`}
+          >
+            좋은글
+          </Link>
           {FREE_BOARD_TAGS.map((t) => (
             <Link
               key={t.slug}
-              href={buildHref({ tab, tag: t.slug })}
+              href={buildHref(t.slug)}
               role="listitem"
               className={`free-board-chip${tag === t.slug ? ' is-active' : ''}`}
             >
               {t.nameKo}
             </Link>
           ))}
+        </div>
+
+        <div className="free-board-toolbar">
+          <Link href="/board/free/new" className="btn">
+            글쓰기
+          </Link>
         </div>
 
         <div className="free-board-list">
@@ -109,7 +95,7 @@ export default async function FreeBoardPage({ searchParams = {} }) {
             })
           ) : (
             <div className="empty-state">
-              {tab === 'featured'
+              {isFeaturedFilter
                 ? '아직 좋은글로 지정된 글이 없습니다.'
                 : tag !== 'all'
                   ? '이 태그로 등록된 글이 아직 없습니다.'

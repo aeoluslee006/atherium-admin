@@ -1400,36 +1400,14 @@ main:has(.home-page) {
   }
 }
 
-/* Free board — tabs, filter chips, line items */
+/* Free board — filter chips, line items */
+.free-board-head {
+  margin-bottom: 14px;
+}
+
 .free-board {
   padding: 0;
   overflow: hidden;
-}
-
-.free-board-tabs {
-  display: flex;
-  gap: 0;
-  border-bottom: 1px solid #edf0f3;
-  background: #fff;
-}
-
-.free-board-tab {
-  flex: 0 0 auto;
-  padding: 14px 20px;
-  font-size: var(--text-body);
-  font-weight: 600;
-  color: var(--ink-soft);
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-}
-
-.free-board-tab:hover {
-  color: var(--ink);
-}
-
-.free-board-tab.is-active {
-  color: var(--ink);
-  border-bottom-color: var(--accent-dark);
 }
 
 .free-board-chips {
@@ -1439,6 +1417,12 @@ main:has(.home-page) {
   padding: 14px 18px;
   border-bottom: 1px solid #edf0f3;
   background: #fafbfc;
+}
+
+.free-board-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 18px 4px;
 }
 
 .free-board-chip {
@@ -1577,12 +1561,12 @@ main:has(.home-page) {
 }
 
 @media (max-width: 640px) {
-  .free-board-tab {
+  .free-board-chips {
     padding: 12px 14px;
   }
 
-  .free-board-chips {
-    padding: 12px 14px;
+  .free-board-toolbar {
+    padding: 10px 14px 2px;
   }
 
   .free-board-list {

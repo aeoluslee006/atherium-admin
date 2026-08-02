@@ -1,25 +1,18 @@
 import './globals.css';
 import Header from '../components/Header';
 import VisitTracker from '../components/VisitTracker';
-import { IBM_Plex_Sans, Inter, Plus_Jakarta_Sans } from 'next/font/google';
+import { Noto_Sans_KR, Plus_Jakarta_Sans } from 'next/font/google';
 
-const ibmPlexSans = IBM_Plex_Sans({
+const notoSansKr = Noto_Sans_KR({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-ibm-plex-sans',
-  display: 'swap',
-});
-
-const inter = Inter({
-  subsets: ['latin'],
-  weight: ['300', '400', '500', '600'],
-  variable: '--font-inter',
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-noto-sans-kr',
   display: 'swap',
 });
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700', '800'],
+  weight: ['500', '600', '700', '800'],
   variable: '--font-plus-jakarta',
   display: 'swap',
 });
@@ -31,8 +24,8 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="ko" className={`${ibmPlexSans.variable} ${inter.variable} ${plusJakarta.variable}`}>
-      <body className={ibmPlexSans.className}>
+    <html lang="ko" className={`${notoSansKr.variable} ${plusJakarta.variable}`}>
+      <body className={notoSansKr.className}>
         <VisitTracker />
         <Header />
         <main>{children}</main>

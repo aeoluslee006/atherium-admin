@@ -45,8 +45,8 @@ export default async function FreeBoardPage({ searchParams = {} }) {
         <div className="hint-text">자유롭게 이야기해요 · General talk</div>
       </header>
 
-      <div className="wf-box free-board">
-        <div className="free-board-chips" role="list" aria-label="카테고리 필터">
+      <div className="board-toolbar">
+        <div className="tag-chips" role="list" aria-label="카테고리 필터">
           <Link
             href={buildHref('all')}
             role="listitem"
@@ -72,13 +72,12 @@ export default async function FreeBoardPage({ searchParams = {} }) {
             </Link>
           ))}
         </div>
+        <Link href="/board/free/new" className="btn">
+          글쓰기
+        </Link>
+      </div>
 
-        <div className="free-board-toolbar">
-          <Link href="/board/free/new" className="btn">
-            글쓰기
-          </Link>
-        </div>
-
+      <div className="wf-box free-board">
         <div className="free-board-list">
           {posts?.length ? (
             posts.map((post) => {

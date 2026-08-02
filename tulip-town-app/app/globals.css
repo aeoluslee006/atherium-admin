@@ -294,6 +294,16 @@ a {
   color: var(--accent-dark);
 }
 
+.nav-item.is-active {
+  background: var(--accent-tint);
+  color: var(--accent-dark);
+  font-weight: 700;
+}
+
+.nav-item.is-active .nav-icon {
+  color: var(--accent-dark);
+}
+
 main {
   padding: 32px 0 60px;
 }

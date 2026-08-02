@@ -188,21 +188,16 @@ export default function Header() {
               </Link>
             );
           })}
-          {(() => {
-            const active = isNavActive(pathname, '/directory');
-            return (
-              <Link
-                href="/directory"
-                className={`nav-item${active ? ' is-active' : ''}`}
-                aria-current={active ? 'page' : undefined}
-              >
-                <span className="nav-icon" aria-hidden="true">
-                  {NAV_ICONS.directory}
-                </span>
-                <span>업체 디렉토리</span>
-              </Link>
-            );
-          })()}
+          <Link
+            href="/directory"
+            className={`nav-item${isNavActive(pathname, '/directory') ? ' is-active' : ''}`}
+            aria-current={isNavActive(pathname, '/directory') ? 'page' : undefined}
+          >
+            <span className="nav-icon" aria-hidden="true">
+              {NAV_ICONS.directory}
+            </span>
+            <span>업체 디렉토리</span>
+          </Link>
         </nav>
       </div>
     </header>

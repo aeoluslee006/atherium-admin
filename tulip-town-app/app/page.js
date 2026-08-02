@@ -32,13 +32,21 @@ async function safeRest(path) {
   }
 }
 
+function isExampleLocalNews(row) {
+  // Ignore the placeholder rows from the example INSERT (제목 1 / 출처명 / 기사URL)
+  if (!row) return true;
+  if (row.url === 'https://기사URL') return true;
+  if (row.source === '출처명' && /^제목\s*\d+$/.test(String(row.title || ''))) return true;
+  return false;
+}
+
 async function getHomeData() {
-  const [premiumAds, localNews, featuredPosts, clubPosts, marketPosts] = await Promise.all([
+  const [premiumAds, localNewsRaw, featuredPosts, clubPosts, marketPosts] = await Promise.all([
     safeRest(
       'sponsors?select=id,business_name,category,city,description,website_url,discount_text,tier,listing_type,status&listing_type=eq.banner&status=eq.approved&tier=eq.premium&order=created_at.desc&limit=2'
     ),
     safeRest(
-      'local_news?select=id,title,source,url,published_at,is_active&is_active=eq.true&order=published_at.desc&limit=4'
+      'local_news?select=id,title,source,url,published_at,is_active&is_active=eq.true&order=published_at.desc&limit=20'
     ),
     safeRest(
       'posts?select=id,title,body,category_slug,created_at,is_featured&is_featured=eq.true&order=created_at.desc&limit=10'
@@ -50,6 +58,10 @@ async function getHomeData() {
       'posts?select=id,title,created_at&category_slug=eq.market&order=created_at.desc&limit=6'
     ),
   ]);
+
+  const localNews = (Array.isArray(localNewsRaw) ? localNewsRaw : [])
+    .filter((row) => !isExampleLocalNews(row))
+    .slice(0, 4);
 
   return { premiumAds, localNews, featuredPosts, clubPosts, marketPosts };
 }

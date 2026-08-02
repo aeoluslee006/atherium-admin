@@ -1,21 +1,7 @@
 import './globals.css';
 import Header from '../components/Header';
 import VisitTracker from '../components/VisitTracker';
-import { Caveat, Noto_Sans_KR, Plus_Jakarta_Sans } from 'next/font/google';
-
-const notoSansKr = Noto_Sans_KR({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
-  variable: '--font-noto-sans-kr',
-  display: 'swap',
-});
-
-const plusJakarta = Plus_Jakarta_Sans({
-  subsets: ['latin'],
-  weight: ['500', '600', '700', '800'],
-  variable: '--font-plus-jakarta',
-  display: 'swap',
-});
+import { Caveat } from 'next/font/google';
 
 const caveat = Caveat({
   subsets: ['latin'],
@@ -31,8 +17,12 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="ko" className={`${notoSansKr.variable} ${plusJakarta.variable} ${caveat.variable}`}>
+    <html lang="ko" className={caveat.variable}>
       <head>
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+        />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
@@ -40,7 +30,7 @@ export default function RootLayout({ children }) {
           rel="stylesheet"
         />
       </head>
-      <body className={notoSansKr.className}>
+      <body>
         <VisitTracker />
         <Header />
         <main>{children}</main>

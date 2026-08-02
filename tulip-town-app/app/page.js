@@ -141,7 +141,9 @@ export default async function HomePage() {
         <LocalNewsPanel items={localNews || []} />
 
         <div className="wf-box wf-featured">
-          <div className="wf-featured-title">좋은 글</div>
+          <div className="panel-header">
+            <h2 className="panel-title">좋은 글</h2>
+          </div>
           {featuredPosts?.length ? (
             <ul className="wf-featured-list">
               {featuredPosts.map((post) => {
@@ -171,17 +173,21 @@ export default async function HomePage() {
       {/* 3구역 — 동호회 / 중고장터 */}
       <section className="wf-box wf-bottom" aria-label="동호회와 중고장터">
         <div className="wf-bottom-col clubs-latest">
-          <div className="wf-bottom-head">
-            <h2>동호회 최신 글</h2>
-            <Link href="/board/clubs">더보기</Link>
+          <div className="panel-header">
+            <h2 className="panel-title">동호회 최신 글</h2>
+            <Link href="/board/clubs" className="panel-more">
+              더보기
+            </Link>
           </div>
           <SimpleRows posts={clubPosts} empty="동호회 게시글이 아직 없습니다." />
         </div>
         <div className="wf-bottom-divider" aria-hidden="true" />
         <div className="wf-bottom-col market-latest">
-          <div className="wf-bottom-head">
-            <h2>중고 장터 최신글</h2>
-            <Link href="/board/market">더보기</Link>
+          <div className="panel-header">
+            <h2 className="panel-title">중고 장터 최신글</h2>
+            <Link href="/board/market" className="panel-more">
+              더보기
+            </Link>
           </div>
           <SimpleRows posts={marketPosts} empty="중고장터 게시글이 아직 없습니다." />
         </div>

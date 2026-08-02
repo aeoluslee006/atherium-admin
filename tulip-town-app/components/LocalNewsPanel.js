@@ -96,15 +96,12 @@ export default function LocalNewsPanel({ items = [] }) {
               aria-selected={isActive}
               aria-controls="wf-news-panel"
               id={`wf-news-tab-${n}`}
+              aria-label={item?.title ? `뉴스 ${n}: ${item.title}` : `뉴스 ${n}`}
               className={`wf-news-thumb${isActive ? ' is-active' : ''}${item ? '' : ' is-empty'}`}
               onClick={() => setActive(index)}
+              disabled={!item}
             >
               <span className="wf-news-thumb-label">뉴스 {n}</span>
-              {item ? (
-                <span className="wf-news-thumb-title">{item.title}</span>
-              ) : (
-                <span className="wf-news-thumb-title wf-news-thumb-title--muted">비어 있음</span>
-              )}
             </button>
           );
         })}

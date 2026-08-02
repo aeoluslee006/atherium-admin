@@ -501,6 +501,29 @@ label {
   min-width: 0;
 }
 
+.address-fieldset {
+  border: 0;
+  margin: 0 0 4px;
+  padding: 0;
+}
+
+.address-fieldset legend {
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--ink-soft);
+  margin-bottom: 8px;
+}
+
+.form-row-city-state-zip {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) 88px 120px;
+  gap: 12px;
+}
+
+.form-row-city-state-zip > div {
+  min-width: 0;
+}
+
 .field-help {
   margin: -6px 0 12px;
   font-size: var(--text-meta);
@@ -509,7 +532,8 @@ label {
 }
 
 @media (max-width: 560px) {
-  .form-row-2 {
+  .form-row-2,
+  .form-row-city-state-zip {
     grid-template-columns: 1fr;
   }
 }

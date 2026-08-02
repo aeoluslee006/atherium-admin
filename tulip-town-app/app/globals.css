@@ -376,7 +376,7 @@ main {
   font-size: var(--text-xs);
   font-weight: 600;
   color: var(--accent-dark);
-  background: #eaf5ee;
+  background: var(--accent-tint);
   border-radius: 10px;
   padding: 2px 8px;
   margin-right: 6px;
@@ -1317,17 +1317,14 @@ main:has(.home-page) {
     gap: 12px;
   }
 
-  .wf-ads-card {
-    min-height: 110px;
-    padding: 16px 18px;
-  }
-
-  .wf-ads-card--empty .wf-ads-kicker {
-    font-size: var(--text-lg);
+  .wf-ads-card,
+  .premium-ad-card {
+    min-height: 96px;
+    padding: 14px 16px;
   }
 
   .wf-ads-name {
-    font-size: var(--text-xl);
+    font-size: 18px;
   }
 
   .wf-news {

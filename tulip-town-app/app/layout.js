@@ -1,6 +1,21 @@
 import './globals.css';
 import Header from '../components/Header';
 import VisitTracker from '../components/VisitTracker';
+import { Noto_Sans_KR, Plus_Jakarta_Sans } from 'next/font/google';
+
+const notoSansKr = Noto_Sans_KR({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-noto-sans-kr',
+  display: 'swap',
+});
+
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  weight: ['500', '600', '700', '800'],
+  variable: '--font-plus-jakarta',
+  display: 'swap',
+});
 
 export const metadata = {
   title: 'Tulip Town Korean Community',
@@ -9,20 +24,8 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="ko">
-      <head>
-        <link
-          rel="stylesheet"
-          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
-        />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&display=swap"
-        />
-      </head>
-      <body>
+    <html lang="ko" className={`${notoSansKr.variable} ${plusJakarta.variable}`}>
+      <body className={notoSansKr.className}>
         <VisitTracker />
         <Header />
         <main>{children}</main>

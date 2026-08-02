@@ -101,7 +101,7 @@ export default function NewPostPage() {
             </legend>
             <p className="hint-text free-subcat-hint">글을 쓰기 전에 주제를 먼저 선택해 주세요.</p>
             <div className="free-subcat-options" role="radiogroup" aria-label="서브카테고리">
-              {FREE_BOARD_TAGS.map((tag) => {
+              {FREE_BOARD_WRITE_TAGS.map((tag) => {
                 const selected = subcategory === tag.slug;
                 return (
                   <label

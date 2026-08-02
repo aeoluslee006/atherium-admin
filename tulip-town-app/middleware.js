@@ -19,6 +19,12 @@ function withFrameAncestors(response) {
   return response;
 }
 
+function redirectToLogin(request) {
+  const login = new URL('/login', request.url);
+  login.searchParams.set('next', `${request.nextUrl.pathname}${request.nextUrl.search}`);
+  return withFrameAncestors(NextResponse.redirect(login));
+}
+
 export async function middleware(request) {
   let response = withFrameAncestors(
     NextResponse.next({
@@ -48,25 +54,36 @@ export async function middleware(request) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const path = request.nextUrl.pathname;
+  const isAdminRoute = path.startsWith('/admin');
+  const isMemberWriteRoute =
+    /^\/board\/[^/]+\/new\/?$/.test(path) || /^\/directory\/new\/?$/.test(path);
+
   if (!user) {
-    const login = new URL('/login', request.url);
-    login.searchParams.set('next', request.nextUrl.pathname);
-    return withFrameAncestors(NextResponse.redirect(login));
+    return redirectToLogin(request);
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_admin')
-    .eq('id', user.id)
-    .maybeSingle();
+  // Board/directory write pages: any logged-in member
+  if (isMemberWriteRoute && !isAdminRoute) {
+    return response;
+  }
 
-  if (!profile?.is_admin) {
-    return withFrameAncestors(NextResponse.redirect(new URL('/', request.url)));
+  // Admin routes: admin only
+  if (isAdminRoute) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (!profile?.is_admin) {
+      return withFrameAncestors(NextResponse.redirect(new URL('/', request.url)));
+    }
   }
 
   return response;
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: ['/admin/:path*', '/board/:slug/new', '/directory/new'],
 };

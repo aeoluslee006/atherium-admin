@@ -13,7 +13,7 @@ function formatDate(value) {
   }
 }
 
-function excerpt(text, max = 80) {
+function excerpt(text, max = 90) {
   if (!text) return '';
   const plain = String(text)
     .replace(/<[^>]+>/g, ' ')
@@ -41,13 +41,13 @@ async function getHomeData() {
         'local_news?select=id,title,source,url,published_at,is_active&is_active=eq.true&order=published_at.desc&limit=4'
       ),
       safeRest(
-        'posts?select=id,title,body,category_slug,created_at,is_featured&is_featured=eq.true&order=created_at.desc&limit=8'
+        'posts?select=id,title,body,category_slug,created_at,is_featured&is_featured=eq.true&order=created_at.desc&limit=10'
       ),
       safeRest(
-        'posts?select=id,title,created_at,category_slug&category_slug=eq.clubs&order=created_at.desc&limit=5'
+        'posts?select=id,title,created_at&category_slug=eq.clubs&order=created_at.desc&limit=5'
       ),
       safeRest(
-        'posts?select=id,title,created_at,category_slug&category_slug=eq.market&order=created_at.desc&limit=5'
+        'posts?select=id,title,created_at&category_slug=eq.market&order=created_at.desc&limit=5'
       ),
       safeRest(
         'posts?select=id,title,category_slug,city,is_pinned,created_at&order=is_pinned.desc,created_at.desc&limit=12'
@@ -57,17 +57,23 @@ async function getHomeData() {
   return { premiumAds, localNews, featuredPosts, clubPosts, marketPosts, latestPosts };
 }
 
-function PostList({ posts, emptyText }) {
+/** Always render 4 news slots like the wireframe (뉴스 1~4). */
+function newsSlots(localNews) {
+  const rows = Array.isArray(localNews) ? localNews : [];
+  return Array.from({ length: 4 }, (_, i) => rows[i] || null);
+}
+
+function SimpleRows({ posts, empty }) {
   if (!posts?.length) {
-    return <div className="empty-state home-empty">{emptyText}</div>;
+    return <div className="wf-empty">{empty}</div>;
   }
   return (
-    <ul className="home-simple-list">
+    <ul className="wf-list">
       {posts.map((post) => (
         <li key={post.id}>
-          <Link href={`/post/${post.id}`} className="home-simple-item">
-            <span className="home-simple-title">{post.title}</span>
-            <time className="home-simple-date">{formatDate(post.created_at)}</time>
+          <Link href={`/post/${post.id}`} className="wf-list-row">
+            <span className="wf-list-title">{post.title}</span>
+            <time className="wf-list-date">{formatDate(post.created_at)}</time>
           </Link>
         </li>
       ))}
@@ -78,114 +84,106 @@ function PostList({ posts, emptyText }) {
 export default async function HomePage() {
   const { premiumAds, localNews, featuredPosts, clubPosts, marketPosts, latestPosts } =
     await getHomeData();
+  const slots = newsSlots(localNews);
 
   return (
     <div className="container home-page">
-      {/* 1구역 — 특별광고 50:50 */}
+      {/* 1구역 — 특별광고 50:50 (엑셀: 좌우 큰 박스 2개) */}
       {premiumAds?.length ? (
-        <section className="home-premium" aria-label="특별광고">
-          <div className="home-premium-label">
-            <span className="home-premium-kicker">SPECIAL ADS</span>
-            <span>특별광고</span>
-          </div>
-          <div
-            className={`home-premium-pair${premiumAds.length === 1 ? ' home-premium-pair--single' : ''}`}
-          >
-            {premiumAds.map((ad) => {
-              const inner = (
-                <>
-                  {ad.discount_text ? (
-                    <span className="home-discount-badge">{ad.discount_text}</span>
-                  ) : (
-                    <span className="home-premium-tag">PREMIUM</span>
-                  )}
-                  <div className="home-premium-name">{ad.business_name}</div>
-                  <div className="home-premium-meta">
-                    {[ad.category, ad.city].filter(Boolean).join(' · ')}
-                  </div>
-                  {ad.description ? (
-                    <p className="home-premium-desc">{excerpt(ad.description, 72)}</p>
-                  ) : null}
-                </>
-              );
-              return ad.website_url ? (
-                <a
-                  key={ad.id}
-                  href={ad.website_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="home-premium-card"
-                >
-                  {inner}
-                </a>
-              ) : (
-                <div key={ad.id} className="home-premium-card">
-                  {inner}
+        <section
+          className={`wf-ads${premiumAds.length === 1 ? ' wf-ads--one' : ''}`}
+          aria-label="특별광고"
+        >
+          {premiumAds.map((ad, idx) => {
+            const body = (
+              <>
+                {ad.discount_text ? (
+                  <span className="wf-ads-badge">{ad.discount_text}</span>
+                ) : null}
+                <div className="wf-ads-kicker">특별광고</div>
+                <div className="wf-ads-name">{ad.business_name}</div>
+                <div className="wf-ads-meta">
+                  {[ad.category, ad.city].filter(Boolean).join(' · ')}
                 </div>
-              );
-            })}
-          </div>
+                {ad.description ? (
+                  <p className="wf-ads-desc">{excerpt(ad.description, 70)}</p>
+                ) : null}
+              </>
+            );
+            return ad.website_url ? (
+              <a
+                key={ad.id}
+                href={ad.website_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`wf-ads-card wf-ads-card--${idx + 1}`}
+              >
+                {body}
+              </a>
+            ) : (
+              <div key={ad.id} className={`wf-ads-card wf-ads-card--${idx + 1}`}>
+                {body}
+              </div>
+            );
+          })}
         </section>
       ) : null}
 
       {/* 2구역 — 지역뉴스(좌 ~60%) / 좋은글(우 ~40%) */}
-      <section className="home-duo home-duo--news-featured" aria-label="지역뉴스와 좋은글">
-        <div className="home-panel home-news-panel">
-          <div className="home-panel-head">
-            <h2 className="section-title">지역뉴스 · Local News</h2>
-            <span className="home-panel-hint">West Michigan</span>
-          </div>
-          {localNews?.length ? (
-            <ul className="home-news-stack">
-              {localNews.map((item, index) => (
-                <li key={item.id}>
-                  <a
-                    href={item.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="home-news-row"
-                  >
-                    <div className="home-news-thumb" aria-hidden="true">
-                      <span className="home-news-num">뉴스{index + 1}</span>
-                    </div>
-                    <div className="home-news-body">
-                      <div className="home-news-title">{item.title}</div>
-                      <div className="home-news-meta">
-                        <span>{item.source || 'News'}</span>
-                        <span aria-hidden="true">·</span>
-                        <time>{formatDate(item.published_at)}</time>
-                      </div>
-                    </div>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="empty-state home-empty">등록된 지역뉴스가 없습니다.</div>
-          )}
+      <section className="wf-mid" aria-label="지역뉴스와 좋은글">
+        <div className="wf-box wf-news">
+          {slots.map((item, index) => {
+            const n = index + 1;
+            if (!item) {
+              return (
+                <div key={`empty-${n}`} className="wf-news-row wf-news-row--empty">
+                  <div className="wf-news-thumb">
+                    <span>뉴스 {n}</span>
+                  </div>
+                  <div className="wf-news-content">
+                    <div className="wf-news-placeholder">지역 뉴스 내용보기</div>
+                  </div>
+                </div>
+              );
+            }
+            return (
+              <a
+                key={item.id}
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="wf-news-row"
+              >
+                <div className="wf-news-thumb">
+                  <span>뉴스 {n}</span>
+                </div>
+                <div className="wf-news-content">
+                  <div className="wf-news-title">{item.title}</div>
+                  <div className="wf-news-sub">
+                    {[item.source, formatDate(item.published_at)].filter(Boolean).join(' · ')}
+                  </div>
+                </div>
+              </a>
+            );
+          })}
         </div>
 
-        <div className="home-panel home-featured-panel">
-          <div className="home-panel-head">
-            <h2 className="section-title">좋은글 · Featured</h2>
-            <span className="home-panel-hint">추천</span>
-          </div>
+        <div className="wf-box wf-featured">
+          <div className="wf-featured-title">좋은 글</div>
           {featuredPosts?.length ? (
-            <ul className="home-featured-list">
+            <ul className="wf-featured-list">
               {featuredPosts.map((post) => {
                 const cat = getCategory(post.category_slug);
                 return (
                   <li key={post.id}>
-                    <Link href={`/post/${post.id}`} className="home-featured-item">
-                      <div className="home-featured-top">
-                        <span className="home-cat-chip">
-                          {cat?.nameKo || post.category_slug || '게시판'}
-                        </span>
-                        <time className="home-date">{formatDate(post.created_at)}</time>
+                    <Link href={`/post/${post.id}`} className="wf-featured-row">
+                      <div className="wf-featured-meta">
+                        <span>{cat?.nameKo || post.category_slug || '게시판'}</span>
+                        <time>{formatDate(post.created_at)}</time>
                       </div>
-                      <div className="home-featured-title">{post.title}</div>
+                      <div className="wf-featured-name">{post.title}</div>
                       {post.body ? (
-                        <p className="home-featured-excerpt">{excerpt(post.body, 72)}</p>
+                        <p className="wf-featured-excerpt">{excerpt(post.body, 72)}</p>
                       ) : null}
                     </Link>
                   </li>
@@ -193,34 +191,31 @@ export default async function HomePage() {
               })}
             </ul>
           ) : (
-            <div className="empty-state home-empty">아직 지정된 좋은글이 없습니다.</div>
+            <div className="wf-empty">아직 지정된 좋은글이 없습니다.</div>
           )}
         </div>
       </section>
 
-      {/* 3구역 — 동호회 / 중고장터 50:50 */}
-      <section className="home-duo home-duo--boards" aria-label="동호회와 중고장터">
-        <div className="home-panel">
-          <div className="home-panel-head">
-            <h2 className="section-title">동호회 · Clubs</h2>
-            <Link href="/board/clubs" className="home-aside-link">
-              더보기
-            </Link>
+      {/* 3구역 — 하나의 큰 박스 안 좌우: 동호회 / 중고장터 */}
+      <section className="wf-box wf-bottom" aria-label="동호회와 중고장터">
+        <div className="wf-bottom-col">
+          <div className="wf-bottom-head">
+            <h2>동호회 최신 글</h2>
+            <Link href="/board/clubs">더보기</Link>
           </div>
-          <PostList posts={clubPosts} emptyText="동호회 게시글이 아직 없습니다." />
+          <SimpleRows posts={clubPosts} empty="동호회 게시글이 아직 없습니다." />
         </div>
-        <div className="home-panel">
-          <div className="home-panel-head">
-            <h2 className="section-title">중고장터 · Marketplace</h2>
-            <Link href="/board/market" className="home-aside-link">
-              더보기
-            </Link>
+        <div className="wf-bottom-divider" aria-hidden="true" />
+        <div className="wf-bottom-col">
+          <div className="wf-bottom-head">
+            <h2>중고 장터 최신글</h2>
+            <Link href="/board/market">더보기</Link>
           </div>
-          <PostList posts={marketPosts} emptyText="중고장터 게시글이 아직 없습니다." />
+          <SimpleRows posts={marketPosts} empty="중고장터 게시글이 아직 없습니다." />
         </div>
       </section>
 
-      {/* 기존 — 카테고리 그리드 + 최신 글 */}
+      {/* 와이어프레임 아래 — 기존 게시판/최신글 유지 */}
       <section className="home-boards">
         <h2 className="section-title">게시판 · Boards</h2>
         <div className="category-grid">

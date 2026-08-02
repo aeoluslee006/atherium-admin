@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getCategory } from '../../../../lib/categories';
@@ -14,12 +14,31 @@ export default function NewPostPage() {
   const router = useRouter();
   const category = getCategory(params.slug);
   const isFree = params.slug === 'free';
+  const [authReady, setAuthReady] = useState(false);
   const [subcategory, setSubcategory] = useState('');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [city, setCity] = useState('Holland');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function requireMember() {
+      const { data } = await supabase.auth.getSession();
+      if (cancelled) return;
+      if (!data.session) {
+        const next = `/board/${params.slug}/new`;
+        router.replace(`/login?next=${encodeURIComponent(next)}`);
+        return;
+      }
+      setAuthReady(true);
+    }
+    requireMember();
+    return () => {
+      cancelled = true;
+    };
+  }, [params.slug, router]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -81,6 +100,14 @@ export default function NewPostPage() {
     return (
       <div className="container">
         <div className="card empty-state">존재하지 않는 게시판입니다.</div>
+      </div>
+    );
+  }
+
+  if (!authReady) {
+    return (
+      <div className="container">
+        <div className="card empty-state">로그인 확인 중…</div>
       </div>
     );
   }

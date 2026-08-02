@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic';
 export default async function PostPage({ params }) {
   let post = null;
   let comments = [];
+  let authorLabel = '';
   try {
     const rows = await supabaseRest(
       `posts?select=*&id=eq.${encodeURIComponent(params.id)}&limit=1`
@@ -18,6 +19,17 @@ export default async function PostPage({ params }) {
       comments = await supabaseRest(
         `comments?select=*&post_id=eq.${encodeURIComponent(params.id)}&order=created_at.asc`
       );
+      if (post.author_id) {
+        try {
+          const authors = await supabaseRest(
+            `profiles?select=username,display_name&id=eq.${encodeURIComponent(post.author_id)}&limit=1`
+          );
+          const author = authors?.[0];
+          authorLabel = author?.username || author?.display_name || '';
+        } catch {
+          authorLabel = '';
+        }
+      }
     }
   } catch {
     post = null;
@@ -54,6 +66,8 @@ export default async function PostPage({ params }) {
             {post.title}
           </h2>
           <div className="hint-text">
+            {authorLabel ? <span className="post-author">{authorLabel}</span> : null}
+            {authorLabel ? <span aria-hidden="true"> · </span> : null}
             {post.city ? <span className="city-tag">{post.city}</span> : null}
             {post.created_at ? new Date(post.created_at).toLocaleString('ko-KR') : ''}
           </div>

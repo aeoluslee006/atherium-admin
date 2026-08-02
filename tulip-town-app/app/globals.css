@@ -425,6 +425,11 @@ main {
   margin-right: 6px;
 }
 
+.post-author {
+  font-weight: 600;
+  color: var(--ink);
+}
+
 .btn {
   display: inline-block;
   background: var(--accent);

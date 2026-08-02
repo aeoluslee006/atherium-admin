@@ -50,7 +50,7 @@ textarea {
 .wf-featured-title,
 .wf-bottom-head h2,
 .wf-news-detail-title,
-.wf-news-thumb-label,
+.wf-news-thumb-title,
 .category-card .ko {
   font-family: var(--font-display);
 }
@@ -993,14 +993,6 @@ main:has(.home-page) {
   background:
     radial-gradient(circle at 80% 75%, rgba(122, 74, 168, 0.14), transparent 42%),
     linear-gradient(145deg, #f4eefb 0%, #ffffff 55%, #f7fafc 100%);
-}
-
-.wf-news-article-card-kicker {
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--accent-dark);
 }
 
 .wf-news-article-card-source {

@@ -3,17 +3,30 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import MarketBodyEditor from '../../../../components/MarketBodyEditor';
 import { getCategory } from '../../../../lib/categories';
 import { FREE_BOARD_WRITE_TAGS, isValidFreeBoardWriteTag } from '../../../../lib/freeBoardTags';
+import { MARKET_TAGS, isValidMarketTag } from '../../../../lib/marketTags';
 import { supabase } from '../../../../lib/supabaseClient';
 
 const CITIES = ['Holland', 'Grand Rapids', 'Zeeland', 'Hudsonville', 'Other'];
+
+function plainTextFromHtml(html) {
+  return String(html || '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
 export default function NewPostPage() {
   const params = useParams();
   const router = useRouter();
   const category = getCategory(params.slug);
   const isFree = params.slug === 'free';
+  const isMarket = params.slug === 'market';
   const [authReady, setAuthReady] = useState(false);
   const [subcategory, setSubcategory] = useState('');
   const [title, setTitle] = useState('');
@@ -49,6 +62,14 @@ export default function NewPostPage() {
         setError('서브카테고리를 선택해 주세요.');
         return;
       }
+      if (isMarket && !isValidMarketTag(subcategory)) {
+        setError('구분(팝니다/삽니다 등)을 선택해 주세요.');
+        return;
+      }
+      if (isMarket && !plainTextFromHtml(body) && !/<img\s/i.test(body)) {
+        setError('내용을 입력하거나 사진을 붙여넣어 주세요.');
+        return;
+      }
 
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
@@ -78,8 +99,10 @@ export default function NewPostPage() {
       };
       if (isFree) {
         payload.subcategory = subcategory;
-        // 좋은글 선택 시 목록 필터(is_featured)와 맞춤
         payload.is_featured = subcategory === 'featured';
+      }
+      if (isMarket) {
+        payload.subcategory = subcategory;
       }
 
       const { data, error: insertError } = await supabase
@@ -112,6 +135,9 @@ export default function NewPostPage() {
     );
   }
 
+  const writeTags = isMarket ? MARKET_TAGS : isFree ? FREE_BOARD_WRITE_TAGS : null;
+  const needsSubcategory = isFree || isMarket;
+
   return (
     <div className="container">
       <div className="row-between">
@@ -120,15 +146,17 @@ export default function NewPostPage() {
           목록
         </Link>
       </div>
-      <form className="card form-card" onSubmit={handleSubmit}>
-        {isFree ? (
+      <form className="card form-card form-card--wide" onSubmit={handleSubmit}>
+        {writeTags ? (
           <fieldset className="free-subcat-fieldset">
             <legend>
-              서브카테고리 <span className="required-mark">필수</span>
+              {isMarket ? '구분' : '서브카테고리'} <span className="required-mark">필수</span>
             </legend>
-            <p className="hint-text free-subcat-hint">글을 쓰기 전에 주제를 먼저 선택해 주세요.</p>
-            <div className="free-subcat-options" role="radiogroup" aria-label="서브카테고리">
-              {FREE_BOARD_WRITE_TAGS.map((tag) => {
+            <p className="hint-text free-subcat-hint">
+              {isMarket ? '팝니다 / 삽니다 / 무료나눔 / 완료 중 하나를 선택하세요.' : '글을 쓰기 전에 주제를 먼저 선택해 주세요.'}
+            </p>
+            <div className="free-subcat-options" role="radiogroup" aria-label={isMarket ? '구분' : '서브카테고리'}>
+              {writeTags.map((tag) => {
                 const selected = subcategory === tag.slug;
                 return (
                   <label
@@ -161,10 +189,20 @@ export default function NewPostPage() {
             </option>
           ))}
         </select>
-        <label htmlFor="body">내용</label>
-        <textarea id="body" value={body} onChange={(e) => setBody(e.target.value)} required />
+
+        <label htmlFor={isMarket ? undefined : 'body'}>내용</label>
+        {isMarket ? (
+          <MarketBodyEditor value={body} onChange={setBody} disabled={saving} />
+        ) : (
+          <textarea id="body" value={body} onChange={(e) => setBody(e.target.value)} required />
+        )}
+
         {error ? <div className="error-text">{error}</div> : null}
-        <button className="btn" type="submit" disabled={saving || (isFree && !subcategory)}>
+        <button
+          className="btn"
+          type="submit"
+          disabled={saving || (needsSubcategory && !subcategory)}
+        >
           {saving ? '등록 중…' : '등록'}
         </button>
       </form>

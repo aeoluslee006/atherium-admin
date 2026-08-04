@@ -70,6 +70,14 @@ const NAV_ICONS = {
       <line x1="7" y1="11" x2="7" y2="11.01" />
     </svg>
   ),
+  gift: (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="10" width="18" height="11" rx="1.5" />
+      <path d="M12 10v11" />
+      <path d="M3 14h18" />
+      <path d="M12 10c-2.2 0-4-1.3-4-3s2.2-2.2 4-.6c1.8-1.6 4-.9 4 .6s-1.8 3-4 3Z" />
+    </svg>
+  ),
 };
 
 /** Board categories + 지역뉴스 inserted after 자유게시판 */
@@ -188,6 +196,16 @@ export default function Header() {
               </Link>
             );
           })}
+          <Link
+            href="/gift"
+            className={`nav-item${isNavActive(pathname, '/gift') ? ' is-active' : ''}`}
+            aria-current={isNavActive(pathname, '/gift') ? 'page' : undefined}
+          >
+            <span className="nav-icon" aria-hidden="true">
+              {NAV_ICONS.gift}
+            </span>
+            <span>튤립가게</span>
+          </Link>
           <Link
             href="/directory"
             className={`nav-item${isNavActive(pathname, '/directory') ? ' is-active' : ''}`}

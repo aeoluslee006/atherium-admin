@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import JobLogoField from '../../../../components/JobLogoField';
 import MarketBodyEditor from '../../../../components/MarketBodyEditor';
 import { getCategory } from '../../../../lib/categories';
 import { FREE_BOARD_WRITE_TAGS, isValidFreeBoardWriteTag } from '../../../../lib/freeBoardTags';
+import { JOB_TAGS, isValidJobTag } from '../../../../lib/jobTags';
 import { MARKET_TAGS, isValidMarketTag } from '../../../../lib/marketTags';
 import { supabase } from '../../../../lib/supabaseClient';
 
@@ -27,11 +29,15 @@ export default function NewPostPage() {
   const category = getCategory(params.slug);
   const isFree = params.slug === 'free';
   const isMarket = params.slug === 'market';
+  const isJobs = params.slug === 'jobs';
   const [authReady, setAuthReady] = useState(false);
   const [subcategory, setSubcategory] = useState('');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [city, setCity] = useState('Holland');
+  const [companyName, setCompanyName] = useState('');
+  const [payText, setPayText] = useState('');
+  const [companyLogo, setCompanyLogo] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -64,6 +70,14 @@ export default function NewPostPage() {
       }
       if (isMarket && !isValidMarketTag(subcategory)) {
         setError('구분(팝니다/삽니다 등)을 선택해 주세요.');
+        return;
+      }
+      if (isJobs && !isValidJobTag(subcategory)) {
+        setError('구분(구인/구직/알바)을 선택해 주세요.');
+        return;
+      }
+      if (isJobs && subcategory === 'hire' && !companyName.trim()) {
+        setError('구인 글에는 회사/상호명을 입력해 주세요.');
         return;
       }
       if (isMarket && !plainTextFromHtml(body) && !/<img\s/i.test(body)) {
@@ -104,12 +118,25 @@ export default function NewPostPage() {
       if (isMarket) {
         payload.subcategory = subcategory;
       }
+      if (isJobs) {
+        payload.subcategory = subcategory;
+        payload.company_name = companyName.trim() || null;
+        payload.pay_text = payText.trim() || null;
+        payload.company_logo = companyLogo || null;
+      }
 
-      const { data, error: insertError } = await supabase
-        .from('posts')
-        .insert(payload)
-        .select('id')
-        .single();
+      let { data, error: insertError } = await supabase.from('posts').insert(payload).select('id').single();
+
+      // If jobs columns are missing, retry without them so posting still works.
+      if (insertError && isJobs) {
+        const { company_name, pay_text, company_logo, ...basic } = payload;
+        const retry = await supabase.from('posts').insert(basic).select('id').single();
+        data = retry.data;
+        insertError = retry.error;
+        if (!insertError && (company_name || pay_text || company_logo)) {
+          setError('글은 등록됐지만 회사/급여/로고 컬럼이 아직 DB에 없습니다. jobs_board_schema.sql을 실행해 주세요.');
+        }
+      }
       if (insertError) throw insertError;
       router.push(`/post/${data.id}`);
     } catch (err) {
@@ -135,8 +162,8 @@ export default function NewPostPage() {
     );
   }
 
-  const writeTags = isMarket ? MARKET_TAGS : isFree ? FREE_BOARD_WRITE_TAGS : null;
-  const needsSubcategory = isFree || isMarket;
+  const writeTags = isMarket ? MARKET_TAGS : isJobs ? JOB_TAGS : isFree ? FREE_BOARD_WRITE_TAGS : null;
+  const needsSubcategory = isFree || isMarket || isJobs;
 
   return (
     <div className="container">
@@ -150,12 +177,16 @@ export default function NewPostPage() {
         {writeTags ? (
           <fieldset className="free-subcat-fieldset">
             <legend>
-              {isMarket ? '구분' : '서브카테고리'} <span className="required-mark">필수</span>
+              구분 <span className="required-mark">필수</span>
             </legend>
             <p className="hint-text free-subcat-hint">
-              {isMarket ? '팝니다 / 삽니다 / 무료나눔 / 완료 중 하나를 선택하세요.' : '글을 쓰기 전에 주제를 먼저 선택해 주세요.'}
+              {isMarket
+                ? '팝니다 / 삽니다 / 무료나눔 / 완료 중 하나를 선택하세요.'
+                : isJobs
+                  ? '구인 / 구직 / 알바·파트 중 하나를 선택하세요.'
+                  : '글을 쓰기 전에 주제를 먼저 선택해 주세요.'}
             </p>
-            <div className="free-subcat-options" role="radiogroup" aria-label={isMarket ? '구분' : '서브카테고리'}>
+            <div className="free-subcat-options" role="radiogroup" aria-label="구분">
               {writeTags.map((tag) => {
                 const selected = subcategory === tag.slug;
                 return (
@@ -179,8 +210,38 @@ export default function NewPostPage() {
           </fieldset>
         ) : null}
 
-        <label htmlFor="title">제목</label>
-        <input id="title" value={title} onChange={(e) => setTitle(e.target.value)} required />
+        {isJobs ? (
+          <>
+            <label htmlFor="companyName">
+              회사/상호명 {subcategory === 'hire' ? <span className="required-mark">필수</span> : null}
+            </label>
+            <input
+              id="companyName"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              placeholder="예: Holland Bakery"
+              required={subcategory === 'hire'}
+            />
+            <label>회사 로고 (선택 · 1장만)</label>
+            <JobLogoField value={companyLogo} onChange={setCompanyLogo} disabled={saving} />
+            <label htmlFor="payText">급여/조건 (선택)</label>
+            <input
+              id="payText"
+              value={payText}
+              onChange={(e) => setPayText(e.target.value)}
+              placeholder="예: $15+/hr · 팁 별도 · Full-time"
+            />
+          </>
+        ) : null}
+
+        <label htmlFor="title">{isJobs ? '채용 제목' : '제목'}</label>
+        <input
+          id="title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder={isJobs ? '예: 서버/홀 스태프 모집' : undefined}
+          required
+        />
         <label htmlFor="city">지역</label>
         <select id="city" value={city} onChange={(e) => setCity(e.target.value)}>
           {CITIES.map((c) => (
@@ -194,7 +255,13 @@ export default function NewPostPage() {
         {isMarket ? (
           <MarketBodyEditor value={body} onChange={setBody} disabled={saving} />
         ) : (
-          <textarea id="body" value={body} onChange={(e) => setBody(e.target.value)} required />
+          <textarea
+            id="body"
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            placeholder={isJobs ? '업무 내용, 근무 시간, 연락 방법을 간단히 적어 주세요.' : undefined}
+            required
+          />
         )}
 
         {error ? <div className="error-text">{error}</div> : null}

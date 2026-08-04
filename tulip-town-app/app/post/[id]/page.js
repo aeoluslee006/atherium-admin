@@ -2,6 +2,7 @@ import Link from 'next/link';
 import CommentForm from '../../../components/CommentForm';
 import { getCategory } from '../../../lib/categories';
 import { getFreeBoardTagLabel } from '../../../lib/freeBoardTags';
+import { getJobTagLabel } from '../../../lib/jobTags';
 import { getMarketTagLabel } from '../../../lib/marketTags';
 import { supabaseRest } from '../../../lib/supabaseRest';
 
@@ -73,14 +74,15 @@ export default async function PostPage({ params }) {
         // ignore until SQL is applied
       }
 
-      if (post.category_slug === 'market' && post.created_at) {
+      if ((post.category_slug === 'market' || post.category_slug === 'jobs') && post.created_at) {
+        const slug = post.category_slug;
         const newer = await safeRest(
-          `posts?select=id,title,created_at&category_slug=eq.market&created_at=gt.${encodeURIComponent(
+          `posts?select=id,title,created_at&category_slug=eq.${slug}&created_at=gt.${encodeURIComponent(
             post.created_at
           )}&order=created_at.asc&limit=1`
         );
         const older = await safeRest(
-          `posts?select=id,title,created_at&category_slug=eq.market&created_at=lt.${encodeURIComponent(
+          `posts?select=id,title,created_at&category_slug=eq.${slug}&created_at=lt.${encodeURIComponent(
             post.created_at
           )}&order=created_at.desc&limit=1`
         );
@@ -102,8 +104,10 @@ export default async function PostPage({ params }) {
 
   const category = getCategory(post.category_slug);
   const isMarket = post.category_slug === 'market';
+  const isJobs = post.category_slug === 'jobs';
   const freeTagLabel = post.category_slug === 'free' ? getFreeBoardTagLabel(post.subcategory) : '';
   const marketTagLabel = isMarket ? getMarketTagLabel(post.subcategory) : '';
+  const jobTagLabel = isJobs ? getJobTagLabel(post.subcategory) : '';
   const htmlBody = isHtmlBody(post.body);
 
   return (
@@ -113,20 +117,50 @@ export default async function PostPage({ params }) {
           <div className="hint-text" style={{ marginBottom: 6 }}>
             {category ? (
               <Link href={`/board/${category.slug}`}>
-                {isMarket ? category.nameKo : `${category.nameKo} · ${category.nameEn}`}
+                {isMarket || isJobs ? category.nameKo : `${category.nameKo} · ${category.nameEn}`}
               </Link>
             ) : (
               post.category_slug
             )}
           </div>
-          <h2 className="section-title" style={{ marginBottom: 4 }}>
-            {post.is_pinned ? <span className="post-pinned">[공지]</span> : null}
-            {freeTagLabel ? <span className="subcat-badge">{freeTagLabel}</span> : null}
-            {marketTagLabel ? (
-              <span className={`market-badge market-badge--${post.subcategory}`}>{marketTagLabel}</span>
-            ) : null}{' '}
-            {post.title}
-          </h2>
+
+          {isJobs ? (
+            <div className="job-detail-head">
+              <div className="jobs-logo job-detail-logo" aria-hidden="true">
+                {post.company_logo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={post.company_logo} alt="" />
+                ) : (
+                  <span className="jobs-logo-fallback">
+                    {String(post.company_name || post.title || 'J')
+                      .trim()
+                      .slice(0, 1)
+                      .toUpperCase()}
+                  </span>
+                )}
+              </div>
+              <div>
+                {post.company_name ? <div className="job-detail-company">{post.company_name}</div> : null}
+                <h2 className="section-title" style={{ marginBottom: 4 }}>
+                  {jobTagLabel ? (
+                    <span className={`job-badge job-badge--${post.subcategory}`}>{jobTagLabel}</span>
+                  ) : null}{' '}
+                  {post.title}
+                </h2>
+                {post.pay_text ? <div className="job-detail-pay">{post.pay_text}</div> : null}
+              </div>
+            </div>
+          ) : (
+            <h2 className="section-title" style={{ marginBottom: 4 }}>
+              {post.is_pinned ? <span className="post-pinned">[공지]</span> : null}
+              {freeTagLabel ? <span className="subcat-badge">{freeTagLabel}</span> : null}
+              {marketTagLabel ? (
+                <span className={`market-badge market-badge--${post.subcategory}`}>{marketTagLabel}</span>
+              ) : null}{' '}
+              {post.title}
+            </h2>
+          )}
+
           <div className="hint-text post-meta-bar">
             {authorLabel ? <span className="post-author">{authorLabel}</span> : null}
             {typeof post.view_count === 'number' ? (
@@ -166,7 +200,7 @@ export default async function PostPage({ params }) {
         </div>
       )}
 
-      {isMarket && (prevPost || nextPost) ? (
+      {(isMarket || isJobs) && (prevPost || nextPost) ? (
         <div className="card market-adjacent">
           {prevPost ? (
             <Link href={`/post/${prevPost.id}`} className="market-adjacent-row">

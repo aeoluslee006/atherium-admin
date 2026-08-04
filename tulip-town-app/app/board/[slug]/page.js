@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import FreeBoardPage from '../../../components/FreeBoardPage';
+import JobsBoardPage from '../../../components/JobsBoardPage';
 import MarketBoardPage from '../../../components/MarketBoardPage';
 import { getCategory } from '../../../lib/categories';
 import { supabaseRest } from '../../../lib/supabaseRest';
@@ -12,6 +13,9 @@ export default async function BoardPage({ params, searchParams }) {
   }
   if (params.slug === 'market') {
     return <MarketBoardPage searchParams={searchParams} />;
+  }
+  if (params.slug === 'jobs') {
+    return <JobsBoardPage searchParams={searchParams} />;
   }
 
   const category = getCategory(params.slug);

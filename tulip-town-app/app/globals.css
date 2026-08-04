@@ -1921,3 +1921,278 @@ main:has(.home-page) {
   }
 }
 
+/* Jobs board — GTKSA line clarity + one small logo (not HeyKorean clutter) */
+.jobs-board-head {
+  margin-bottom: 14px;
+}
+
+.jobs-board-lead {
+  margin: 6px 0 0;
+}
+
+.jobs-toolbar {
+  margin-bottom: 14px;
+}
+
+.jobs-board {
+  padding: 0;
+  overflow: hidden;
+}
+
+.jobs-board-meta {
+  padding: 10px 18px;
+  font-size: var(--text-meta);
+  color: var(--ink-soft);
+  border-bottom: 1px solid #edf0f3;
+}
+
+.jobs-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.jobs-row {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--row-line);
+}
+
+.jobs-list li:last-child .jobs-row {
+  border-bottom: none;
+}
+
+.jobs-row:hover {
+  background: #f7fafc;
+}
+
+.jobs-row.is-notice {
+  background: #fff5f7;
+}
+
+.jobs-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #eef2f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border: 1px solid #e3e7ec;
+}
+
+.jobs-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.jobs-logo-fallback {
+  font-size: 16px;
+  font-weight: 700;
+  color: #5b6b7c;
+}
+
+.jobs-row-main {
+  min-width: 0;
+}
+
+.jobs-company-line {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.jobs-company {
+  font-size: var(--text-title);
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jobs-city {
+  flex: 0 0 auto;
+  font-size: var(--text-meta);
+  color: var(--ink-soft);
+}
+
+.jobs-title-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.jobs-title {
+  font-size: var(--text-body);
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.4;
+}
+
+.jobs-pay {
+  font-size: var(--text-meta);
+  font-weight: 600;
+  color: var(--accent-dark);
+  background: var(--accent-tint);
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+
+.jobs-row-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  font-size: var(--text-meta);
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.job-badge {
+  display: inline-block;
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  line-height: 1.3;
+  background: #eef2f6;
+  color: #445066;
+}
+
+.job-badge--hire {
+  background: #e8f1ff;
+  color: #1f5fb8;
+}
+
+.job-badge--seek {
+  background: #eaf8ef;
+  color: #1f7a45;
+}
+
+.job-badge--parttime {
+  background: #fff4e5;
+  color: #a35b00;
+}
+
+.job-badge--notice {
+  background: #ffe4ea;
+  color: #c0455d;
+}
+
+.job-logo-field {
+  margin-bottom: 12px;
+}
+
+.job-logo-drop {
+  width: 96px;
+  height: 96px;
+  border: 1.5px dashed #c9d1dc;
+  border-radius: 12px;
+  background: #fafbfc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.job-logo-drop:focus {
+  outline: 2px solid rgba(31, 143, 224, 0.25);
+  border-color: var(--accent);
+}
+
+.job-logo-drop.has-logo {
+  border-style: solid;
+  border-color: #e3e7ec;
+  background: #fff;
+}
+
+.job-logo-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.job-logo-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-meta);
+  font-weight: 600;
+  color: #8a93a3;
+  text-align: center;
+  padding: 8px;
+}
+
+.job-logo-placeholder small {
+  font-weight: 400;
+  font-size: 11px;
+}
+
+.job-logo-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.job-logo-file-btn {
+  cursor: pointer;
+}
+
+.job-detail-head {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.job-detail-logo {
+  width: 56px;
+  height: 56px;
+}
+
+.job-detail-company {
+  font-size: var(--text-title);
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: 4px;
+  line-height: 1.25;
+}
+
+.job-detail-pay {
+  margin-top: 4px;
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--accent-dark);
+}
+
+@media (max-width: 720px) {
+  .jobs-row {
+    grid-template-columns: 44px minmax(0, 1fr);
+  }
+
+  .jobs-row-meta {
+    display: none;
+  }
+
+  .jobs-company,
+  .jobs-title {
+    white-space: normal;
+  }
+}
+
+

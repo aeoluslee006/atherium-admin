@@ -3,6 +3,7 @@ import Link from 'next/link';
 const LINKS = [
   { href: '/admin', label: '대시보드' },
   { href: '/admin/members', label: '회원 관리' },
+  { href: '/admin/sellers', label: '판매자 승인' },
   { href: '/admin/pricing', label: '요금 설정' },
   { href: '/admin/payments', label: '결제 확인' },
 ];

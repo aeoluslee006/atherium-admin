@@ -37,7 +37,9 @@ export async function middleware(request) {
   const path = request.nextUrl.pathname;
   const isAdminRoute = path.startsWith('/admin');
   const isMemberWriteRoute =
-    /^\/board\/[^/]+\/new\/?$/.test(path) || /^\/directory\/new\/?$/.test(path);
+    /^\/board\/[^/]+\/new\/?$/.test(path) ||
+    /^\/directory\/new\/?$/.test(path) ||
+    path.startsWith('/seller');
 
   // Board/directory browse pages stay public
   if (!isAdminRoute && !isMemberWriteRoute) {
@@ -92,5 +94,5 @@ export async function middleware(request) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/board/:path*', '/directory/:path*'],
+  matcher: ['/admin/:path*', '/board/:path*', '/directory/:path*', '/seller/:path*'],
 };

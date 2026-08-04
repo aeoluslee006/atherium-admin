@@ -65,6 +65,32 @@ async function upsertPaymentFromSubscription({
   if (error) throw error;
 }
 
+async function syncSellerSubscription(admin, subscription, status) {
+  const sellerId = subscription?.metadata?.seller_id;
+  if (!sellerId || subscription?.metadata?.kind !== 'seller_subscription') return false;
+
+  const customerId =
+    typeof subscription.customer === 'string'
+      ? subscription.customer
+      : subscription.customer?.id || null;
+  const periodEnd = subscription.current_period_end
+    ? new Date(subscription.current_period_end * 1000).toISOString()
+    : null;
+
+  const { error } = await admin
+    .from('gift_sellers')
+    .update({
+      subscription_status: status,
+      stripe_subscription_id: subscription.id,
+      stripe_customer_id: customerId,
+      subscription_period_end: periodEnd,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', sellerId);
+  if (error) throw error;
+  return true;
+}
+
 export async function POST(request) {
   const stripe = getStripe();
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -88,6 +114,28 @@ export async function POST(request) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object;
+        if (session.metadata?.kind === 'seller_subscription') {
+          const subscriptionId =
+            typeof session.subscription === 'string'
+              ? session.subscription
+              : session.subscription?.id;
+          if (subscriptionId) {
+            const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+            await syncSellerSubscription(admin, subscription, 'active');
+          } else if (session.metadata?.seller_id) {
+            await admin
+              .from('gift_sellers')
+              .update({
+                subscription_status: 'active',
+                stripe_customer_id:
+                  typeof session.customer === 'string' ? session.customer : null,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', session.metadata.seller_id);
+          }
+          break;
+        }
+
         const sponsorId = session.metadata?.sponsor_id;
         const subscriptionId =
           typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
@@ -117,6 +165,7 @@ export async function POST(request) {
           typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id;
         if (subscriptionId) {
           const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          if (await syncSellerSubscription(admin, subscription, 'active')) break;
           const sponsorId = subscription.metadata?.sponsor_id;
           await upsertPaymentFromSubscription({
             admin,
@@ -135,6 +184,7 @@ export async function POST(request) {
           typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id;
         if (subscriptionId) {
           const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          if (await syncSellerSubscription(admin, subscription, 'past_due')) break;
           const sponsorId = subscription.metadata?.sponsor_id;
           await upsertPaymentFromSubscription({
             admin,
@@ -149,6 +199,7 @@ export async function POST(request) {
       }
       case 'customer.subscription.deleted': {
         const subscription = event.data.object;
+        if (await syncSellerSubscription(admin, subscription, 'canceled')) break;
         const sponsorId = subscription.metadata?.sponsor_id;
         await upsertPaymentFromSubscription({
           admin,

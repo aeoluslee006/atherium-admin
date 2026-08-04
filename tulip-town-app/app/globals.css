@@ -2746,3 +2746,76 @@ main:has(.home-page) {
     transform: none;
   }
 }
+
+/* Seller center */
+.seller-apply-form .seller-agree {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 12px 0 8px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.45;
+}
+
+.seller-apply-form .seller-agree input {
+  margin-top: 3px;
+  width: auto;
+}
+
+.seller-step {
+  margin-bottom: 16px;
+}
+
+.seller-step h3 {
+  margin: 0 0 8px;
+  font-size: 17px;
+}
+
+.seller-product-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.seller-product-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--row-line);
+}
+
+.seller-product-row:last-child {
+  border-bottom: none;
+}
+
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.admin-actions .btn {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.gift-buy-box {
+  margin-top: 18px;
+  display: grid;
+  gap: 8px;
+  max-width: 360px;
+}
+
+.gift-buy-box label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.gift-buy-box input {
+  padding: 10px 12px;
+  border: 1px solid #e3e7ec;
+  border-radius: 8px;
+}

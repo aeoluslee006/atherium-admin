@@ -32,6 +32,11 @@ function GiftShopNavInner() {
       label: '커뮤니티 특가',
       active: pathname === '/gift' && cat === 'community',
     },
+    {
+      href: '/seller',
+      label: '판매자',
+      active: pathname.startsWith('/seller'),
+    },
   ];
 
   return (

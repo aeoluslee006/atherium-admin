@@ -316,6 +316,27 @@ main {
   line-height: var(--leading-tight);
 }
 
+.board-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 12px;
+  margin: 0 0 12px;
+}
+
+.board-heading .section-title {
+  margin: 0;
+}
+
+.board-heading .board-heading-desc,
+.board-heading .hint-text {
+  margin: 0;
+  font-size: var(--text-sm, 13px);
+  font-weight: 400;
+  color: var(--muted, #6b7280);
+  line-height: 1.4;
+}
+
 .card,
 .category-card,
 .sponsor-card,
@@ -1440,6 +1461,10 @@ main:has(.home-page) {
 
 /* Free board — filter chips, line items */
 .free-board-head {
+  margin-bottom: 14px;
+}
+
+.free-board-head.board-heading {
   margin-bottom: 14px;
 }
 

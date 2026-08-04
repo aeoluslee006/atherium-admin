@@ -41,11 +41,11 @@ export default async function BoardPage({ params, searchParams }) {
   return (
     <div className="container">
       <div className="row-between">
-        <div>
-          <h2 className="section-title" style={{ marginBottom: 4 }}>
+        <div className="board-heading">
+          <h2 className="section-title">
             {category.nameKo} · {category.nameEn}
           </h2>
-          <div className="hint-text">{category.desc}</div>
+          {category.desc ? <p className="board-heading-desc">{category.desc}</p> : null}
         </div>
         <Link href={`/board/${params.slug}/new`} className="btn">
           글쓰기

@@ -38,8 +38,9 @@ export default async function FreeBoardPage({ searchParams = {} }) {
 
   return (
     <div className="container">
-      <header className="free-board-head">
+      <header className="free-board-head board-heading">
         <h2 className="section-title">자유게시판 · Free Board</h2>
+        <p className="board-heading-desc">자유롭게 이야기해요 · General talk</p>
       </header>
 
       <div className="board-toolbar">

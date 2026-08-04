@@ -1,10 +1,11 @@
 import Link from 'next/link';
+import { Suspense } from 'react';
+import DirectoryCheckoutBanner from '../../components/DirectoryCheckoutBanner';
 import { supabaseRest } from '../../lib/supabaseRest';
 
 export const dynamic = 'force-dynamic';
 
-export default async function DirectoryPage({ searchParams }) {
-  const checkout = searchParams?.checkout;
+export default async function DirectoryPage() {
   let sponsors = [];
   try {
     sponsors = await supabaseRest(
@@ -23,12 +24,9 @@ export default async function DirectoryPage({ searchParams }) {
         </Link>
       </div>
 
-      {checkout === 'success' ? (
-        <div className="sponsor-banner">
-          <span className="sponsor-badge">Payment</span>
-          <span>결제가 완료되었습니다. 승인 반영까지 잠시 걸릴 수 있습니다.</span>
-        </div>
-      ) : null}
+      <Suspense fallback={null}>
+        <DirectoryCheckoutBanner />
+      </Suspense>
 
       {sponsors?.length ? (
         <div className="sponsor-banner">

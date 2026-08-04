@@ -12,6 +12,14 @@ export function getAppUrl() {
   return (
     process.env.NEXT_PUBLIC_APP_URL ||
     process.env.NEXT_PUBLIC_SITE_URL ||
-    'https://tulip-town-app.vercel.app'
+    'https://www.ttkc.us'
   );
+}
+
+export function isStripeConfigured() {
+  return Boolean(process.env.STRIPE_SECRET_KEY);
+}
+
+export function hasStripeWebhook() {
+  return Boolean(process.env.STRIPE_WEBHOOK_SECRET);
 }

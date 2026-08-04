@@ -1472,18 +1472,18 @@ main:has(.home-page) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   flex-wrap: wrap;
-  padding: 12px 16px;
-  border-radius: 12px;
-  margin-bottom: 16px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  margin-bottom: 12px;
   background: #fafbfc;
   border: 1px solid #edf0f3;
 }
 
 .board-toolbar .tag-chips {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
   min-width: 0;
   flex: 1 1 auto;
@@ -1492,6 +1492,9 @@ main:has(.home-page) {
 .board-toolbar > .btn {
   flex: 0 0 auto;
   margin-left: auto;
+  padding: 6px 12px;
+  font-size: var(--text-meta);
+  line-height: 1.2;
 }
 
 .free-board {
@@ -1502,7 +1505,7 @@ main:has(.home-page) {
 .free-board-chip {
   display: inline-flex;
   align-items: center;
-  padding: 6px 12px;
+  padding: 4px 10px;
   font-size: var(--text-meta);
   font-weight: 500;
   color: var(--ink-soft);
@@ -1636,7 +1639,7 @@ main:has(.home-page) {
 
 @media (max-width: 640px) {
   .board-toolbar {
-    padding: 12px 14px;
+    padding: 5px 8px;
   }
 
   .free-board-list {

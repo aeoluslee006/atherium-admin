@@ -60,9 +60,6 @@ export default async function JobsBoardPage({ searchParams = {} }) {
     <div className="container">
       <header className="jobs-board-head">
         <h2 className="section-title">구인구직</h2>
-        <p className="hint-text jobs-board-lead">
-          회사명이 먼저 보이게, 로고는 하나만 — 줄 단위로 빠르게 훑을 수 있게 구성했습니다.
-        </p>
       </header>
 
       <div className="board-toolbar jobs-toolbar">

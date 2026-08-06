@@ -3,7 +3,7 @@ import CommentForm from '../../../components/CommentForm';
 import { getCategory } from '../../../lib/categories';
 import { getFreeBoardTagLabel } from '../../../lib/freeBoardTags';
 import { getHousingTagLabel, getHousingTypeLabel } from '../../../lib/housingTags';
-import { getJobTagLabel } from '../../../lib/jobTags';
+import { formatJobRoles, getJobTagLabel } from '../../../lib/jobTags';
 import { getMarketTagLabel } from '../../../lib/marketTags';
 import {
   getSampleHousingPost,
@@ -142,6 +142,22 @@ export default async function PostPage({ params }) {
       ]
     : [];
 
+  const jobContact =
+    [post.contact_name, post.contact_phone, post.contact_email].filter(Boolean).join(' · ') ||
+    post.contact_text ||
+    '';
+  const jobSpecs = isJobs
+    ? [
+        ['구분', jobTagLabel || '—'],
+        ['회사', post.company_name || '—'],
+        ['급여/조건', post.pay_text || '—'],
+        ['직종', formatJobRoles(post.job_roles) || '—'],
+        ['지역', post.city || '—'],
+        ['주소', post.address_text || '—'],
+        ['연락처', jobContact || '—'],
+      ].filter(([, value]) => value && value !== '—')
+    : [];
+
   return (
     <div className="container">
       <div className="row-between">
@@ -234,6 +250,20 @@ export default async function PostPage({ params }) {
           <h3 className="housing-spec-title">매물 정보</h3>
           <dl className="housing-spec-list">
             {housingSpecs.map(([label, value]) => (
+              <div key={label} className="housing-spec-row">
+                <dt>{label}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      ) : null}
+
+      {isJobs && jobSpecs.length ? (
+        <div className="card housing-spec-card job-spec-card">
+          <h3 className="housing-spec-title">채용 정보</h3>
+          <dl className="housing-spec-list">
+            {jobSpecs.map(([label, value]) => (
               <div key={label} className="housing-spec-row">
                 <dt>{label}</dt>
                 <dd>{value}</dd>

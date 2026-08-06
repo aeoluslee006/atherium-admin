@@ -3,12 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import JobLogoField from '../../../../components/JobLogoField';
+import JobsComposeForm from '../../../../components/JobsComposeForm';
 import MarketBodyEditor from '../../../../components/MarketBodyEditor';
 import { getCategory } from '../../../../lib/categories';
 import { FREE_BOARD_WRITE_TAGS, isValidFreeBoardWriteTag } from '../../../../lib/freeBoardTags';
 import { HOUSING_TAGS, HOUSING_TYPES, isValidHousingTag } from '../../../../lib/housingTags';
-import { JOB_TAGS, isValidJobTag } from '../../../../lib/jobTags';
 import { MARKET_TAGS, isValidMarketTag } from '../../../../lib/marketTags';
 import { supabase } from '../../../../lib/supabaseClient';
 
@@ -37,9 +36,6 @@ export default function NewPostPage() {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [city, setCity] = useState('Holland');
-  const [companyName, setCompanyName] = useState('');
-  const [payText, setPayText] = useState('');
-  const [companyLogo, setCompanyLogo] = useState('');
   const [rentPriceText, setRentPriceText] = useState('');
   const [depositText, setDepositText] = useState('');
   const [housingType, setHousingType] = useState('1br');
@@ -69,6 +65,113 @@ export default function NewPostPage() {
     };
   }, [params.slug, router]);
 
+  async function assertCanWrite() {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) {
+      throw new Error('글을 쓰려면 로그인이 필요합니다.');
+    }
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('is_banned, banned_reason, suspended_until')
+      .eq('id', sessionData.session.user.id)
+      .maybeSingle();
+    if (profile?.is_banned) {
+      throw new Error(profile.banned_reason || '이용이 제한된 계정입니다.');
+    }
+    if (profile?.suspended_until && new Date(profile.suspended_until).getTime() > Date.now()) {
+      throw new Error(`계정이 ${new Date(profile.suspended_until).toLocaleString('ko-KR')}까지 정지되었습니다.`);
+    }
+    return sessionData.session.user.id;
+  }
+
+  async function handleJobsSubmit(fields) {
+    setError('');
+    setSaving(true);
+    try {
+      const authorId = await assertCanWrite();
+      const payload = {
+        title: fields.title,
+        body: fields.body,
+        city: fields.city,
+        category_slug: 'jobs',
+        author_id: authorId,
+        subcategory: fields.subcategory,
+        company_name: fields.companyName || null,
+        pay_text: fields.payText || null,
+        company_logo: fields.companyLogo || null,
+        address_text: fields.addressText || null,
+        contact_name: fields.contactName || null,
+        contact_phone: fields.contactPhone || null,
+        contact_email: fields.contactEmail || null,
+        job_roles: fields.jobRoles || null,
+        contact_text:
+          [fields.contactName, fields.contactPhone, fields.contactEmail].filter(Boolean).join(' · ') ||
+          null,
+      };
+
+      let { data, error: insertError } = await supabase.from('posts').insert(payload).select('id').single();
+
+      if (insertError) {
+        const {
+          company_name,
+          pay_text,
+          company_logo,
+          address_text,
+          contact_name,
+          contact_phone,
+          contact_email,
+          job_roles,
+          contact_text,
+          ...basic
+        } = payload;
+        const retry = await supabase
+          .from('posts')
+          .insert({
+            ...basic,
+            company_name,
+            pay_text,
+            company_logo,
+          })
+          .select('id')
+          .single();
+        data = retry.data;
+        insertError = retry.error;
+        if (!insertError && (address_text || contact_name || contact_phone || contact_email || job_roles)) {
+          setError(
+            '글은 등록됐지만 연락처/주소/직종 컬럼이 아직 DB에 없습니다. jobs_board_schema.sql을 실행해 주세요.'
+          );
+        } else if (!insertError && (company_name || pay_text || company_logo)) {
+          // ok — core jobs fields present
+        } else if (insertError) {
+          const bare = await supabase
+            .from('posts')
+            .insert({
+              title: payload.title,
+              body: payload.body,
+              city: payload.city,
+              category_slug: 'jobs',
+              author_id: authorId,
+              subcategory: payload.subcategory,
+            })
+            .select('id')
+            .single();
+          data = bare.data;
+          insertError = bare.error;
+          if (!insertError) {
+            setError('글은 등록됐지만 회사/급여 컬럼이 아직 DB에 없습니다. jobs_board_schema.sql을 실행해 주세요.');
+          }
+        }
+      }
+
+      if (insertError) throw insertError;
+      router.push(`/post/${data.id}`);
+    } catch (err) {
+      setError(err.message || '등록에 실패했습니다.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
@@ -82,16 +185,8 @@ export default function NewPostPage() {
         setError('구분(팝니다/삽니다 등)을 선택해 주세요.');
         return;
       }
-      if (isJobs && !isValidJobTag(subcategory)) {
-        setError('구분(구인/구직/알바)을 선택해 주세요.');
-        return;
-      }
       if (isHousing && !isValidHousingTag(subcategory)) {
         setError('구분(렌트/매매/룸메이트)을 선택해 주세요.');
-        return;
-      }
-      if (isJobs && subcategory === 'hire' && !companyName.trim()) {
-        setError('구인 글에는 회사/상호명을 입력해 주세요.');
         return;
       }
       if ((isMarket || isHousing) && !plainTextFromHtml(body) && !/<img\s/i.test(body)) {
@@ -99,31 +194,14 @@ export default function NewPostPage() {
         return;
       }
 
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) {
-        setError('글을 쓰려면 로그인이 필요합니다.');
-        return;
-      }
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('is_banned, banned_reason, suspended_until')
-        .eq('id', sessionData.session.user.id)
-        .maybeSingle();
-      if (profile?.is_banned) {
-        setError(profile.banned_reason || '이용이 제한된 계정입니다.');
-        return;
-      }
-      if (profile?.suspended_until && new Date(profile.suspended_until).getTime() > Date.now()) {
-        setError(`계정이 ${new Date(profile.suspended_until).toLocaleString('ko-KR')}까지 정지되었습니다.`);
-        return;
-      }
+      const authorId = await assertCanWrite();
 
       const payload = {
         title,
         body,
         city,
         category_slug: params.slug,
-        author_id: sessionData.session.user.id,
+        author_id: authorId,
       };
       if (isFree) {
         payload.subcategory = subcategory;
@@ -131,12 +209,6 @@ export default function NewPostPage() {
       }
       if (isMarket) {
         payload.subcategory = subcategory;
-      }
-      if (isJobs) {
-        payload.subcategory = subcategory;
-        payload.company_name = companyName.trim() || null;
-        payload.pay_text = payText.trim() || null;
-        payload.company_logo = companyLogo || null;
       }
       if (isHousing) {
         payload.subcategory = subcategory;
@@ -152,16 +224,6 @@ export default function NewPostPage() {
 
       let { data, error: insertError } = await supabase.from('posts').insert(payload).select('id').single();
 
-      // If jobs columns are missing, retry without them so posting still works.
-      if (insertError && isJobs) {
-        const { company_name, pay_text, company_logo, ...basic } = payload;
-        const retry = await supabase.from('posts').insert(basic).select('id').single();
-        data = retry.data;
-        insertError = retry.error;
-        if (!insertError && (company_name || pay_text || company_logo)) {
-          setError('글은 등록됐지만 회사/급여/로고 컬럼이 아직 DB에 없습니다. jobs_board_schema.sql을 실행해 주세요.');
-        }
-      }
       if (insertError && isHousing) {
         const {
           rent_price_text,
@@ -206,16 +268,28 @@ export default function NewPostPage() {
     );
   }
 
+  if (isJobs) {
+    return (
+      <div className="container">
+        <JobsComposeForm
+          cities={CITIES}
+          saving={saving}
+          error={error}
+          listHref="/board/jobs"
+          onSubmit={handleJobsSubmit}
+        />
+      </div>
+    );
+  }
+
   const writeTags = isMarket
     ? MARKET_TAGS
-    : isJobs
-      ? JOB_TAGS
-      : isHousing
-        ? HOUSING_TAGS.filter((t) => t.slug !== 'done')
-        : isFree
-          ? FREE_BOARD_WRITE_TAGS
-          : null;
-  const needsSubcategory = isFree || isMarket || isJobs || isHousing;
+    : isHousing
+      ? HOUSING_TAGS.filter((t) => t.slug !== 'done')
+      : isFree
+        ? FREE_BOARD_WRITE_TAGS
+        : null;
+  const needsSubcategory = isFree || isMarket || isHousing;
 
   return (
     <div className="container">
@@ -234,11 +308,9 @@ export default function NewPostPage() {
             <p className="hint-text free-subcat-hint">
               {isMarket
                 ? '팝니다 / 삽니다 / 무료나눔 / 완료 중 하나를 선택하세요.'
-                : isJobs
-                  ? '구인 / 구직 / 알바·파트 중 하나를 선택하세요.'
-                  : isHousing
-                    ? '렌트 / 매매 / 룸메이트 중 하나를 선택하세요.'
-                    : '글을 쓰기 전에 주제를 먼저 선택해 주세요.'}
+                : isHousing
+                  ? '렌트 / 매매 / 룸메이트 중 하나를 선택하세요.'
+                  : '글을 쓰기 전에 주제를 먼저 선택해 주세요.'}
             </p>
             <div className="free-subcat-options" role="radiogroup" aria-label="구분">
               {writeTags.map((tag) => {
@@ -262,30 +334,6 @@ export default function NewPostPage() {
               })}
             </div>
           </fieldset>
-        ) : null}
-
-        {isJobs ? (
-          <>
-            <label htmlFor="companyName">
-              회사/상호명 {subcategory === 'hire' ? <span className="required-mark">필수</span> : null}
-            </label>
-            <input
-              id="companyName"
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
-              placeholder="예: Holland Bakery"
-              required={subcategory === 'hire'}
-            />
-            <label>회사 로고 (선택 · 1장만)</label>
-            <JobLogoField value={companyLogo} onChange={setCompanyLogo} disabled={saving} />
-            <label htmlFor="payText">급여/조건 (선택)</label>
-            <input
-              id="payText"
-              value={payText}
-              onChange={(e) => setPayText(e.target.value)}
-              placeholder="예: $15+/hr · 팁 별도 · Full-time"
-            />
-          </>
         ) : null}
 
         {isHousing ? (
@@ -350,18 +398,12 @@ export default function NewPostPage() {
           </>
         ) : null}
 
-        <label htmlFor="title">{isJobs ? '채용 제목' : isHousing ? '매물 제목' : '제목'}</label>
+        <label htmlFor="title">{isHousing ? '매물 제목' : '제목'}</label>
         <input
           id="title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder={
-            isJobs
-              ? '예: 서버/홀 스태프 모집'
-              : isHousing
-                ? '예: Holland 2BR 렌트 · No fee'
-                : undefined
-          }
+          placeholder={isHousing ? '예: Holland 2BR 렌트 · No fee' : undefined}
           required
         />
         <label htmlFor="city">지역</label>
@@ -379,13 +421,7 @@ export default function NewPostPage() {
         {isMarket || isHousing ? (
           <MarketBodyEditor value={body} onChange={setBody} disabled={saving} />
         ) : (
-          <textarea
-            id="body"
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder={isJobs ? '업무 내용, 근무 시간, 연락 방법을 간단히 적어 주세요.' : undefined}
-            required
-          />
+          <textarea id="body" value={body} onChange={(e) => setBody(e.target.value)} required />
         )}
 
         {error ? <div className="error-text">{error}</div> : null}

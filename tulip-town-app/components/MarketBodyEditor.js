@@ -73,8 +73,16 @@ function insertHtmlAtSelection(root, html) {
 /**
  * Inline body editor: paste/drop images into the content (not file attachments).
  */
-export default function MarketBodyEditor({ value, onChange, disabled }) {
+export default function MarketBodyEditor({
+  value,
+  onChange,
+  disabled,
+  ariaLabel = '본문',
+  showUploadButton = false,
+  helpText,
+}) {
   const ref = useRef(null);
+  const fileRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [hint, setHint] = useState('');
 
@@ -130,15 +138,41 @@ export default function MarketBodyEditor({ value, onChange, disabled }) {
     await ingestFiles(e.dataTransfer?.files);
   }
 
+  const defaultHelp =
+    '본문에 사진을 붙여넣기(Ctrl+V) 하거나 끌어다 놓으세요.';
+
   return (
     <div className="market-editor">
+      {showUploadButton ? (
+        <div className="market-editor-toolbar">
+          <button
+            type="button"
+            className="btn btn-outline market-editor-upload-btn"
+            disabled={disabled || uploading}
+            onClick={() => fileRef.current?.click()}
+          >
+            사진 올리기
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            multiple
+            hidden
+            onChange={(e) => {
+              ingestFiles(e.target.files);
+              e.target.value = '';
+            }}
+          />
+        </div>
+      ) : null}
       <div
         ref={ref}
         className="market-editor-canvas"
         contentEditable={!disabled && !uploading}
         role="textbox"
         aria-multiline="true"
-        aria-label="중고장터 본문"
+        aria-label={ariaLabel}
         data-placeholder="내용을 입력하세요. 사진은 Ctrl+V로 바로 붙일 수 있습니다."
         onInput={emitChange}
         onPaste={handlePaste}
@@ -147,7 +181,7 @@ export default function MarketBodyEditor({ value, onChange, disabled }) {
         suppressContentEditableWarning
       />
       <p className="field-help">
-        첨부파일 버튼 없이, 본문에 사진을 <strong>붙여넣기(Ctrl+V)</strong> 하거나 끌어다 놓으세요.
+        {helpText || defaultHelp}
         {hint ? ` · ${hint}` : ''}
       </p>
     </div>

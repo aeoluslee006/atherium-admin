@@ -2204,6 +2204,188 @@ main:has(.home-page) {
   color: var(--accent-dark);
 }
 
+/* ChicagoChinaRen-style jobs compose */
+.jobs-compose-page {
+  max-width: 920px;
+}
+
+.jobs-compose-top {
+  margin-bottom: 14px;
+}
+
+.jobs-compose {
+  background: #f4f8fc;
+  border: 1px solid #b7c9dc;
+  border-radius: 4px;
+  padding: 8px 0 18px;
+}
+
+.jobs-compose-row {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 12px 16px;
+  align-items: center;
+  padding: 12px 18px;
+  border-bottom: 1px solid #d7e2ee;
+}
+
+.jobs-compose-row--top {
+  align-items: start;
+}
+
+.jobs-compose-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #2a4058;
+  padding-top: 2px;
+}
+
+.jobs-compose-field input,
+.jobs-compose-field select,
+.jobs-compose-field textarea {
+  width: 100%;
+  margin: 0;
+}
+
+.jobs-compose-radios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.jobs-compose-radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1px solid #c5d3e3;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.jobs-compose-radio input {
+  width: auto;
+  margin: 0;
+}
+
+.jobs-compose-radio.is-selected {
+  border-color: var(--accent);
+  background: #e8f4fc;
+  color: var(--accent-dark);
+}
+
+.jobs-compose-sublabel {
+  display: block;
+  margin: 10px 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.jobs-compose-logo-block {
+  margin-top: 4px;
+}
+
+.jobs-compose-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 12px;
+}
+
+.jobs-compose-grid--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.jobs-compose-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #334155;
+  cursor: pointer;
+}
+
+.jobs-compose-check input {
+  width: auto;
+  margin: 0;
+}
+
+.jobs-role-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.jobs-role-chip {
+  appearance: none;
+  border: 1px solid #c5d3e3;
+  background: #fff;
+  color: #334155;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.jobs-role-chip.is-on {
+  border-color: var(--accent);
+  background: #1f8fe0;
+  color: #fff;
+}
+
+.jobs-compose-error {
+  margin: 12px 18px 0;
+}
+
+.jobs-compose-actions {
+  padding: 16px 18px 0;
+}
+
+.jobs-compose-submit {
+  min-width: 120px;
+  font-weight: 700;
+}
+
+.market-editor-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.market-editor-upload-btn {
+  font-size: 13px;
+  padding: 6px 12px;
+}
+
+.jobs-compose .market-editor-canvas {
+  min-height: 260px;
+  background: #fff;
+  border-color: #c5d3e3;
+  border-radius: 4px;
+}
+
+.jobs-compose .field-help {
+  margin: 6px 0 0;
+}
+
+@media (max-width: 720px) {
+  .jobs-compose-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 12px 14px;
+  }
+
+  .jobs-compose-grid,
+  .jobs-compose-grid--3 {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 720px) {
   .jobs-row {
     grid-template-columns: 44px minmax(0, 1fr);

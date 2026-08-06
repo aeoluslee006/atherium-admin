@@ -197,9 +197,9 @@ export default function Header() {
             );
           })}
           <Link
-            href="/gift"
-            className={`nav-item${isNavActive(pathname, '/gift') ? ' is-active' : ''}`}
-            aria-current={isNavActive(pathname, '/gift') ? 'page' : undefined}
+            href="/shop"
+            className={`nav-item${isNavActive(pathname, '/shop') || isNavActive(pathname, '/gift') ? ' is-active' : ''}`}
+            aria-current={isNavActive(pathname, '/shop') ? 'page' : undefined}
           >
             <span className="nav-icon" aria-hidden="true">
               {NAV_ICONS.gift}

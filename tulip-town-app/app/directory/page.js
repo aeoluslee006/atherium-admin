@@ -9,7 +9,7 @@ export default async function DirectoryPage() {
   let sponsors = [];
   try {
     sponsors = await supabaseRest(
-      'sponsors?select=*&status=eq.approved&order=created_at.desc'
+      'sponsors?select=*&status=eq.approved&or=(listing_type.is.null,listing_type.neq.shop)&order=created_at.desc'
     );
   } catch {
     sponsors = [];

@@ -66,7 +66,8 @@ export default function AdminPricingPage() {
   return (
     <div>
       <p className="hint-text" style={{ marginBottom: 14 }}>
-        업체 디렉토리 월 구독료는 Stripe Checkout에 사용됩니다. (금액 단위: cents)
+        최종 가격: 디렉토리 월 $10 · 특별광고 월 $30 · 튤립가게 월 $10(첫 3개월 무료). Stripe 결제는
+        보류 — 금액은 참고/추후 연동용입니다. (cents, $10 = 1000)
       </p>
       {error ? <div className="error-text">{error}</div> : null}
       {message ? <div className="hint-text">{message}</div> : null}

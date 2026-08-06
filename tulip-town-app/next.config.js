@@ -9,6 +9,15 @@ const FRAME_ANCESTORS = [
 
 const nextConfig = {
   eslint: { ignoreDuringBuilds: true },
+  async redirects() {
+    return [
+      { source: '/gift', destination: '/shop', permanent: false },
+      { source: '/gift/best', destination: '/shop', permanent: false },
+      { source: '/gift/:id', destination: '/shop', permanent: false },
+      { source: '/seller', destination: '/shop/new', permanent: false },
+      { source: '/seller/apply', destination: '/shop/new', permanent: false },
+    ];
+  },
   async headers() {
     return [
       {

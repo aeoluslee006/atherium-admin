@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { JOB_TAGS, getJobTagLabel, isValidJobTag } from '../lib/jobTags';
+import { getSampleJobsPost, SAMPLE_JOBS_POST_ID } from '../lib/sampleJobsPost';
 import { supabaseRest } from '../lib/supabaseRest';
 
 function formatListDate(value) {
@@ -54,6 +55,13 @@ export default async function JobsBoardPage({ searchParams = {} }) {
     }
   } catch {
     posts = [];
+  }
+
+  // Show built-in QA sample until a real jobs post exists in DB.
+  if (!Array.isArray(posts)) posts = [];
+  const hasReal = posts.some((p) => p?.id && p.id !== SAMPLE_JOBS_POST_ID);
+  if (!hasReal && (tag === 'all' || tag === 'hire')) {
+    posts = [getSampleJobsPost(), ...posts];
   }
 
   return (

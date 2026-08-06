@@ -9,6 +9,10 @@ import {
   getSampleHousingPost,
   isSampleHousingPostId,
 } from '../../../lib/sampleHousingPost';
+import {
+  getSampleJobsPost,
+  isSampleJobsPostId,
+} from '../../../lib/sampleJobsPost';
 import { supabaseRest } from '../../../lib/supabaseRest';
 
 export const dynamic = 'force-dynamic';
@@ -53,13 +57,16 @@ export default async function PostPage({ params }) {
     if (isSampleHousingPostId(params.id)) {
       post = getSampleHousingPost();
       authorLabel = '예시';
+    } else if (isSampleJobsPostId(params.id)) {
+      post = getSampleJobsPost();
+      authorLabel = '예시';
     } else {
       const rows = await supabaseRest(
         `posts?select=*&id=eq.${encodeURIComponent(params.id)}&limit=1`
       );
       post = rows?.[0] || null;
     }
-    if (post && !isSampleHousingPostId(params.id)) {
+    if (post && !isSampleHousingPostId(params.id) && !isSampleJobsPostId(params.id)) {
       comments = await safeRest(
         `comments?select=*&post_id=eq.${encodeURIComponent(params.id)}&order=created_at.asc`
       );
@@ -304,7 +311,7 @@ export default async function PostPage({ params }) {
 
       <h3 className="section-title">댓글 · Comments</h3>
       <div className="card">
-        {isSampleHousingPostId(post.id) ? (
+        {isSampleHousingPostId(post.id) || isSampleJobsPostId(post.id) ? (
           <div className="empty-state">예시 글에는 댓글을 남길 수 없습니다.</div>
         ) : (
           <>

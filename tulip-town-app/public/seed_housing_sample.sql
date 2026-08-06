@@ -1,5 +1,6 @@
--- Housing / 렌트·부동산 board fields (HeyKorean-style detail, text-only list)
--- Run in Supabase SQL Editor
+-- Housing board: schema columns + one QA sample listing
+-- Run once in Supabase SQL Editor:
+-- https://supabase.com/dashboard/project/lyikgkjhkmppvciicxfm/sql/new
 
 alter table public.posts
   add column if not exists subcategory text,
@@ -17,7 +18,7 @@ create index if not exists posts_housing_subcategory_idx
   on public.posts (category_slug, subcategory)
   where category_slug = 'housing';
 
--- Optional QA sample (same as seed_housing_sample.sql)
+-- One sample row for QA (skip if already present)
 insert into public.posts (
   title,
   body,
@@ -38,7 +39,7 @@ insert into public.posts (
 )
 select
   '[예시] Holland 타운홈 2베드 렌트 — $1,450/월',
-  E'점검용 예시 매물입니다. (실제 매물이 아닙니다)\n\n위치\n- Holland 시내 인근\n\n월세 $1,450 / 디파짓 $1,450 · 즉시 입주 가능',
+  E'점검용 예시 매물입니다. (실제 매물이 아닙니다)\n\n위치\n- Holland 시내 인근, 조용한 주거 단지\n- 학교·마트 차로 5~10분\n\n포함\n- 세탁기·건조기\n- 주차 2대\n- 중앙 에어컨\n\n조건\n- 월세 $1,450 / 디파짓 $1,450\n- 소형 반려동물 가능 (펫 디파짓 별도)\n- 입주: 즉시 협의\n\n문의는 아래 연락처로 부탁드려요.',
   'Holland',
   'housing',
   'rent',

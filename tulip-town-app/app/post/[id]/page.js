@@ -5,6 +5,10 @@ import { getFreeBoardTagLabel } from '../../../lib/freeBoardTags';
 import { getHousingTagLabel, getHousingTypeLabel } from '../../../lib/housingTags';
 import { getJobTagLabel } from '../../../lib/jobTags';
 import { getMarketTagLabel } from '../../../lib/marketTags';
+import {
+  getSampleHousingPost,
+  isSampleHousingPostId,
+} from '../../../lib/sampleHousingPost';
 import { supabaseRest } from '../../../lib/supabaseRest';
 
 export const dynamic = 'force-dynamic';
@@ -46,11 +50,16 @@ export default async function PostPage({ params }) {
   let nextPost = null;
 
   try {
-    const rows = await supabaseRest(
-      `posts?select=*&id=eq.${encodeURIComponent(params.id)}&limit=1`
-    );
-    post = rows?.[0] || null;
-    if (post) {
+    if (isSampleHousingPostId(params.id)) {
+      post = getSampleHousingPost();
+      authorLabel = '예시';
+    } else {
+      const rows = await supabaseRest(
+        `posts?select=*&id=eq.${encodeURIComponent(params.id)}&limit=1`
+      );
+      post = rows?.[0] || null;
+    }
+    if (post && !isSampleHousingPostId(params.id)) {
       comments = await safeRest(
         `comments?select=*&post_id=eq.${encodeURIComponent(params.id)}&order=created_at.asc`
       );
@@ -265,19 +274,25 @@ export default async function PostPage({ params }) {
 
       <h3 className="section-title">댓글 · Comments</h3>
       <div className="card">
-        {comments?.length ? (
-          comments.map((c) => (
-            <div key={c.id} className="comment">
-              <div className="comment-meta">
-                {c.created_at ? new Date(c.created_at).toLocaleString('ko-KR') : ''}
-              </div>
-              <div>{c.body}</div>
-            </div>
-          ))
+        {isSampleHousingPostId(post.id) ? (
+          <div className="empty-state">예시 글에는 댓글을 남길 수 없습니다.</div>
         ) : (
-          <div className="empty-state">아직 댓글이 없습니다.</div>
+          <>
+            {comments?.length ? (
+              comments.map((c) => (
+                <div key={c.id} className="comment">
+                  <div className="comment-meta">
+                    {c.created_at ? new Date(c.created_at).toLocaleString('ko-KR') : ''}
+                  </div>
+                  <div>{c.body}</div>
+                </div>
+              ))
+            ) : (
+              <div className="empty-state">아직 댓글이 없습니다.</div>
+            )}
+            <CommentForm postId={post.id} />
+          </>
         )}
-        <CommentForm postId={post.id} />
       </div>
     </div>
   );

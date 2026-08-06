@@ -5,6 +5,7 @@ import {
   getHousingTypeLabel,
   isValidHousingTag,
 } from '../lib/housingTags';
+import { getSampleHousingPost, SAMPLE_HOUSING_POST_ID } from '../lib/sampleHousingPost';
 import { supabaseRest } from '../lib/supabaseRest';
 
 function formatListDate(value) {
@@ -61,6 +62,13 @@ export default async function HousingBoardPage({ searchParams = {} }) {
     }
   } catch {
     posts = [];
+  }
+
+  // Show built-in QA sample until a real housing post exists in DB.
+  if (!Array.isArray(posts)) posts = [];
+  const hasReal = posts.some((p) => p?.id && p.id !== SAMPLE_HOUSING_POST_ID);
+  if (!hasReal && (tag === 'all' || tag === 'rent')) {
+    posts = [getSampleHousingPost(), ...posts];
   }
 
   return (

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import FreeBoardPage from '../../../components/FreeBoardPage';
+import HousingBoardPage from '../../../components/HousingBoardPage';
 import JobsBoardPage from '../../../components/JobsBoardPage';
 import MarketBoardPage from '../../../components/MarketBoardPage';
 import { getCategory } from '../../../lib/categories';
@@ -16,6 +17,9 @@ export default async function BoardPage({ params, searchParams }) {
   }
   if (params.slug === 'jobs') {
     return <JobsBoardPage searchParams={searchParams} />;
+  }
+  if (params.slug === 'housing') {
+    return <HousingBoardPage searchParams={searchParams} />;
   }
 
   const category = getCategory(params.slug);

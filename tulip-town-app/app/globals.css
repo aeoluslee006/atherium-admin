@@ -3068,3 +3068,222 @@ main:has(.home-page) {
     transform: none;
   }
 }
+
+/* ========== Housing / 렌트·부동산 (text-only list, rich detail) ========== */
+.housing-board-head {
+  margin-bottom: 14px;
+}
+
+.housing-board {
+  padding: 0;
+  overflow: hidden;
+}
+
+.housing-board-meta {
+  padding: 8px 14px;
+  font-size: var(--text-meta);
+  color: var(--ink-soft);
+  border-bottom: 1px solid var(--row-line);
+  background: #fafbfc;
+}
+
+.housing-table-head,
+.housing-row {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1.6fr) 110px 100px 72px;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--row-line);
+}
+
+.housing-table-head {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  background: #fafbfc;
+}
+
+.housing-row {
+  text-decoration: none;
+  color: inherit;
+  min-height: 44px;
+}
+
+.housing-row:hover {
+  background: #f7faf8;
+}
+
+.housing-row.is-done {
+  opacity: 0.55;
+}
+
+.housing-row-main {
+  min-width: 0;
+}
+
+.housing-row-title {
+  display: block;
+  font-size: 14px;
+  font-weight: 650;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.housing-row-sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.housing-row-price {
+  font-size: 13px;
+  font-weight: 750;
+  color: #1f6b45;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.housing-row-city,
+.housing-row-date {
+  font-size: 12px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.housing-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.3;
+  background: #eef2f6;
+  color: #445;
+}
+
+.housing-badge--rent {
+  background: #e7f5ee;
+  color: #1f6b45;
+}
+
+.housing-badge--sale {
+  background: #eaf2fb;
+  color: #1d5f9c;
+}
+
+.housing-badge--roommate {
+  background: #f5eef8;
+  color: #6b3d7a;
+}
+
+.housing-badge--done {
+  background: #eee;
+  color: #777;
+}
+
+.housing-empty {
+  padding: 28px 16px;
+}
+
+.housing-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 12px;
+}
+
+.housing-detail-price {
+  margin: 6px 0 4px;
+  font-size: 22px;
+  font-weight: 800;
+  color: #1f6b45;
+}
+
+.housing-spec-card {
+  margin: 0 0 18px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.housing-spec-title {
+  margin: 0;
+  padding: 12px 16px;
+  font-size: 15px;
+  font-weight: 750;
+  border-bottom: 1px solid var(--row-line);
+  background: #fafbfc;
+}
+
+.housing-spec-list {
+  margin: 0;
+  padding: 4px 0;
+}
+
+.housing-spec-row {
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr);
+  gap: 10px;
+  padding: 9px 16px;
+  border-bottom: 1px solid var(--row-line);
+  font-size: 14px;
+}
+
+.housing-spec-row:last-child {
+  border-bottom: none;
+}
+
+.housing-spec-row dt {
+  margin: 0;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.housing-spec-row dd {
+  margin: 0;
+  font-weight: 550;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 720px) {
+  .housing-table-head {
+    display: none;
+  }
+
+  .housing-row {
+    grid-template-columns: 56px minmax(0, 1fr) auto;
+    grid-template-areas:
+      'type main price'
+      'type main city'
+      'type main date';
+    row-gap: 2px;
+    padding: 10px 12px;
+  }
+
+  .housing-row-type { grid-area: type; }
+  .housing-row-main { grid-area: main; }
+  .housing-row-price { grid-area: price; justify-self: end; }
+  .housing-row-city { grid-area: city; justify-self: end; }
+  .housing-row-date { grid-area: date; justify-self: end; }
+
+  .housing-row-title {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .housing-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .housing-spec-row {
+    grid-template-columns: 84px minmax(0, 1fr);
+  }
+}

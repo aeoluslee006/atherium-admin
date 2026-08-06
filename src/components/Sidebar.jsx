@@ -9,6 +9,11 @@ const NAV = [
   { section: 'Platforms', items: [
     { id: null, icon: 'ti-building-store', label: 'Cosmonova' },
     { id: null, icon: 'ti-building-skyscraper', label: 'Cosmoenterprise' },
+    {
+      id: 'ttkc',
+      icon: 'ti-flower',
+      label: 'TTKC / Tulip Town',
+    },
   ]},
   { section: 'System', items: [
     { id: null, icon: 'ti-credit-card', label: 'Billing' },
@@ -41,7 +46,14 @@ export default function Sidebar({ activePage, setActivePage, userEmail = 'Admin'
                 <div
                   key={item.label}
                   style={{ ...s.navItem, ...(active ? s.navItemActive : {}) }}
-                  onClick={() => item.id && setActivePage(item.id)}
+                  onClick={() => {
+                    if (item.href) {
+                      window.open(item.href, '_blank', 'noopener,noreferrer')
+                      return
+                    }
+                    if (item.id) setActivePage(item.id)
+                  }}
+                  title={item.href ? 'Open in new tab' : undefined}
                 >
                   <i className={`ti ${item.icon}`} style={{ fontSize: 16, width: 18 }} aria-hidden="true" />
                   {item.label}

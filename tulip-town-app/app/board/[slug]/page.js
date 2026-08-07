@@ -27,7 +27,7 @@ export default async function BoardPage({ params, searchParams }) {
     return <HousingBoardPage searchParams={searchParams} />;
   }
   if (params.slug === 'classes') {
-    return <ClassesBoardPage />;
+    return <ClassesBoardPage searchParams={searchParams} />;
   }
 
   const category = getCategory(params.slug);

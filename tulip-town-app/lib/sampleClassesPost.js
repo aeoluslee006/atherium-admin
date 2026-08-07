@@ -3,20 +3,29 @@ export const SAMPLE_CLASSES_POST_ID = 'sample-classes';
 
 export const SAMPLE_CLASSES_POST = {
   id: SAMPLE_CLASSES_POST_ID,
-  title: '[예시] Holland 한국어 회화 수업',
-  body: `초급·중급 한국어 회화 수업입니다. (예시 글 · 실제 모집 아님)
+  title: '[예시] SAT Math / 고등 수학 과외 (Holland · Online)',
+  body: `안녕하세요. (점검용 예시 글 · 실제 모집 아님)
 
-주 1회 · 소그룹 · 회화 위주
-교재는 첫 수업 때 안내합니다.
+West Michigan 지역 고등 수학 · SAT Math 과외합니다.
+
+■ 가능 과목
+- Middle / High School Math (Algebra, Geometry, Precalc, Calculus)
+- SAT Math
+- 개념 정리 + 문제 풀이 + 시험 대비
+
+■ 수업 방식
+- 1:1 또는 소그룹
+- 대면 또는 Online 가능
+- 학생 수준에 맞춰 커리큘럼 조정
 
 관심 있으신 분은 연락처로 문자 주세요.`,
   city: 'Holland',
   category_slug: 'classes',
   subcategory: null,
   is_pinned: false,
-  created_at: '2026-08-06T10:00:00.000Z',
-  view_count: 12,
-  address_text: 'Holland Public Library 스터디룸',
+  created_at: '2026-08-06T20:38:00.000Z',
+  view_count: 9,
+  address_text: 'Holland / Online',
   contact_text: '문자 616-555-0190 (예시)',
   author_id: null,
 };

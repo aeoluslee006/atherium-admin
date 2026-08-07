@@ -533,7 +533,7 @@ export default function NewPostPage() {
               : isMarket
                 ? '예: IKEA 소파 팝니다'
                 : isClasses
-                  ? '예: Holland 한국어 회화 수업'
+                  ? '예: SAT Math / 고등 수학 과외 (Holland · Online)'
                   : undefined
           }
           required
@@ -554,7 +554,7 @@ export default function NewPostPage() {
               id="classesAddressText"
               value={addressText}
               onChange={(e) => setAddressText(e.target.value)}
-              placeholder="예: Holland Public Library 스터디룸 · 교회 강의실"
+              placeholder="예: Holland / Online · 도서관 스터디룸"
             />
             <label htmlFor="classesContactText">연락처</label>
             <input

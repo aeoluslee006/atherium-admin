@@ -454,6 +454,17 @@ export default async function PostPage({ params }) {
             </div>
           )
         ) : null
+      ) : isClasses ? (
+        htmlBody ? (
+          <div
+            className="card post-body-html classes-detail-body"
+            dangerouslySetInnerHTML={{ __html: sanitizePostHtml(post.body) }}
+          />
+        ) : (
+          <div className="card classes-detail-body" style={{ whiteSpace: 'pre-wrap' }}>
+            {post.body}
+          </div>
+        )
       ) : !isMarket && htmlBody ? (
         <div
           className="card post-body-html"

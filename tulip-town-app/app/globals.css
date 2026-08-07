@@ -2065,6 +2065,30 @@ main:has(.home-page) {
   line-height: 1.4;
 }
 
+.jobs-type-sign {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #1f8fe0;
+}
+
+.jobs-type-sign--hire {
+  color: #1f8fe0;
+}
+
+.jobs-type-sign--seek {
+  color: #c05621;
+}
+
+.jobs-type-sign--parttime {
+  color: #0f766e;
+}
+
+.jobs-type-sign--notice {
+  color: #c0455d;
+}
+
 .jobs-pay {
   font-size: var(--text-meta);
   font-weight: 600;
@@ -2072,13 +2096,6 @@ main:has(.home-page) {
   background: var(--accent-tint);
   border-radius: 6px;
   padding: 2px 8px;
-}
-
-.jobs-status-inline {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-left: 2px;
 }
 
 .job-status-badge {
@@ -2094,8 +2111,8 @@ main:has(.home-page) {
 }
 
 .job-status-badge--fulltime {
-  background: #e7f0ff;
-  color: #1d4f91;
+  background: #fff4e0;
+  color: #9a5b00;
 }
 
 .job-status-badge--parttime-role {

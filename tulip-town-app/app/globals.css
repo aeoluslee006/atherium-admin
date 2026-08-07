@@ -2029,8 +2029,8 @@ main:has(.home-page) {
 
 .jobs-company-line {
   display: flex;
-  align-items: baseline;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 4px;
 }
 
@@ -2067,25 +2067,32 @@ main:has(.home-page) {
 
 .jobs-type-sign {
   flex: 0 0 auto;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: #1f8fe0;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  line-height: 1.3;
+  background: #eef2f6;
+  color: #445066;
 }
 
 .jobs-type-sign--hire {
-  color: #1f8fe0;
+  background: #e7f1ff;
+  color: #1f6fbf;
 }
 
 .jobs-type-sign--seek {
+  background: #fff0e6;
   color: #c05621;
 }
 
 .jobs-type-sign--parttime {
+  background: #e6f7f4;
   color: #0f766e;
 }
 
 .jobs-type-sign--notice {
+  background: #ffe4ea;
   color: #c0455d;
 }
 

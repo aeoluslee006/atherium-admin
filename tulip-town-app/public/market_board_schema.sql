@@ -4,7 +4,10 @@
 -- View counter on posts
 alter table public.posts
   add column if not exists view_count integer not null default 0,
-  add column if not exists subcategory text;
+  add column if not exists subcategory text,
+  add column if not exists price_text text,
+  add column if not exists contact_text text,
+  add column if not exists image_urls text;
 
 -- Safe public view increment
 create or replace function public.increment_post_views(p_id uuid)

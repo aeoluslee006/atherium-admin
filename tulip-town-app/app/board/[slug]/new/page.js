@@ -47,6 +47,8 @@ export default function NewPostPage() {
   const [availableText, setAvailableText] = useState('');
   const [contactText, setContactText] = useState('');
   const [housingPhotos, setHousingPhotos] = useState([]);
+  const [marketPriceText, setMarketPriceText] = useState('');
+  const [marketPhotos, setMarketPhotos] = useState([]);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -195,9 +197,10 @@ export default function NewPostPage() {
       if (
         isMarket &&
         !plainTextFromHtml(body) &&
-        !/<img\s/i.test(body)
+        !/<img\s/i.test(body) &&
+        !(marketPhotos && marketPhotos.length)
       ) {
-        setError('내용을 입력하거나 사진을 붙여넣어 주세요.');
+        setError('내용 또는 상품 사진을 넣어 주세요.');
         return;
       }
       if (
@@ -225,6 +228,9 @@ export default function NewPostPage() {
       }
       if (isMarket) {
         payload.subcategory = subcategory;
+        payload.price_text = marketPriceText.trim() || null;
+        payload.contact_text = contactText.trim() || null;
+        payload.image_urls = serializeImageUrls(marketPhotos);
       }
       if (isHousing) {
         payload.subcategory = subcategory;
@@ -241,6 +247,33 @@ export default function NewPostPage() {
 
       let { data, error: insertError } = await supabase.from('posts').insert(payload).select('id').single();
 
+      if (insertError && isMarket) {
+        const { price_text, contact_text, image_urls, ...basic } = payload;
+        let retry = await supabase
+          .from('posts')
+          .insert({ ...basic, price_text, contact_text })
+          .select('id')
+          .single();
+        if (retry.error) {
+          retry = await supabase.from('posts').insert(basic).select('id').single();
+        }
+        if (!retry.error && image_urls && marketPhotos?.length) {
+          const imgs = marketPhotos
+            .map((src) => `<p><img src="${src}" alt="" class="market-inline-image" /></p>`)
+            .join('');
+          await supabase
+            .from('posts')
+            .update({ body: `${imgs}${body || ''}` })
+            .eq('id', retry.data.id);
+          setError(
+            '글은 등록됐습니다. 사진 갤러리 컬럼이 없으면 본문에 사진을 넣었습니다. market_board_schema.sql을 실행해 주세요.'
+          );
+        } else if (!retry.error && (price_text || contact_text || image_urls)) {
+          setError('글은 등록됐지만 일부 컬럼이 없습니다. market_board_schema.sql을 실행해 주세요.');
+        }
+        data = retry.data;
+        insertError = retry.error;
+      }
       if (insertError && isHousing) {
         const {
           rent_price_text,
@@ -444,12 +477,43 @@ export default function NewPostPage() {
           </>
         ) : null}
 
-        <label htmlFor="title">{isHousing ? '매물 제목' : '제목'}</label>
+        {isMarket ? (
+          <>
+            <label htmlFor="marketPriceText">가격</label>
+            <input
+              id="marketPriceText"
+              value={marketPriceText}
+              onChange={(e) => setMarketPriceText(e.target.value)}
+              placeholder="예: $50 · 협의 · 나눔"
+            />
+            <label htmlFor="marketContactText">연락처</label>
+            <input
+              id="marketContactText"
+              value={contactText}
+              onChange={(e) => setContactText(e.target.value)}
+              placeholder="휴대폰 / 카톡 / 이메일"
+            />
+            <label>상품 사진</label>
+            <HousingPhotosField
+              value={marketPhotos}
+              onChange={setMarketPhotos}
+              disabled={saving}
+            />
+          </>
+        ) : null}
+
+        <label htmlFor="title">{isHousing ? '매물 제목' : isMarket ? '상품 제목' : '제목'}</label>
         <input
           id="title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder={isHousing ? '예: Holland 2BR 렌트 · No fee' : undefined}
+          placeholder={
+            isHousing
+              ? '예: Holland 2BR 렌트 · No fee'
+              : isMarket
+                ? '예: IKEA 소파 팝니다'
+                : undefined
+          }
           required
         />
         <label htmlFor="city">지역</label>
@@ -462,18 +526,18 @@ export default function NewPostPage() {
         </select>
 
         <label htmlFor={isMarket || isHousing ? undefined : 'body'}>
-          {isHousing ? '상세 설명' : '내용'}
+          {isHousing ? '상세 설명' : isMarket ? '상세 설명' : '내용'}
         </label>
         {isMarket || isHousing ? (
           <MarketBodyEditor
             value={body}
             onChange={setBody}
             disabled={saving}
-            showUploadButton={isHousing}
-            ariaLabel={isHousing ? '부동산 상세 설명' : '본문'}
+            showUploadButton
+            ariaLabel={isHousing ? '부동산 상세 설명' : isMarket ? '중고장터 상세 설명' : '본문'}
             helpText={
-              isHousing
-                ? '위 매물 사진에 올린 이미지는 갤러리로 보입니다. 본문에도 추가 사진을 넣을 수 있습니다.'
+              isHousing || isMarket
+                ? '위에 올린 사진은 갤러리로 보입니다. 본문에도 추가 사진을 넣을 수 있습니다.'
                 : undefined
             }
           />

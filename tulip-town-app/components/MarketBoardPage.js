@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { MARKET_TAGS, getMarketTagLabel, isValidMarketTag } from '../lib/marketTags';
+import { collectPostImages } from '../lib/postImages';
+import { getSampleMarketPost, SAMPLE_MARKET_POST_ID } from '../lib/sampleMarketPost';
 import { supabaseRest } from '../lib/supabaseRest';
 
 function formatListDate(value) {
@@ -25,60 +27,50 @@ function buildHref(tag) {
   return `/board/market?tag=${encodeURIComponent(tag)}`;
 }
 
-function hasInlineImage(body) {
-  if (!body) return false;
-  return /<img\s/i.test(body) || /data:image\//i.test(body) || /!\[[^\]]*]\(/i.test(body);
-}
-
 export default async function MarketBoardPage({ searchParams = {} }) {
   const rawTag = searchParams.tag || 'all';
   const tag = isValidMarketTag(rawTag) ? rawTag : 'all';
 
   let posts = [];
-  let authorsById = {};
 
   try {
     let path =
-      'posts?select=id,title,body,subcategory,is_pinned,created_at,author_id,view_count&category_slug=eq.market';
-    if (tag !== 'all') {
-      path += `&subcategory=eq.${encodeURIComponent(tag)}`;
-    }
+      'posts?select=id,title,body,subcategory,is_pinned,created_at,city,view_count,price_text,image_urls&category_slug=eq.market';
+    if (tag !== 'all') path += `&subcategory=eq.${encodeURIComponent(tag)}`;
     path += '&order=is_pinned.desc,created_at.desc';
 
     try {
       posts = await supabaseRest(path);
     } catch {
-      // view_count may be missing before SQL migration
-      let fallback =
-        'posts?select=id,title,body,subcategory,is_pinned,created_at,author_id&category_slug=eq.market';
-      if (tag !== 'all') {
-        fallback += `&subcategory=eq.${encodeURIComponent(tag)}`;
-      }
-      fallback += '&order=is_pinned.desc,created_at.desc';
-      posts = await supabaseRest(fallback);
-    }
-
-    const authorIds = [...new Set((posts || []).map((p) => p.author_id).filter(Boolean))];
-    if (authorIds.length) {
       try {
-        const profiles = await supabaseRest(
-          `profiles?select=id,username,display_name&id=in.(${authorIds.map(encodeURIComponent).join(',')})`
-        );
-        authorsById = Object.fromEntries(
-          (profiles || []).map((p) => [p.id, p.username || p.display_name || ''])
-        );
+        let mid =
+          'posts?select=id,title,body,subcategory,is_pinned,created_at,city,view_count&category_slug=eq.market';
+        if (tag !== 'all') mid += `&subcategory=eq.${encodeURIComponent(tag)}`;
+        mid += '&order=is_pinned.desc,created_at.desc';
+        posts = await supabaseRest(mid);
       } catch {
-        authorsById = {};
+        let fallback =
+          'posts?select=id,title,body,subcategory,is_pinned,created_at,city&category_slug=eq.market';
+        if (tag !== 'all') fallback += `&subcategory=eq.${encodeURIComponent(tag)}`;
+        fallback += '&order=is_pinned.desc,created_at.desc';
+        posts = await supabaseRest(fallback);
       }
     }
   } catch {
     posts = [];
   }
 
+  if (!Array.isArray(posts)) posts = [];
+  const hasReal = posts.some((p) => p?.id && p.id !== SAMPLE_MARKET_POST_ID);
+  if (!hasReal && (tag === 'all' || tag === 'sell')) {
+    posts = [getSampleMarketPost(), ...posts];
+  }
+
   return (
     <div className="container">
-      <header className="market-board-head">
+      <header className="market-board-head board-heading">
         <h2 className="section-title">중고장터</h2>
+        <p className="board-heading-desc">팝니다 · 삽니다 · 무료나눔</p>
       </header>
 
       <div className="board-toolbar market-toolbar">
@@ -108,49 +100,59 @@ export default async function MarketBoardPage({ searchParams = {} }) {
 
       <div className="wf-box market-board">
         <div className="market-board-meta">
-          Total {(posts || []).length}건
+          Total {(posts || []).length}건 · 사진은 상세에서 갤러리로 확인
         </div>
 
-        <div className="market-table" role="table" aria-label="중고장터 목록">
-          <div className="market-table-head" role="row">
+        <div className="market-table market-table--photos" role="table" aria-label="중고장터 목록">
+          <div className="market-table-head market-table-head--photos" role="row">
+            <span role="columnheader">사진</span>
             <span role="columnheader">구분</span>
             <span role="columnheader">제목</span>
-            <span role="columnheader">글쓴이</span>
-            <span role="columnheader">조회</span>
+            <span role="columnheader">가격</span>
+            <span role="columnheader">지역</span>
             <span role="columnheader">날짜</span>
           </div>
 
           {(posts || []).length ? (
             posts.map((post) => {
               const label = post.is_pinned ? '공지' : getMarketTagLabel(post.subcategory) || '일반';
-              const author = authorsById[post.author_id] || '—';
-              const views = Number.isFinite(post.view_count) ? post.view_count : 0;
-              const img = hasInlineImage(post.body);
+              const photos = collectPostImages(post);
+              const cover = photos[0] || null;
               return (
                 <Link
                   key={post.id}
                   href={`/post/${post.id}`}
-                  className={`market-table-row${post.is_pinned ? ' is-notice' : ''}`}
+                  className={`market-table-row market-table-row--photos${post.is_pinned ? ' is-notice' : ''}${post.subcategory === 'done' ? ' is-done' : ''}`}
                   role="row"
                 >
+                  <span className="market-row-thumb" role="cell">
+                    {cover ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={cover} alt="" />
+                    ) : (
+                      <span className="market-row-thumb-empty" aria-hidden="true">
+                        —
+                      </span>
+                    )}
+                    {photos.length > 1 ? (
+                      <span className="market-row-photo-count">{photos.length}</span>
+                    ) : null}
+                  </span>
                   <span className="market-col-badge" role="cell">
-                    <span className={`market-badge market-badge--${post.subcategory || 'plain'}${post.is_pinned ? ' market-badge--notice' : ''}`}>
+                    <span
+                      className={`market-badge market-badge--${post.subcategory || 'plain'}${post.is_pinned ? ' market-badge--notice' : ''}`}
+                    >
                       {label}
                     </span>
                   </span>
                   <span className="market-col-title" role="cell">
                     <span className="market-title-text">{post.title}</span>
-                    {img ? (
-                      <span className="market-img-mark" title="사진 있음" aria-label="사진 있음">
-                        ▤
-                      </span>
-                    ) : null}
                   </span>
-                  <span className="market-col-author" role="cell">
-                    {author}
+                  <span className="market-col-price" role="cell">
+                    {post.price_text || '—'}
                   </span>
-                  <span className="market-col-views" role="cell">
-                    {views}
+                  <span className="market-col-city" role="cell">
+                    {post.city || '—'}
                   </span>
                   <span className="market-col-date" role="cell">
                     {formatListDate(post.created_at)}

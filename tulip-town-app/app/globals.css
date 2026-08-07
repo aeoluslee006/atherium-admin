@@ -1748,6 +1748,74 @@ main:has(.home-page) {
   padding: 11px 16px;
 }
 
+.market-table-head--photos,
+.market-table-row--photos {
+  grid-template-columns: 56px 72px minmax(0, 1.5fr) 90px 90px 72px;
+  padding: 8px 14px;
+}
+
+.market-row-thumb {
+  position: relative;
+  width: 52px;
+  height: 40px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #eef2f6;
+  flex-shrink: 0;
+}
+
+.market-row-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.market-row-thumb-empty {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  font-size: 12px;
+  color: #9aa3b2;
+}
+
+.market-row-photo-count {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: rgba(15, 23, 42, 0.72);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+
+.market-col-price {
+  font-size: 13px;
+  font-weight: 750;
+  color: #1f6b45;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.market-col-city {
+  font-size: var(--text-meta);
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.market-table-row.is-done {
+  opacity: 0.55;
+}
+
 .market-table-head {
   font-size: var(--text-meta);
   font-weight: 600;
@@ -1929,23 +1997,31 @@ main:has(.home-page) {
     row-gap: 4px;
   }
 
-  .market-col-badge {
-    grid-area: badge;
-    align-self: start;
+  .market-table-row--photos {
+    grid-template-columns: 52px 64px minmax(0, 1fr) auto;
+    grid-template-areas:
+      'thumb badge title price'
+      'thumb badge title city'
+      'thumb badge title date';
   }
 
-  .market-col-title {
-    grid-area: title;
-  }
+  .market-row-thumb { grid-area: thumb; align-self: start; margin-top: 2px; }
+  .market-col-badge { grid-area: badge; align-self: start; }
+  .market-col-title { grid-area: title; }
+  .market-col-price { grid-area: price; justify-self: end; }
+  .market-col-city { grid-area: city; justify-self: end; }
+  .market-col-date { grid-area: date; justify-self: end; }
 
   .market-col-author,
-  .market-col-views,
-  .market-col-date {
+  .market-col-views {
     display: none;
   }
 
   .market-title-text {
     white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
 }
 

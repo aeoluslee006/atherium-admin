@@ -18,6 +18,10 @@ import {
   getSampleJobsPost,
   isSampleJobsPostId,
 } from '../../../lib/sampleJobsPost';
+import {
+  getSampleMarketPost,
+  isSampleMarketPostId,
+} from '../../../lib/sampleMarketPost';
 import { supabaseRest } from '../../../lib/supabaseRest';
 
 export const dynamic = 'force-dynamic';
@@ -65,13 +69,21 @@ export default async function PostPage({ params }) {
     } else if (isSampleJobsPostId(params.id)) {
       post = getSampleJobsPost();
       authorLabel = '예시';
+    } else if (isSampleMarketPostId(params.id)) {
+      post = getSampleMarketPost();
+      authorLabel = '예시';
     } else {
       const rows = await supabaseRest(
         `posts?select=*&id=eq.${encodeURIComponent(params.id)}&limit=1`
       );
       post = rows?.[0] || null;
     }
-    if (post && !isSampleHousingPostId(params.id) && !isSampleJobsPostId(params.id)) {
+    if (
+      post &&
+      !isSampleHousingPostId(params.id) &&
+      !isSampleJobsPostId(params.id) &&
+      !isSampleMarketPostId(params.id)
+    ) {
       comments = await safeRest(
         `comments?select=*&post_id=eq.${encodeURIComponent(params.id)}&order=created_at.asc`
       );
@@ -174,18 +186,36 @@ export default async function PostPage({ params }) {
     : [];
 
   const housingImages = isHousing ? collectPostImages(post) : [];
+  const marketImages = isMarket ? collectPostImages(post) : [];
+  const galleryImages = isHousing ? housingImages : isMarket ? marketImages : [];
+  const useListingGallery = (isHousing || isMarket) && galleryImages.length > 0;
+
   const housingBodyHtml =
-    isHousing && housingImages.length
+    useListingGallery && isHousing
       ? stripImagesFromHtml(sanitizePostHtml(post.body))
       : sanitizePostHtml(post.body);
-  const housingBodyPlain = String(
-    isHousing && housingImages.length ? stripImagesFromHtml(post.body) : post.body || ''
+  const marketBodyHtml =
+    useListingGallery && isMarket
+      ? stripImagesFromHtml(sanitizePostHtml(post.body))
+      : sanitizePostHtml(post.body);
+  const listingBodyPlain = String(
+    useListingGallery ? stripImagesFromHtml(post.body) : post.body || ''
   )
     .replace(/<[^>]+>/g, ' ')
     .replace(/&nbsp;/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-  const showHousingTextBody = !isHousing || housingBodyPlain.length > 0;
+  const showListingTextBody = !(isHousing || isMarket) || listingBodyPlain.length > 0;
+
+  const marketSpecs = isMarket
+    ? [
+        ['구분', marketTagLabel || '—'],
+        ['가격', post.price_text || '—'],
+        ['지역', post.city || '—'],
+        ['연락처', post.contact_text || '—'],
+      ].filter(([, value]) => value && value !== '—')
+    : [];
+  const hasMarketLocation = Boolean(post.city);
 
   return (
     <div className="container">
@@ -246,6 +276,9 @@ export default async function PostPage({ params }) {
           {isHousing && post.rent_price_text ? (
             <div className="housing-detail-price">{post.rent_price_text}</div>
           ) : null}
+          {isMarket && post.price_text ? (
+            <div className="housing-detail-price">{post.price_text}</div>
+          ) : null}
 
           <div className="hint-text post-meta-bar">
             {authorLabel ? <span className="post-author">{authorLabel}</span> : null}
@@ -257,7 +290,7 @@ export default async function PostPage({ params }) {
             ) : null}
             <span aria-hidden="true"> · </span>
             <span>댓글 {comments?.length || 0}</span>
-            {post.city && !isHousing ? (
+            {post.city && !isHousing && !isMarket ? (
               <>
                 <span aria-hidden="true"> · </span>
                 <span className="city-tag">{post.city}</span>
@@ -295,7 +328,6 @@ export default async function PostPage({ params }) {
                 <dl className="housing-spec-list">
                   {housingSpecs
                     .filter(([label]) => {
-                      // Location already shown in aside when present
                       if (!hasHousingLocation) return true;
                       return label !== '주소' && label !== '지역' && label !== '입주';
                     })
@@ -317,6 +349,45 @@ export default async function PostPage({ params }) {
         </div>
       ) : null}
 
+      {isMarket && (marketSpecs.length || marketImages.length) ? (
+        <div className={`housing-detail-split${marketImages.length ? ' has-photos' : ''}`}>
+          <div className="housing-detail-info">
+            {hasMarketLocation ? (
+              <aside className="housing-detail-aside">
+                <div className="housing-aside-label">거래 지역</div>
+                <div className="housing-aside-address">{post.city}</div>
+                {post.contact_text ? (
+                  <div className="housing-aside-meta">{post.contact_text}</div>
+                ) : null}
+              </aside>
+            ) : null}
+            {marketSpecs.length ? (
+              <div className="card housing-spec-card">
+                <h3 className="housing-spec-title">상품 정보</h3>
+                <dl className="housing-spec-list">
+                  {marketSpecs
+                    .filter(([label]) => {
+                      if (!hasMarketLocation) return true;
+                      return label !== '지역' && label !== '연락처';
+                    })
+                    .map(([label, value]) => (
+                      <div key={label} className="housing-spec-row">
+                        <dt>{label}</dt>
+                        <dd>{value}</dd>
+                      </div>
+                    ))}
+                </dl>
+              </div>
+            ) : null}
+          </div>
+          {marketImages.length ? (
+            <div className="housing-detail-media">
+              <HousingPhotoGallery images={marketImages} title={post.title || '상품 사진'} />
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       {isJobs && jobSpecs.length ? (
         <div className="card housing-spec-card job-spec-card">
           <h3 className="housing-spec-title">채용 정보</h3>
@@ -331,17 +402,19 @@ export default async function PostPage({ params }) {
         </div>
       ) : null}
 
-      {isHousing ? (
-        showHousingTextBody ? (
+      {isHousing || isMarket ? (
+        showListingTextBody ? (
           htmlBody ? (
             <div
               className="card post-body-html"
               style={{ marginBottom: 24 }}
-              dangerouslySetInnerHTML={{ __html: housingBodyHtml }}
+              dangerouslySetInnerHTML={{
+                __html: isHousing ? housingBodyHtml : marketBodyHtml,
+              }}
             />
           ) : (
             <div className="card" style={{ whiteSpace: 'pre-wrap', marginBottom: 24 }}>
-              {housingBodyPlain}
+              {listingBodyPlain}
             </div>
           )
         ) : null
@@ -376,7 +449,9 @@ export default async function PostPage({ params }) {
 
       <h3 className="section-title">댓글 · Comments</h3>
       <div className="card">
-        {isSampleHousingPostId(post.id) || isSampleJobsPostId(post.id) ? (
+        {isSampleHousingPostId(post.id) ||
+        isSampleJobsPostId(post.id) ||
+        isSampleMarketPostId(post.id) ? (
           <div className="empty-state">예시 글에는 댓글을 남길 수 없습니다.</div>
         ) : (
           <>

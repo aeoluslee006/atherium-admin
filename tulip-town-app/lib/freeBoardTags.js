@@ -9,18 +9,19 @@ export const FREE_BOARD_TAGS = [
   { slug: 'info', nameKo: '정보공유' },
   { slug: 'question', nameKo: '궁금해요' },
   { slug: 'recommend', nameKo: '추천' },
-  { slug: 'meetup', nameKo: '모임/번개' },
-  { slug: 'club', nameKo: '동호회' },
+  { slug: 'meetup', nameKo: '모임/동호회' },
   { slug: 'lostfound', nameKo: '분실/습득' },
   { slug: 'etc', nameKo: '기타' },
 ];
 
-/** Write-form options: 좋은글 + 7 subcategory tags (matches list filter chips). */
+/** Write-form options: 좋은글 + subcategory tags (matches list filter chips). */
 export const FREE_BOARD_WRITE_TAGS = [FREE_BOARD_FEATURED_TAG, ...FREE_BOARD_TAGS];
 
 export function getFreeBoardTag(slug) {
   if (!slug) return null;
   if (slug === FREE_BOARD_FEATURED_TAG.slug) return FREE_BOARD_FEATURED_TAG;
+  // Legacy: 동호회 tag merged into 모임/동호회
+  if (slug === 'club') return FREE_BOARD_TAGS.find((t) => t.slug === 'meetup') || null;
   return FREE_BOARD_TAGS.find((t) => t.slug === slug) || null;
 }
 

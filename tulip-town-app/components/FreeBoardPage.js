@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { FREE_BOARD_TAGS, getFreeBoardTagLabel, isValidFreeBoardTag } from '../lib/freeBoardTags';
 import { getSampleFreeClubPost, SAMPLE_FREE_CLUB_POST_ID } from '../lib/sampleFreeClubPost';
 import { supabaseRest } from '../lib/supabaseRest';
@@ -19,6 +20,10 @@ function buildHref(tag) {
 
 export default async function FreeBoardPage({ searchParams = {} }) {
   const rawTag = searchParams.tag || 'all';
+  // Legacy 동호회 tag → 모임/동호회
+  if (rawTag === 'club') {
+    redirect('/board/free?tag=meetup');
+  }
   const isFeaturedFilter = rawTag === 'featured';
   const tag = isFeaturedFilter ? 'featured' : isValidFreeBoardTag(rawTag) ? rawTag : 'all';
 
@@ -28,6 +33,9 @@ export default async function FreeBoardPage({ searchParams = {} }) {
       'posts?select=id,title,subcategory,created_at,is_featured&category_slug=eq.free';
     if (isFeaturedFilter) {
       path += '&is_featured=eq.true';
+    } else if (tag === 'meetup') {
+      // Include legacy 동호회 (club) posts under 모임/동호회
+      path += '&subcategory=in.(meetup,club)';
     } else if (tag !== 'all') {
       path += `&subcategory=eq.${encodeURIComponent(tag)}`;
     }
@@ -38,12 +46,15 @@ export default async function FreeBoardPage({ searchParams = {} }) {
   }
 
   if (!Array.isArray(posts)) posts = [];
-  const hasRealClub = posts.some(
-    (p) => p.subcategory === 'club' && p.id && p.id !== SAMPLE_FREE_CLUB_POST_ID
+  const hasRealMeetup = posts.some(
+    (p) =>
+      (p.subcategory === 'meetup' || p.subcategory === 'club') &&
+      p.id &&
+      p.id !== SAMPLE_FREE_CLUB_POST_ID
   );
-  const showClubSample =
-    !hasRealClub && (tag === 'all' || tag === 'club') && !isFeaturedFilter;
-  if (showClubSample) {
+  const showMeetupSample =
+    !hasRealMeetup && (tag === 'all' || tag === 'meetup') && !isFeaturedFilter;
+  if (showMeetupSample) {
     posts = [getSampleFreeClubPost(), ...posts];
   }
 

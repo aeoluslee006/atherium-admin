@@ -2074,11 +2074,11 @@ main:has(.home-page) {
   padding: 2px 8px;
 }
 
-.jobs-status-line {
-  display: flex;
+.jobs-status-inline {
+  display: inline-flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 6px;
+  gap: 5px;
+  margin-left: 2px;
 }
 
 .job-status-badge {
@@ -2369,6 +2369,12 @@ main:has(.home-page) {
 .jobs-role-chip.is-on {
   border-color: var(--accent);
   background: #1f8fe0;
+  color: #fff;
+}
+
+.jobs-status-chip.is-on {
+  border-color: #1d4f91;
+  background: #1d4f91;
   color: #fff;
 }
 

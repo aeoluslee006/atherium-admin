@@ -143,19 +143,19 @@ export default async function JobsBoardPage({ searchParams = {} }) {
                         ) : null}
                         <span className="jobs-title">{post.title}</span>
                         {post.pay_text ? <span className="jobs-pay">{post.pay_text}</span> : null}
+                        {workStatuses.length ? (
+                          <span className="jobs-status-inline">
+                            {workStatuses.map((s) => (
+                              <span
+                                key={s.slug}
+                                className={`job-status-badge job-status-badge--${s.slug}`}
+                              >
+                                {s.nameKo}
+                              </span>
+                            ))}
+                          </span>
+                        ) : null}
                       </div>
-                      {workStatuses.length ? (
-                        <div className="jobs-status-line">
-                          {workStatuses.map((s) => (
-                            <span
-                              key={s.slug}
-                              className={`job-status-badge job-status-badge--${s.slug}`}
-                            >
-                              {s.nameKo}
-                            </span>
-                          ))}
-                        </div>
-                      ) : null}
                     </div>
 
                     <div className="jobs-row-meta">

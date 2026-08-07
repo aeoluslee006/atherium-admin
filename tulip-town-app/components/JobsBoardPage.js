@@ -132,6 +132,11 @@ export default async function JobsBoardPage({ searchParams = {} }) {
 
                     <div className="jobs-row-main">
                       <div className="jobs-company-line">
+                        {tagLabel ? (
+                          <span className={`jobs-type-sign jobs-type-sign--${post.subcategory || 'notice'}`}>
+                            {tagLabel}
+                          </span>
+                        ) : null}
                         <span className="jobs-company">{company}</span>
                         {post.city ? <span className="jobs-city">{post.city}</span> : null}
                       </div>
@@ -146,11 +151,6 @@ export default async function JobsBoardPage({ searchParams = {} }) {
                               </span>
                             ))
                           : null}
-                        {tagLabel ? (
-                          <span className={`jobs-type-sign jobs-type-sign--${post.subcategory || 'notice'}`}>
-                            {tagLabel}
-                          </span>
-                        ) : null}
                         <span className="jobs-title">{post.title}</span>
                         {post.pay_text ? <span className="jobs-pay">{post.pay_text}</span> : null}
                       </div>

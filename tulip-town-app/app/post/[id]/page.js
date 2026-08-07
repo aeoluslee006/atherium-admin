@@ -215,7 +215,6 @@ export default async function PostPage({ params }) {
         ['연락처', post.contact_text || '—'],
       ].filter(([, value]) => value && value !== '—')
     : [];
-  const hasMarketLocation = Boolean(post.city);
 
   return (
     <div className="container">
@@ -277,7 +276,7 @@ export default async function PostPage({ params }) {
             <div className="housing-detail-price">{post.rent_price_text}</div>
           ) : null}
           {isMarket && post.price_text ? (
-            <div className="housing-detail-price">{post.price_text}</div>
+            <div className="market-detail-price">{post.price_text}</div>
           ) : null}
 
           <div className="hint-text post-meta-bar">
@@ -349,39 +348,38 @@ export default async function PostPage({ params }) {
         </div>
       ) : null}
 
-      {isMarket && (marketSpecs.length || marketImages.length) ? (
-        <div className={`housing-detail-split${marketImages.length ? ' has-photos' : ''}`}>
-          <div className="housing-detail-info">
-            {hasMarketLocation ? (
-              <aside className="housing-detail-aside">
-                <div className="housing-aside-label">거래 지역</div>
-                <div className="housing-aside-address">{post.city}</div>
-                {post.contact_text ? (
-                  <div className="housing-aside-meta">{post.contact_text}</div>
-                ) : null}
-              </aside>
-            ) : null}
-            {marketSpecs.length ? (
-              <div className="card housing-spec-card">
-                <h3 className="housing-spec-title">상품 정보</h3>
-                <dl className="housing-spec-list">
-                  {marketSpecs
-                    .filter(([label]) => {
-                      if (!hasMarketLocation) return true;
-                      return label !== '지역' && label !== '연락처';
-                    })
-                    .map(([label, value]) => (
-                      <div key={label} className="housing-spec-row">
-                        <dt>{label}</dt>
-                        <dd>{value}</dd>
-                      </div>
-                    ))}
-                </dl>
-              </div>
-            ) : null}
+      {isMarket && (marketSpecs.length || marketImages.length || showListingTextBody) ? (
+        <div className={`market-detail-split${marketImages.length ? ' has-photos' : ''}`}>
+          <div className="market-detail-info">
+            <div className="card market-info-card">
+              <h3 className="market-info-title">상품 정보</h3>
+              <dl className="market-info-list">
+                {marketSpecs.map(([label, value]) => (
+                  <div key={label} className="market-info-row">
+                    <dt>{label}</dt>
+                    <dd>{value}</dd>
+                  </div>
+                ))}
+              </dl>
+              {showListingTextBody ? (
+                <div className="market-info-desc">
+                  <div className="market-info-desc-label">상품 · 거래</div>
+                  {htmlBody ? (
+                    <div
+                      className="market-info-desc-body post-body-html"
+                      dangerouslySetInnerHTML={{ __html: marketBodyHtml }}
+                    />
+                  ) : (
+                    <div className="market-info-desc-body" style={{ whiteSpace: 'pre-wrap' }}>
+                      {listingBodyPlain}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </div>
           </div>
           {marketImages.length ? (
-            <div className="housing-detail-media">
+            <div className="market-detail-media">
               <HousingPhotoGallery images={marketImages} title={post.title || '상품 사진'} />
             </div>
           ) : null}
@@ -402,15 +400,13 @@ export default async function PostPage({ params }) {
         </div>
       ) : null}
 
-      {isHousing || isMarket ? (
+      {isHousing ? (
         showListingTextBody ? (
           htmlBody ? (
             <div
               className="card post-body-html"
               style={{ marginBottom: 24 }}
-              dangerouslySetInnerHTML={{
-                __html: isHousing ? housingBodyHtml : marketBodyHtml,
-              }}
+              dangerouslySetInnerHTML={{ __html: housingBodyHtml }}
             />
           ) : (
             <div className="card" style={{ whiteSpace: 'pre-wrap', marginBottom: 24 }}>
@@ -418,17 +414,17 @@ export default async function PostPage({ params }) {
             </div>
           )
         ) : null
-      ) : htmlBody ? (
+      ) : !isMarket && htmlBody ? (
         <div
           className="card post-body-html"
           style={{ marginBottom: 24 }}
           dangerouslySetInnerHTML={{ __html: sanitizePostHtml(post.body) }}
         />
-      ) : (
+      ) : !isMarket ? (
         <div className="card" style={{ whiteSpace: 'pre-wrap', marginBottom: 24 }}>
           {post.body}
         </div>
-      )}
+      ) : null}
 
       {(isMarket || isJobs || isHousing) && (prevPost || nextPost) ? (
         <div className="card market-adjacent">

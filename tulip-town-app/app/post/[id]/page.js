@@ -147,7 +147,6 @@ export default async function PostPage({ params }) {
         ['월세/가격', post.rent_price_text || '—'],
         ['보증금', post.deposit_text || '—'],
         ['침실/욕실', [post.beds && `${post.beds} bed`, post.baths && `${post.baths} bath`].filter(Boolean).join(' · ') || '—'],
-        ['입주', post.available_text || '—'],
         ['연락처', post.contact_text || '—'],
       ]
     : [];

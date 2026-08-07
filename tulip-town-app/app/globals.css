@@ -2077,18 +2077,18 @@ main:has(.home-page) {
 }
 
 .jobs-type-sign--hire {
-  background: #e7f1ff;
-  color: #1f6fbf;
+  background: #e8f1ff;
+  color: #1f5fb8;
 }
 
 .jobs-type-sign--seek {
-  background: #fff0e6;
-  color: #c05621;
+  background: #eaf8ef;
+  color: #1f7a45;
 }
 
 .jobs-type-sign--parttime {
-  background: #e6f7f4;
-  color: #0f766e;
+  background: #fff4e5;
+  color: #a35b00;
 }
 
 .jobs-type-sign--notice {

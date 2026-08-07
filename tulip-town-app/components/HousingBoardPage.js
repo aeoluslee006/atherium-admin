@@ -6,6 +6,7 @@ import {
   isValidHousingTag,
 } from '../lib/housingTags';
 import { getSampleHousingPost, SAMPLE_HOUSING_POST_ID } from '../lib/sampleHousingPost';
+import { collectPostImages } from '../lib/postImages';
 import { supabaseRest } from '../lib/supabaseRest';
 
 function formatListDate(value) {
@@ -47,18 +48,26 @@ export default async function HousingBoardPage({ searchParams = {} }) {
 
   try {
     let path =
-      'posts?select=id,title,subcategory,is_pinned,created_at,city,view_count,rent_price_text,deposit_text,housing_type,beds,baths,address_text,available_text&category_slug=eq.housing';
+      'posts?select=id,title,subcategory,is_pinned,created_at,city,view_count,rent_price_text,deposit_text,housing_type,beds,baths,address_text,available_text,image_urls,body&category_slug=eq.housing';
     if (tag !== 'all') path += `&subcategory=eq.${encodeURIComponent(tag)}`;
     path += '&order=is_pinned.desc,created_at.desc';
 
     try {
       posts = await supabaseRest(path);
     } catch {
-      let fallback =
-        'posts?select=id,title,subcategory,is_pinned,created_at,city&category_slug=eq.housing';
-      if (tag !== 'all') fallback += `&subcategory=eq.${encodeURIComponent(tag)}`;
-      fallback += '&order=is_pinned.desc,created_at.desc';
-      posts = await supabaseRest(fallback);
+      try {
+        let mid =
+          'posts?select=id,title,subcategory,is_pinned,created_at,city,view_count,rent_price_text,deposit_text,housing_type,beds,baths,address_text,available_text&category_slug=eq.housing';
+        if (tag !== 'all') mid += `&subcategory=eq.${encodeURIComponent(tag)}`;
+        mid += '&order=is_pinned.desc,created_at.desc';
+        posts = await supabaseRest(mid);
+      } catch {
+        let fallback =
+          'posts?select=id,title,subcategory,is_pinned,created_at,city&category_slug=eq.housing';
+        if (tag !== 'all') fallback += `&subcategory=eq.${encodeURIComponent(tag)}`;
+        fallback += '&order=is_pinned.desc,created_at.desc';
+        posts = await supabaseRest(fallback);
+      }
     }
   } catch {
     posts = [];
@@ -104,10 +113,13 @@ export default async function HousingBoardPage({ searchParams = {} }) {
       </div>
 
       <div className="wf-box housing-board">
-        <div className="housing-board-meta">Total {(posts || []).length}건 · 목록은 텍스트만 (사진 없음)</div>
+        <div className="housing-board-meta">
+          Total {(posts || []).length}건 · 사진은 상세에서 갤러리로 확인
+        </div>
 
         <div className="housing-table" role="table" aria-label="렌트/부동산 목록">
-          <div className="housing-table-head" role="row">
+          <div className="housing-table-head housing-table-head--photos" role="row">
+            <span role="columnheader">사진</span>
             <span role="columnheader">구분</span>
             <span role="columnheader">제목 / 요약</span>
             <span role="columnheader">가격</span>
@@ -119,13 +131,28 @@ export default async function HousingBoardPage({ searchParams = {} }) {
             posts.map((post) => {
               const label = getHousingTagLabel(post.subcategory) || '기타';
               const rooms = roomLabel(post);
+              const photos = collectPostImages(post);
+              const cover = photos[0] || null;
               return (
                 <Link
                   key={post.id}
                   href={`/post/${post.id}`}
-                  className={`housing-row${post.subcategory === 'done' ? ' is-done' : ''}`}
+                  className={`housing-row housing-row--photos${post.subcategory === 'done' ? ' is-done' : ''}`}
                   role="row"
                 >
+                  <span className="housing-row-thumb" role="cell">
+                    {cover ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={cover} alt="" />
+                    ) : (
+                      <span className="housing-row-thumb-empty" aria-hidden="true">
+                        —
+                      </span>
+                    )}
+                    {photos.length > 1 ? (
+                      <span className="housing-row-photo-count">{photos.length}</span>
+                    ) : null}
+                  </span>
                   <span className="housing-row-type" role="cell">
                     <span className={`housing-badge housing-badge--${post.subcategory || 'rent'}`}>
                       {label}

@@ -11,7 +11,8 @@ alter table public.posts
   add column if not exists baths text,
   add column if not exists address_text text,
   add column if not exists available_text text,
-  add column if not exists contact_text text;
+  add column if not exists contact_text text,
+  add column if not exists image_urls text;
 
 create index if not exists posts_housing_subcategory_idx
   on public.posts (category_slug, subcategory)

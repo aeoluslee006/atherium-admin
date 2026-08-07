@@ -1,10 +1,15 @@
 import Link from 'next/link';
 import CommentForm from '../../../components/CommentForm';
+import HousingPhotoGallery from '../../../components/HousingPhotoGallery';
 import { getCategory } from '../../../lib/categories';
 import { getFreeBoardTagLabel } from '../../../lib/freeBoardTags';
 import { getHousingTagLabel, getHousingTypeLabel } from '../../../lib/housingTags';
 import { formatJobRoles, getJobTagLabel } from '../../../lib/jobTags';
 import { getMarketTagLabel } from '../../../lib/marketTags';
+import {
+  collectPostImages,
+  stripImagesFromHtml,
+} from '../../../lib/postImages';
 import {
   getSampleHousingPost,
   isSampleHousingPostId,
@@ -165,6 +170,20 @@ export default async function PostPage({ params }) {
       ].filter(([, value]) => value && value !== '—')
     : [];
 
+  const housingImages = isHousing ? collectPostImages(post) : [];
+  const housingBodyHtml =
+    isHousing && housingImages.length
+      ? stripImagesFromHtml(sanitizePostHtml(post.body))
+      : sanitizePostHtml(post.body);
+  const housingBodyPlain = String(
+    isHousing && housingImages.length ? stripImagesFromHtml(post.body) : post.body || ''
+  )
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const showHousingTextBody = !isHousing || housingBodyPlain.length > 0;
+
   return (
     <div className="container">
       <div className="row-between">
@@ -252,6 +271,10 @@ export default async function PostPage({ params }) {
         ) : null}
       </div>
 
+      {isHousing && housingImages.length ? (
+        <HousingPhotoGallery images={housingImages} title={post.title || '매물 사진'} />
+      ) : null}
+
       {isHousing && housingSpecs.length ? (
         <div className="card housing-spec-card">
           <h3 className="housing-spec-title">매물 정보</h3>
@@ -280,7 +303,21 @@ export default async function PostPage({ params }) {
         </div>
       ) : null}
 
-      {htmlBody ? (
+      {isHousing ? (
+        showHousingTextBody ? (
+          htmlBody ? (
+            <div
+              className="card post-body-html"
+              style={{ marginBottom: 24 }}
+              dangerouslySetInnerHTML={{ __html: housingBodyHtml }}
+            />
+          ) : (
+            <div className="card" style={{ whiteSpace: 'pre-wrap', marginBottom: 24 }}>
+              {housingBodyPlain}
+            </div>
+          )
+        ) : null
+      ) : htmlBody ? (
         <div
           className="card post-body-html"
           style={{ marginBottom: 24 }}

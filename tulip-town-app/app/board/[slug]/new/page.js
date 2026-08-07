@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import JobsComposeForm from '../../../../components/JobsComposeForm';
+import HousingPhotosField from '../../../../components/HousingPhotosField';
 import MarketBodyEditor from '../../../../components/MarketBodyEditor';
 import { getCategory } from '../../../../lib/categories';
 import { FREE_BOARD_WRITE_TAGS, isValidFreeBoardWriteTag } from '../../../../lib/freeBoardTags';
 import { HOUSING_TAGS, HOUSING_TYPES, isValidHousingTag } from '../../../../lib/housingTags';
 import { MARKET_TAGS, isValidMarketTag } from '../../../../lib/marketTags';
+import { serializeImageUrls } from '../../../../lib/postImages';
 import { supabase } from '../../../../lib/supabaseClient';
 
 const CITIES = ['Holland', 'Grand Rapids', 'Zeeland', 'Hudsonville', 'Other'];
@@ -44,6 +46,7 @@ export default function NewPostPage() {
   const [addressText, setAddressText] = useState('');
   const [availableText, setAvailableText] = useState('');
   const [contactText, setContactText] = useState('');
+  const [housingPhotos, setHousingPhotos] = useState([]);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -189,8 +192,21 @@ export default function NewPostPage() {
         setError('구분(렌트/매매/룸메이트)을 선택해 주세요.');
         return;
       }
-      if ((isMarket || isHousing) && !plainTextFromHtml(body) && !/<img\s/i.test(body)) {
+      if (
+        isMarket &&
+        !plainTextFromHtml(body) &&
+        !/<img\s/i.test(body)
+      ) {
         setError('내용을 입력하거나 사진을 붙여넣어 주세요.');
+        return;
+      }
+      if (
+        isHousing &&
+        !plainTextFromHtml(body) &&
+        !/<img\s/i.test(body) &&
+        !(housingPhotos && housingPhotos.length)
+      ) {
+        setError('상세 설명 또는 매물 사진을 넣어 주세요.');
         return;
       }
 
@@ -220,6 +236,7 @@ export default function NewPostPage() {
         payload.address_text = addressText.trim() || null;
         payload.available_text = availableText.trim() || null;
         payload.contact_text = contactText.trim() || null;
+        payload.image_urls = serializeImageUrls(housingPhotos);
       }
 
       let { data, error: insertError } = await supabase.from('posts').insert(payload).select('id').single();
@@ -234,14 +251,37 @@ export default function NewPostPage() {
           address_text,
           available_text,
           contact_text,
+          image_urls,
           ...basic
         } = payload;
-        const retry = await supabase.from('posts').insert(basic).select('id').single();
+        // Retry without image_urls if that column is missing; keep other housing cols.
+        let retryPayload = { ...payload };
+        delete retryPayload.image_urls;
+        let retry = await supabase.from('posts').insert(retryPayload).select('id').single();
+        if (retry.error) {
+          retry = await supabase.from('posts').insert(basic).select('id').single();
+          if (!retry.error) {
+            setError(
+              '글은 등록됐지만 부동산 상세 컬럼이 아직 DB에 없습니다. housing_board_schema.sql을 실행해 주세요.'
+            );
+          }
+        } else if (image_urls) {
+          setError(
+            '글은 등록됐지만 image_urls 컬럼이 없습니다. housing_board_schema.sql을 실행하면 사진 갤러리가 저장됩니다. 본문 사진으로도 표시됩니다.'
+          );
+          // Embed photos into body so gallery can still find them via extractImageSrcs
+          if (housingPhotos?.length) {
+            const imgs = housingPhotos
+              .map((src) => `<p><img src="${src}" alt="" class="market-inline-image" /></p>`)
+              .join('');
+            await supabase
+              .from('posts')
+              .update({ body: `${imgs}${body || ''}` })
+              .eq('id', retry.data.id);
+          }
+        }
         data = retry.data;
         insertError = retry.error;
-        if (!insertError) {
-          setError('글은 등록됐지만 부동산 상세 컬럼이 아직 DB에 없습니다. housing_board_schema.sql을 실행해 주세요.');
-        }
       }
       if (insertError) throw insertError;
       router.push(`/post/${data.id}`);
@@ -395,6 +435,12 @@ export default function NewPostPage() {
               onChange={(e) => setContactText(e.target.value)}
               placeholder="휴대폰 / 카톡 / 이메일"
             />
+            <label>매물 사진</label>
+            <HousingPhotosField
+              value={housingPhotos}
+              onChange={setHousingPhotos}
+              disabled={saving}
+            />
           </>
         ) : null}
 
@@ -416,10 +462,21 @@ export default function NewPostPage() {
         </select>
 
         <label htmlFor={isMarket || isHousing ? undefined : 'body'}>
-          {isHousing ? '상세 설명 / 사진' : '내용'}
+          {isHousing ? '상세 설명' : '내용'}
         </label>
         {isMarket || isHousing ? (
-          <MarketBodyEditor value={body} onChange={setBody} disabled={saving} />
+          <MarketBodyEditor
+            value={body}
+            onChange={setBody}
+            disabled={saving}
+            showUploadButton={isHousing}
+            ariaLabel={isHousing ? '부동산 상세 설명' : '본문'}
+            helpText={
+              isHousing
+                ? '위 매물 사진에 올린 이미지는 갤러리로 보입니다. 본문에도 추가 사진을 넣을 수 있습니다.'
+                : undefined
+            }
+          />
         ) : (
           <textarea id="body" value={body} onChange={(e) => setBody(e.target.value)} required />
         )}

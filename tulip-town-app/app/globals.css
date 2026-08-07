@@ -3535,14 +3535,14 @@ main:has(.home-page) {
   margin: 0 0 12px;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
 }
 
 .housing-photos-item {
   position: relative;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 6px;
   overflow: hidden;
   background: #fff;
 }
@@ -3552,6 +3552,7 @@ main:has(.home-page) {
   width: 100%;
   aspect-ratio: 4 / 3;
   object-fit: cover;
+  max-height: 90px;
 }
 
 .housing-photos-item-actions {
@@ -3614,21 +3615,23 @@ main:has(.home-page) {
 }
 
 .housing-gallery {
-  margin: 0 0 18px;
+  margin: 0 0 14px;
+  max-width: 520px;
 }
 
 .housing-gallery-main {
   position: relative;
   background: #0f172a;
-  border-radius: 10px;
+  border-radius: 8px;
   overflow: hidden;
-  aspect-ratio: 16 / 10;
+  height: 240px;
+  max-height: 36vh;
 }
 
 .housing-gallery-main img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   display: block;
   background: #0f172a;
 }
@@ -3637,55 +3640,55 @@ main:has(.home-page) {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   border: 0;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.9);
   color: #0f172a;
-  font-size: 28px;
+  font-size: 22px;
   line-height: 1;
   cursor: pointer;
   display: grid;
   place-items: center;
-  padding: 0 0 3px;
+  padding: 0 0 2px;
 }
 
 .housing-gallery-nav--prev {
-  left: 10px;
+  left: 8px;
 }
 
 .housing-gallery-nav--next {
-  right: 10px;
+  right: 8px;
 }
 
 .housing-gallery-count {
   position: absolute;
-  right: 12px;
-  bottom: 12px;
-  padding: 4px 8px;
+  right: 8px;
+  bottom: 8px;
+  padding: 2px 7px;
   border-radius: 999px;
   background: rgba(15, 23, 42, 0.72);
   color: #fff;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
 }
 
 .housing-gallery-thumbs {
   display: flex;
-  gap: 8px;
-  margin-top: 10px;
+  gap: 6px;
+  margin-top: 8px;
   overflow-x: auto;
-  padding-bottom: 4px;
+  padding-bottom: 2px;
 }
 
 .housing-gallery-thumb {
-  flex: 0 0 72px;
-  width: 72px;
-  height: 54px;
+  flex: 0 0 56px;
+  width: 56px;
+  height: 42px;
   padding: 0;
   border: 2px solid transparent;
-  border-radius: 6px;
+  border-radius: 5px;
   overflow: hidden;
   background: #eef2f6;
   cursor: pointer;
@@ -3703,14 +3706,19 @@ main:has(.home-page) {
 }
 
 @media (max-width: 720px) {
+  .housing-gallery {
+    max-width: none;
+  }
+
   .housing-gallery-main {
-    aspect-ratio: 4 / 3;
-    border-radius: 8px;
+    height: 200px;
+    max-height: 32vh;
+    border-radius: 6px;
   }
 
   .housing-gallery-thumb {
-    flex-basis: 64px;
-    width: 64px;
-    height: 48px;
+    flex-basis: 48px;
+    width: 48px;
+    height: 36px;
   }
 }

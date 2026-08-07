@@ -3429,9 +3429,64 @@ main:has(.home-page) {
 
 .housing-detail-price {
   margin: 6px 0 4px;
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 800;
   color: #1f6b45;
+}
+
+.housing-detail-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(200px, 280px);
+  gap: 16px;
+  align-items: start;
+  margin: 0 0 18px;
+}
+
+.housing-detail-top .housing-gallery {
+  margin: 0;
+  max-width: none;
+}
+
+.housing-detail-media-empty {
+  display: none;
+}
+
+.housing-detail-aside {
+  background: #f7faf8;
+  border: 1px solid #d7e5dc;
+  border-radius: 10px;
+  padding: 16px 16px 14px;
+  min-height: 120px;
+}
+
+.housing-aside-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  margin-bottom: 8px;
+  letter-spacing: 0.02em;
+}
+
+.housing-aside-address {
+  font-size: 17px;
+  font-weight: 750;
+  line-height: 1.35;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.housing-aside-city {
+  margin-top: 6px;
+  font-size: 15px;
+  font-weight: 650;
+  color: #1f6b45;
+}
+
+.housing-aside-meta {
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-soft);
 }
 
 .housing-spec-card {
@@ -3443,7 +3498,7 @@ main:has(.home-page) {
 .housing-spec-title {
   margin: 0;
   padding: 12px 16px;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 750;
   border-bottom: 1px solid var(--row-line);
   background: #fafbfc;
@@ -3456,11 +3511,11 @@ main:has(.home-page) {
 
 .housing-spec-row {
   display: grid;
-  grid-template-columns: 100px minmax(0, 1fr);
+  grid-template-columns: 108px minmax(0, 1fr);
   gap: 10px;
-  padding: 9px 16px;
+  padding: 10px 16px;
   border-bottom: 1px solid var(--row-line);
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .housing-spec-row:last-child {
@@ -3521,7 +3576,16 @@ main:has(.home-page) {
   }
 
   .housing-spec-row {
-    grid-template-columns: 84px minmax(0, 1fr);
+    grid-template-columns: 92px minmax(0, 1fr);
+  }
+
+  .housing-detail-top {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .housing-detail-aside {
+    min-height: 0;
   }
 }
 
@@ -3616,7 +3680,7 @@ main:has(.home-page) {
 
 .housing-gallery {
   margin: 0 0 14px;
-  max-width: 520px;
+  max-width: none;
 }
 
 .housing-gallery-main {

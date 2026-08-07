@@ -147,12 +147,18 @@ export default async function PostPage({ params }) {
         ['월세/가격', post.rent_price_text || '—'],
         ['보증금', post.deposit_text || '—'],
         ['침실/욕실', [post.beds && `${post.beds} bed`, post.baths && `${post.baths} bath`].filter(Boolean).join(' · ') || '—'],
-        ['주소', post.address_text || '—'],
-        ['지역', post.city || '—'],
         ['입주', post.available_text || '—'],
         ['연락처', post.contact_text || '—'],
       ]
     : [];
+
+  const housingLocation = isHousing
+    ? {
+        address: post.address_text || '',
+        city: post.city || '',
+      }
+    : null;
+  const hasHousingLocation = Boolean(housingLocation?.address || housingLocation?.city);
 
   const jobContact =
     [post.contact_name, post.contact_phone, post.contact_email].filter(Boolean).join(' · ') ||
@@ -271,8 +277,28 @@ export default async function PostPage({ params }) {
         ) : null}
       </div>
 
-      {isHousing && housingImages.length ? (
-        <HousingPhotoGallery images={housingImages} title={post.title || '매물 사진'} />
+      {isHousing && (housingImages.length || hasHousingLocation) ? (
+        <div className={`housing-detail-top${housingImages.length ? '' : ' no-photos'}`}>
+          {housingImages.length ? (
+            <HousingPhotoGallery images={housingImages} title={post.title || '매물 사진'} />
+          ) : (
+            <div className="housing-detail-media-empty" aria-hidden="true" />
+          )}
+          {hasHousingLocation ? (
+            <aside className="housing-detail-aside">
+              <div className="housing-aside-label">위치</div>
+              {housingLocation.address ? (
+                <div className="housing-aside-address">{housingLocation.address}</div>
+              ) : null}
+              {housingLocation.city ? (
+                <div className="housing-aside-city">{housingLocation.city}</div>
+              ) : null}
+              {post.available_text ? (
+                <div className="housing-aside-meta">입주 {post.available_text}</div>
+              ) : null}
+            </aside>
+          ) : null}
+        </div>
       ) : null}
 
       {isHousing && housingSpecs.length ? (

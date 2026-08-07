@@ -4,7 +4,7 @@ import HousingPhotoGallery from '../../../components/HousingPhotoGallery';
 import { getCategory } from '../../../lib/categories';
 import { getFreeBoardTagLabel } from '../../../lib/freeBoardTags';
 import { getHousingTagLabel, getHousingTypeLabel } from '../../../lib/housingTags';
-import { formatJobRoles, getJobTagLabel } from '../../../lib/jobTags';
+import { formatWorkStatus, getJobTagLabel, getIndustryRoleTags } from '../../../lib/jobTags';
 import { getMarketTagLabel } from '../../../lib/marketTags';
 import {
   collectPostImages,
@@ -165,7 +165,8 @@ export default async function PostPage({ params }) {
         ['구분', jobTagLabel || '—'],
         ['회사', post.company_name || '—'],
         ['급여/조건', post.pay_text || '—'],
-        ['직종', formatJobRoles(post.job_roles) || '—'],
+        ['근무 형태', formatWorkStatus(post.job_roles) || '—'],
+        ['직종', getIndustryRoleTags(post.job_roles).map((t) => t.nameKo).join(', ') || '—'],
         ['지역', post.city || '—'],
         ['주소', post.address_text || '—'],
         ['연락처', jobContact || '—'],

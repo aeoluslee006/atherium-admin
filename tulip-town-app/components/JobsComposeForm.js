@@ -8,6 +8,7 @@ import {
   JOB_HIRE_BODY_TEMPLATE,
   JOB_ROLE_TAGS,
   JOB_TAGS,
+  JOB_WORK_STATUS,
   isValidJobTag,
 } from '../lib/jobTags';
 
@@ -43,11 +44,13 @@ export default function JobsComposeForm({
   const [contactPhone, setContactPhone] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [jobRoles, setJobRoles] = useState([]);
+  const [workStatus, setWorkStatus] = useState(['fulltime']);
   const [hidePhone, setHidePhone] = useState(false);
   const [localError, setLocalError] = useState('');
   const templateSeeded = useRef(true);
 
   const selectedRoleSet = useMemo(() => new Set(jobRoles), [jobRoles]);
+  const selectedStatusSet = useMemo(() => new Set(workStatus), [workStatus]);
 
   function handleTypeChange(slug) {
     setSubcategory(slug);
@@ -69,6 +72,12 @@ export default function JobsComposeForm({
     );
   }
 
+  function toggleStatus(slug) {
+    setWorkStatus((prev) =>
+      prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug]
+    );
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setLocalError('');
@@ -84,12 +93,17 @@ export default function JobsComposeForm({
       setLocalError('구인 글에는 회사/상호명을 입력해 주세요.');
       return;
     }
+    if (!workStatus.length) {
+      setLocalError('근무 형태(풀타임/파트타임/야간)를 하나 이상 선택해 주세요.');
+      return;
+    }
     if (!plainTextFromHtml(body) && !/<img\s/i.test(body)) {
       setLocalError('내용을 입력하거나 사진을 넣어 주세요.');
       return;
     }
 
     const phone = hidePhone ? '' : contactPhone.trim();
+    const combinedRoles = [...workStatus, ...jobRoles];
     await onSubmit?.({
       subcategory,
       title: title.trim(),
@@ -102,7 +116,7 @@ export default function JobsComposeForm({
       contactName: contactName.trim(),
       contactPhone: phone,
       contactEmail: contactEmail.trim(),
-      jobRoles: jobRoles.join(','),
+      jobRoles: combinedRoles.join(','),
       hidePhone,
     });
   }
@@ -272,6 +286,32 @@ export default function JobsComposeForm({
         </div>
 
         <div className="jobs-compose-row jobs-compose-row--top">
+          <div className="jobs-compose-label">
+            근무 형태 <span className="required-mark">필수</span>
+          </div>
+          <div className="jobs-compose-field">
+            <div className="jobs-role-cloud" role="group" aria-label="근무 형태">
+              {JOB_WORK_STATUS.map((tag) => {
+                const on = selectedStatusSet.has(tag.slug);
+                return (
+                  <button
+                    key={tag.slug}
+                    type="button"
+                    className={`jobs-role-chip jobs-status-chip${on ? ' is-on' : ''}`}
+                    aria-pressed={on}
+                    onClick={() => toggleStatus(tag.slug)}
+                    disabled={saving}
+                  >
+                    {tag.nameKo}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="field-help">풀타임 · 파트타임 · 야간 중 해당하는 것을 모두 선택하세요.</p>
+          </div>
+        </div>
+
+        <div className="jobs-compose-row jobs-compose-row--top">
           <div className="jobs-compose-label">직종 태그</div>
           <div className="jobs-compose-field">
             <div className="jobs-role-cloud" role="group" aria-label="직종 태그">
@@ -291,7 +331,7 @@ export default function JobsComposeForm({
                 );
               })}
             </div>
-            <p className="field-help">해당되는 태그를 눌러 선택하세요. (여러 개 가능)</p>
+            <p className="field-help">해당되는 직종을 눌러 선택하세요. (여러 개 가능)</p>
           </div>
         </div>
 

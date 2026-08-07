@@ -5,7 +5,7 @@ export const SAMPLE_JOBS_POST = {
   id: SAMPLE_JOBS_POST_ID,
   title: '[예시] 서버/홀 스태프 모집 — Holland',
   body: `<p><strong>1. 모집 직책</strong></p>
-<p>서버 / 홀 스태프 (Full-time · Part-time)</p>
+<p>서버 / 홀 스태프 (풀타임 · 파트타임 · 야간)</p>
 <p><strong>2. 담당 업무</strong></p>
 <p>손님 응대, 주문 접수, 홀 정리, 간단한 캐셔 업무</p>
 <p><strong>3. 자격 요건</strong></p>
@@ -28,7 +28,7 @@ export const SAMPLE_JOBS_POST = {
   contact_phone: '616-555-0199',
   contact_email: 'jobs.sample@ttkc.us',
   contact_text: '김매니저 · 616-555-0199 · jobs.sample@ttkc.us',
-  job_roles: 'server,fulltime,parttime-role',
+  job_roles: 'fulltime,parttime-role,night,server',
   author_id: null,
 };
 

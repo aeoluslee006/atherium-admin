@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { JOB_TAGS, getJobTagLabel, isValidJobTag } from '../lib/jobTags';
+import { JOB_TAGS, getJobTagLabel, getWorkStatusTags, isValidJobTag } from '../lib/jobTags';
 import { getSampleJobsPost, SAMPLE_JOBS_POST_ID } from '../lib/sampleJobsPost';
 import { supabaseRest } from '../lib/supabaseRest';
 
@@ -40,18 +40,26 @@ export default async function JobsBoardPage({ searchParams = {} }) {
 
   try {
     let path =
-      'posts?select=id,title,body,subcategory,is_pinned,created_at,author_id,view_count,city,company_name,company_logo,pay_text&category_slug=eq.jobs';
+      'posts?select=id,title,body,subcategory,is_pinned,created_at,author_id,view_count,city,company_name,company_logo,pay_text,job_roles&category_slug=eq.jobs';
     if (tag !== 'all') path += `&subcategory=eq.${encodeURIComponent(tag)}`;
     path += '&order=is_pinned.desc,created_at.desc';
 
     try {
       posts = await supabaseRest(path);
     } catch {
-      let fallback =
-        'posts?select=id,title,body,subcategory,is_pinned,created_at,author_id,city&category_slug=eq.jobs';
-      if (tag !== 'all') fallback += `&subcategory=eq.${encodeURIComponent(tag)}`;
-      fallback += '&order=is_pinned.desc,created_at.desc';
-      posts = await supabaseRest(fallback);
+      try {
+        let mid =
+          'posts?select=id,title,body,subcategory,is_pinned,created_at,author_id,view_count,city,company_name,company_logo,pay_text&category_slug=eq.jobs';
+        if (tag !== 'all') mid += `&subcategory=eq.${encodeURIComponent(tag)}`;
+        mid += '&order=is_pinned.desc,created_at.desc';
+        posts = await supabaseRest(mid);
+      } catch {
+        let fallback =
+          'posts?select=id,title,body,subcategory,is_pinned,created_at,author_id,city&category_slug=eq.jobs';
+        if (tag !== 'all') fallback += `&subcategory=eq.${encodeURIComponent(tag)}`;
+        fallback += '&order=is_pinned.desc,created_at.desc';
+        posts = await supabaseRest(fallback);
+      }
     }
   } catch {
     posts = [];
@@ -106,6 +114,7 @@ export default async function JobsBoardPage({ searchParams = {} }) {
                 (post.is_pinned ? '공지' : getJobTagLabel(post.subcategory) || '채용');
               const tagLabel = post.is_pinned ? '공지' : getJobTagLabel(post.subcategory);
               const views = Number.isFinite(post.view_count) ? post.view_count : null;
+              const workStatuses = getWorkStatusTags(post.job_roles);
               return (
                 <li key={post.id}>
                   <Link
@@ -135,6 +144,18 @@ export default async function JobsBoardPage({ searchParams = {} }) {
                         <span className="jobs-title">{post.title}</span>
                         {post.pay_text ? <span className="jobs-pay">{post.pay_text}</span> : null}
                       </div>
+                      {workStatuses.length ? (
+                        <div className="jobs-status-line">
+                          {workStatuses.map((s) => (
+                            <span
+                              key={s.slug}
+                              className={`job-status-badge job-status-badge--${s.slug}`}
+                            >
+                              {s.nameKo}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
                     </div>
 
                     <div className="jobs-row-meta">

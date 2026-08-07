@@ -10,6 +10,7 @@ export const FREE_BOARD_TAGS = [
   { slug: 'question', nameKo: '궁금해요' },
   { slug: 'recommend', nameKo: '추천' },
   { slug: 'meetup', nameKo: '모임/번개' },
+  { slug: 'club', nameKo: '동호회' },
   { slug: 'lostfound', nameKo: '분실/습득' },
   { slug: 'etc', nameKo: '기타' },
 ];

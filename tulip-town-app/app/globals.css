@@ -1262,7 +1262,7 @@ main:has(.home-page) {
   line-height: 1.45;
 }
 
-/* 3) 동호회 | 중고장터 — 하나의 큰 박스 */
+/* 3) 수업/교육 | 중고장터 — 하나의 큰 박스 */
 .wf-bottom {
   display: grid;
   grid-template-columns: 1fr 1.5px 1fr;
@@ -1283,7 +1283,7 @@ main:has(.home-page) {
   padding-right: 20px;
 }
 
-.clubs-latest {
+.classes-latest {
   border-top: 3px solid #6f9c86;
 }
 
@@ -1291,17 +1291,17 @@ main:has(.home-page) {
   border-top: 3px solid #b0839a;
 }
 
-/* Clubs board — simple line items */
-.clubs-board {
+/* Classes board — simple line items */
+.classes-board {
   padding: 0;
   overflow: hidden;
 }
 
-.clubs-board-list {
+.classes-board-list {
   padding: 0 18px;
 }
 
-.clubs-board-row {
+.classes-board-row {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
@@ -1310,11 +1310,11 @@ main:has(.home-page) {
   border-bottom: 1px solid var(--row-line);
 }
 
-.clubs-board-row:last-child {
+.classes-board-row:last-child {
   border-bottom: none;
 }
 
-.clubs-board-row-main {
+.classes-board-row-main {
   display: flex;
   align-items: baseline;
   gap: 10px;
@@ -1322,7 +1322,7 @@ main:has(.home-page) {
   flex: 1;
 }
 
-.clubs-board-row-title {
+.classes-board-row-title {
   font-size: var(--text-body);
   font-weight: 600;
   color: var(--ink);
@@ -1332,11 +1332,11 @@ main:has(.home-page) {
   white-space: nowrap;
 }
 
-.clubs-board-row:hover .clubs-board-row-title {
+.classes-board-row:hover .classes-board-row-title {
   color: var(--accent-dark);
 }
 
-.clubs-board-row-place {
+.classes-board-row-place {
   flex: 0 1 auto;
   max-width: 42%;
   font-size: 13px;
@@ -1347,13 +1347,13 @@ main:has(.home-page) {
   white-space: nowrap;
 }
 
-.clubs-info-card {
+.classes-info-card {
   margin: 0 0 16px;
   padding: 0;
   overflow: hidden;
 }
 
-.clubs-info-title {
+.classes-info-title {
   margin: 0;
   padding: 12px 16px;
   font-size: 15px;
@@ -1362,12 +1362,12 @@ main:has(.home-page) {
   background: #fafbfc;
 }
 
-.clubs-info-list {
+.classes-info-list {
   margin: 0;
   padding: 4px 0;
 }
 
-.clubs-info-row {
+.classes-info-row {
   display: grid;
   grid-template-columns: 96px minmax(0, 1fr);
   gap: 10px;
@@ -1376,45 +1376,45 @@ main:has(.home-page) {
   font-size: 15px;
 }
 
-.clubs-info-row:last-child {
+.classes-info-row:last-child {
   border-bottom: none;
 }
 
-.clubs-info-row dt {
+.classes-info-row dt {
   margin: 0;
   color: var(--ink-soft);
   font-weight: 600;
 }
 
-.clubs-info-row dd {
+.classes-info-row dd {
   margin: 0;
   font-weight: 550;
   overflow-wrap: anywhere;
 }
 
 @media (max-width: 720px) {
-  .clubs-board-row {
+  .classes-board-row {
     flex-direction: column;
     align-items: stretch;
     gap: 4px;
     padding: 12px 0;
   }
 
-  .clubs-board-row-main {
+  .classes-board-row-main {
     flex-wrap: wrap;
     gap: 6px 10px;
   }
 
-  .clubs-board-row-title {
+  .classes-board-row-title {
     white-space: normal;
     flex: 1 1 100%;
   }
 
-  .clubs-board-row-place {
+  .classes-board-row-place {
     max-width: none;
   }
 
-  .clubs-info-row {
+  .classes-info-row {
     grid-template-columns: 84px minmax(0, 1fr);
   }
 }

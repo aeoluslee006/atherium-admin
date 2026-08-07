@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import ClubsBoardPage from '../../../components/ClubsBoardPage';
+import { redirect } from 'next/navigation';
+import ClassesBoardPage from '../../../components/ClassesBoardPage';
 import FreeBoardPage from '../../../components/FreeBoardPage';
 import HousingBoardPage from '../../../components/HousingBoardPage';
 import JobsBoardPage from '../../../components/JobsBoardPage';
@@ -10,6 +11,9 @@ import { supabaseRest } from '../../../lib/supabaseRest';
 export const dynamic = 'force-dynamic';
 
 export default async function BoardPage({ params, searchParams }) {
+  if (params.slug === 'clubs') {
+    redirect('/board/classes');
+  }
   if (params.slug === 'free') {
     return <FreeBoardPage searchParams={searchParams} />;
   }
@@ -22,8 +26,8 @@ export default async function BoardPage({ params, searchParams }) {
   if (params.slug === 'housing') {
     return <HousingBoardPage searchParams={searchParams} />;
   }
-  if (params.slug === 'clubs') {
-    return <ClubsBoardPage />;
+  if (params.slug === 'classes') {
+    return <ClassesBoardPage />;
   }
 
   const category = getCategory(params.slug);

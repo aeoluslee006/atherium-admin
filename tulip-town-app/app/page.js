@@ -2,7 +2,7 @@ import Link from 'next/link';
 import LocalNewsPanel from '../components/LocalNewsPanel';
 import { getCategory } from '../lib/categories';
 import { isExampleLocalNews } from '../lib/localNews';
-import { getSampleClubsPost, SAMPLE_CLUBS_POST_ID } from '../lib/sampleClubsPost';
+import { getSampleClassesPost, SAMPLE_CLASSES_POST_ID } from '../lib/sampleClassesPost';
 import { supabaseRest } from '../lib/supabaseRest';
 
 export const dynamic = 'force-dynamic';
@@ -35,7 +35,7 @@ async function safeRest(path) {
 }
 
 async function getHomeData() {
-  const [premiumAds, localNewsRaw, featuredPosts, clubPosts, marketPosts] = await Promise.all([
+  const [premiumAds, localNewsRaw, featuredPosts, classPosts, marketPosts] = await Promise.all([
     safeRest(
       'sponsors?select=id,business_name,category,city,description,website_url,discount_text,tier,listing_type,status&listing_type=eq.banner&status=eq.approved&tier=eq.premium&order=created_at.desc&limit=2'
     ),
@@ -46,7 +46,7 @@ async function getHomeData() {
       'posts?select=id,title,body,category_slug,created_at,is_featured&is_featured=eq.true&order=created_at.desc&limit=10'
     ),
     safeRest(
-      'posts?select=id,title,created_at&category_slug=eq.clubs&order=created_at.desc&limit=6'
+      'posts?select=id,title,created_at&category_slug=eq.classes&order=created_at.desc&limit=6'
     ),
     safeRest(
       'posts?select=id,title,created_at&category_slug=eq.market&order=created_at.desc&limit=6'
@@ -57,14 +57,14 @@ async function getHomeData() {
     .filter((row) => !isExampleLocalNews(row))
     .slice(0, 4);
 
-  let clubs = Array.isArray(clubPosts) ? clubPosts : [];
-  const hasRealClub = clubs.some((p) => p.id && p.id !== SAMPLE_CLUBS_POST_ID);
-  if (!hasRealClub) {
-    const sample = getSampleClubsPost();
-    clubs = [{ id: sample.id, title: sample.title, created_at: sample.created_at }, ...clubs];
+  let classes = Array.isArray(classPosts) ? classPosts : [];
+  const hasRealClass = classes.some((p) => p.id && p.id !== SAMPLE_CLASSES_POST_ID);
+  if (!hasRealClass) {
+    const sample = getSampleClassesPost();
+    classes = [{ id: sample.id, title: sample.title, created_at: sample.created_at }, ...classes];
   }
 
-  return { premiumAds, localNews, featuredPosts, clubPosts: clubs, marketPosts };
+  return { premiumAds, localNews, featuredPosts, classPosts: classes, marketPosts };
 }
 
 function padAds(ads) {
@@ -92,7 +92,7 @@ function SimpleRows({ posts, empty }) {
 }
 
 export default async function HomePage() {
-  const { premiumAds, localNews, featuredPosts, clubPosts, marketPosts } = await getHomeData();
+  const { premiumAds, localNews, featuredPosts, classPosts, marketPosts } = await getHomeData();
   const ads = padAds(premiumAds);
 
   return (
@@ -171,16 +171,16 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* 3구역 — 동호회 / 중고장터 */}
-      <section className="wf-box wf-bottom" aria-label="동호회와 중고장터">
-        <div className="wf-bottom-col clubs-latest">
+      {/* 3구역 — 수업/교육 / 중고장터 */}
+      <section className="wf-box wf-bottom" aria-label="수업/교육과 중고장터">
+        <div className="wf-bottom-col classes-latest">
           <div className="panel-header">
-            <h2 className="panel-title">동호회 최신 글</h2>
-            <Link href="/board/clubs" className="panel-more">
+            <h2 className="panel-title">수업/교육 최신 글</h2>
+            <Link href="/board/classes" className="panel-more">
               더보기
             </Link>
           </div>
-          <SimpleRows posts={clubPosts} empty="동호회 게시글이 아직 없습니다." />
+          <SimpleRows posts={classPosts} empty="수업/교육 게시글이 아직 없습니다." />
         </div>
         <div className="wf-bottom-divider" aria-hidden="true" />
         <div className="wf-bottom-col market-latest">

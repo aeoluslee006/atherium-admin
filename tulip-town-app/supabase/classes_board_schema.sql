@@ -1,4 +1,4 @@
--- Clubs board support (동호회)
+-- Classes board support (수업/교육)
 -- Run in Supabase SQL Editor once.
 -- Reuses contact_text / address_text if already added by market/housing/jobs schemas.
 
@@ -7,7 +7,23 @@ alter table public.posts
   add column if not exists contact_text text,
   add column if not exists address_text text;
 
--- Safe public view increment (no-op if already defined by market schema)
+-- Rename legacy clubs category → classes (idempotent)
+update public.categories
+set
+  slug = 'classes',
+  name_ko = '수업/교육',
+  name_en = 'Classes',
+  description = '수업 · 과외 · 교육 · Classes & tutoring'
+where slug = 'clubs';
+
+insert into public.categories (slug, name_ko, name_en, description, sort_order)
+select 'classes', '수업/교육', 'Classes', '수업 · 과외 · 교육 · Classes & tutoring', 6
+where not exists (select 1 from public.categories where slug = 'classes');
+
+update public.posts
+set category_slug = 'classes'
+where category_slug = 'clubs';
+
 create or replace function public.increment_post_views(p_id uuid)
 returns integer
 language plpgsql

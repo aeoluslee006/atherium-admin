@@ -9,7 +9,7 @@ UPDATE public.categories SET sort_order = 2 WHERE slug = 'free';
 UPDATE public.categories SET sort_order = 3 WHERE slug = 'housing';
 UPDATE public.categories SET sort_order = 4 WHERE slug = 'market';
 UPDATE public.categories SET sort_order = 5 WHERE slug = 'jobs';
-UPDATE public.categories SET sort_order = 6 WHERE slug = 'clubs';
+UPDATE public.categories SET sort_order = 6 WHERE slug = 'classes';
 
 INSERT INTO public.categories (slug, name_ko, name_en, description, sort_order)
 VALUES (

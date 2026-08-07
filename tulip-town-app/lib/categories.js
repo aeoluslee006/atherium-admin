@@ -36,10 +36,10 @@ export const CATEGORIES = [
     desc: '구인 · 구직 · Hiring & job seeking',
   },
   {
-    slug: 'clubs',
-    nameKo: '동호회',
-    nameEn: 'Clubs',
-    desc: '취미 · 모임 · Interest groups & clubs',
+    slug: 'classes',
+    nameKo: '수업/교육',
+    nameEn: 'Classes',
+    desc: '수업 · 과외 · 교육 · Classes & tutoring',
   },
 ];
 

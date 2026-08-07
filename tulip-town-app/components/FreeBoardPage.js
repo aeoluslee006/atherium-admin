@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { FREE_BOARD_TAGS, getFreeBoardTagLabel, isValidFreeBoardTag } from '../lib/freeBoardTags';
+import { getSampleFreeClubPost, SAMPLE_FREE_CLUB_POST_ID } from '../lib/sampleFreeClubPost';
 import { supabaseRest } from '../lib/supabaseRest';
 
 function formatDate(value) {
@@ -34,6 +35,16 @@ export default async function FreeBoardPage({ searchParams = {} }) {
     posts = await supabaseRest(path);
   } catch {
     posts = [];
+  }
+
+  if (!Array.isArray(posts)) posts = [];
+  const hasRealClub = posts.some(
+    (p) => p.subcategory === 'club' && p.id && p.id !== SAMPLE_FREE_CLUB_POST_ID
+  );
+  const showClubSample =
+    !hasRealClub && (tag === 'all' || tag === 'club') && !isFeaturedFilter;
+  if (showClubSample) {
+    posts = [getSampleFreeClubPost(), ...posts];
   }
 
   return (

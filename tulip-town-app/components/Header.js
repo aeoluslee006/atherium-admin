@@ -62,6 +62,13 @@ const NAV_ICONS = {
       <path d="M13 15.2c1.2-.7 2.6-1 4-.8 2 .3 3.5 1.6 4 3.6" />
     </svg>
   ),
+  classes: (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" />
+      <path d="M8 7h8M8 11h6" />
+    </svg>
+  ),
   directory: (
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <rect x="4" y="3" width="10" height="18" />

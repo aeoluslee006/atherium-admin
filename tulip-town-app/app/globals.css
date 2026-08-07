@@ -3698,8 +3698,8 @@ main:has(.home-page) {
   background: #0f172a;
   border-radius: 8px;
   overflow: hidden;
-  height: 240px;
-  max-height: 36vh;
+  height: 340px;
+  max-height: 48vh;
 }
 
 .housing-gallery-main img {
@@ -3785,8 +3785,8 @@ main:has(.home-page) {
   }
 
   .housing-gallery-main {
-    height: 200px;
-    max-height: 32vh;
+    height: 260px;
+    max-height: 42vh;
     border-radius: 6px;
   }
 

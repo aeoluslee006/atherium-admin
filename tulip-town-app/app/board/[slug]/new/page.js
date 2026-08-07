@@ -33,6 +33,7 @@ export default function NewPostPage() {
   const isMarket = params.slug === 'market';
   const isJobs = params.slug === 'jobs';
   const isHousing = params.slug === 'housing';
+  const isClubs = params.slug === 'clubs';
   const [authReady, setAuthReady] = useState(false);
   const [subcategory, setSubcategory] = useState('');
   const [title, setTitle] = useState('');
@@ -244,6 +245,10 @@ export default function NewPostPage() {
         payload.contact_text = contactText.trim() || null;
         payload.image_urls = serializeImageUrls(housingPhotos);
       }
+      if (isClubs) {
+        payload.address_text = addressText.trim() || null;
+        payload.contact_text = contactText.trim() || null;
+      }
 
       let { data, error: insertError } = await supabase.from('posts').insert(payload).select('id').single();
 
@@ -312,6 +317,15 @@ export default function NewPostPage() {
               .update({ body: `${imgs}${body || ''}` })
               .eq('id', retry.data.id);
           }
+        }
+        data = retry.data;
+        insertError = retry.error;
+      }
+      if (insertError && isClubs) {
+        const { address_text, contact_text, ...basic } = payload;
+        const retry = await supabase.from('posts').insert(basic).select('id').single();
+        if (!retry.error && (address_text || contact_text)) {
+          setError('글은 등록됐지만 일부 컬럼이 없습니다. clubs_board_schema.sql을 실행해 주세요.');
         }
         data = retry.data;
         insertError = retry.error;
@@ -502,7 +516,9 @@ export default function NewPostPage() {
           </>
         ) : null}
 
-        <label htmlFor="title">{isHousing ? '매물 제목' : isMarket ? '상품 제목' : '제목'}</label>
+        <label htmlFor="title">
+          {isHousing ? '매물 제목' : isMarket ? '상품 제목' : isClubs ? '동호회 / 모임 제목' : '제목'}
+        </label>
         <input
           id="title"
           value={title}
@@ -512,7 +528,9 @@ export default function NewPostPage() {
               ? '예: Holland 2BR 렌트 · No fee'
               : isMarket
                 ? '예: IKEA 소파 팝니다'
-                : undefined
+                : isClubs
+                  ? '예: Holland 주말 등산 모임'
+                  : undefined
           }
           required
         />
@@ -525,8 +543,27 @@ export default function NewPostPage() {
           ))}
         </select>
 
+        {isClubs ? (
+          <>
+            <label htmlFor="clubsAddressText">모임 장소</label>
+            <input
+              id="clubsAddressText"
+              value={addressText}
+              onChange={(e) => setAddressText(e.target.value)}
+              placeholder="예: Holland State Park 주차장 · 교회 체육관"
+            />
+            <label htmlFor="clubsContactText">연락처</label>
+            <input
+              id="clubsContactText"
+              value={contactText}
+              onChange={(e) => setContactText(e.target.value)}
+              placeholder="휴대폰 / 카톡 / 이메일"
+            />
+          </>
+        ) : null}
+
         <label htmlFor={isMarket || isHousing ? undefined : 'body'}>
-          {isHousing ? '상세 설명' : isMarket ? '상세 설명' : '내용'}
+          {isHousing || isMarket ? '상세 설명' : '내용'}
         </label>
         {isMarket || isHousing ? (
           <MarketBodyEditor

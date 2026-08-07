@@ -22,6 +22,10 @@ import {
   getSampleMarketPost,
   isSampleMarketPostId,
 } from '../../../lib/sampleMarketPost';
+import {
+  getSampleClubsPost,
+  isSampleClubsPostId,
+} from '../../../lib/sampleClubsPost';
 import { supabaseRest } from '../../../lib/supabaseRest';
 
 export const dynamic = 'force-dynamic';
@@ -72,6 +76,9 @@ export default async function PostPage({ params }) {
     } else if (isSampleMarketPostId(params.id)) {
       post = getSampleMarketPost();
       authorLabel = '예시';
+    } else if (isSampleClubsPostId(params.id)) {
+      post = getSampleClubsPost();
+      authorLabel = '예시';
     } else {
       const rows = await supabaseRest(
         `posts?select=*&id=eq.${encodeURIComponent(params.id)}&limit=1`
@@ -82,7 +89,8 @@ export default async function PostPage({ params }) {
       post &&
       !isSampleHousingPostId(params.id) &&
       !isSampleJobsPostId(params.id) &&
-      !isSampleMarketPostId(params.id)
+      !isSampleMarketPostId(params.id) &&
+      !isSampleClubsPostId(params.id)
     ) {
       comments = await safeRest(
         `comments?select=*&post_id=eq.${encodeURIComponent(params.id)}&order=created_at.asc`
@@ -111,7 +119,8 @@ export default async function PostPage({ params }) {
       if (
         (post.category_slug === 'market' ||
           post.category_slug === 'jobs' ||
-          post.category_slug === 'housing') &&
+          post.category_slug === 'housing' ||
+          post.category_slug === 'clubs') &&
         post.created_at
       ) {
         const slug = post.category_slug;
@@ -145,6 +154,7 @@ export default async function PostPage({ params }) {
   const isMarket = post.category_slug === 'market';
   const isJobs = post.category_slug === 'jobs';
   const isHousing = post.category_slug === 'housing';
+  const isClubs = post.category_slug === 'clubs';
   const freeTagLabel = post.category_slug === 'free' ? getFreeBoardTagLabel(post.subcategory) : '';
   const marketTagLabel = isMarket ? getMarketTagLabel(post.subcategory) : '';
   const jobTagLabel = isJobs ? getJobTagLabel(post.subcategory) : '';
@@ -216,6 +226,14 @@ export default async function PostPage({ params }) {
       ].filter(([, value]) => value && value !== '—')
     : [];
 
+  const clubSpecs = isClubs
+    ? [
+        ['모임 장소', post.address_text || '—'],
+        ['지역', post.city || '—'],
+        ['연락처', post.contact_text || '—'],
+      ].filter(([, value]) => value && value !== '—')
+    : [];
+
   return (
     <div className="container">
       <div className="row-between">
@@ -223,7 +241,7 @@ export default async function PostPage({ params }) {
           <div className="hint-text" style={{ marginBottom: 6 }}>
             {category ? (
               <Link href={`/board/${category.slug}`}>
-                {isMarket || isJobs || isHousing
+                {isMarket || isJobs || isHousing || isClubs
                   ? category.nameKo
                   : `${category.nameKo} · ${category.nameEn}`}
               </Link>
@@ -289,7 +307,7 @@ export default async function PostPage({ params }) {
             ) : null}
             <span aria-hidden="true"> · </span>
             <span>댓글 {comments?.length || 0}</span>
-            {post.city && !isHousing && !isMarket ? (
+            {post.city && !isHousing && !isMarket && !isClubs ? (
               <>
                 <span aria-hidden="true"> · </span>
                 <span className="city-tag">{post.city}</span>
@@ -400,6 +418,20 @@ export default async function PostPage({ params }) {
         </div>
       ) : null}
 
+      {isClubs && clubSpecs.length ? (
+        <div className="card clubs-info-card">
+          <h3 className="clubs-info-title">모임 정보</h3>
+          <dl className="clubs-info-list">
+            {clubSpecs.map(([label, value]) => (
+              <div key={label} className="clubs-info-row">
+                <dt>{label}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      ) : null}
+
       {isHousing ? (
         showListingTextBody ? (
           htmlBody ? (
@@ -426,7 +458,7 @@ export default async function PostPage({ params }) {
         </div>
       ) : null}
 
-      {(isMarket || isJobs || isHousing) && (prevPost || nextPost) ? (
+      {(isMarket || isJobs || isHousing || isClubs) && (prevPost || nextPost) ? (
         <div className="card market-adjacent">
           {prevPost ? (
             <Link href={`/post/${prevPost.id}`} className="market-adjacent-row">
@@ -447,7 +479,8 @@ export default async function PostPage({ params }) {
       <div className="card">
         {isSampleHousingPostId(post.id) ||
         isSampleJobsPostId(post.id) ||
-        isSampleMarketPostId(post.id) ? (
+        isSampleMarketPostId(post.id) ||
+        isSampleClubsPostId(post.id) ? (
           <div className="empty-state">예시 글에는 댓글을 남길 수 없습니다.</div>
         ) : (
           <>

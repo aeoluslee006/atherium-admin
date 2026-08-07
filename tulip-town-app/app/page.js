@@ -2,6 +2,7 @@ import Link from 'next/link';
 import LocalNewsPanel from '../components/LocalNewsPanel';
 import { getCategory } from '../lib/categories';
 import { isExampleLocalNews } from '../lib/localNews';
+import { getSampleClubsPost, SAMPLE_CLUBS_POST_ID } from '../lib/sampleClubsPost';
 import { supabaseRest } from '../lib/supabaseRest';
 
 export const dynamic = 'force-dynamic';
@@ -56,7 +57,14 @@ async function getHomeData() {
     .filter((row) => !isExampleLocalNews(row))
     .slice(0, 4);
 
-  return { premiumAds, localNews, featuredPosts, clubPosts, marketPosts };
+  let clubs = Array.isArray(clubPosts) ? clubPosts : [];
+  const hasRealClub = clubs.some((p) => p.id && p.id !== SAMPLE_CLUBS_POST_ID);
+  if (!hasRealClub) {
+    const sample = getSampleClubsPost();
+    clubs = [{ id: sample.id, title: sample.title, created_at: sample.created_at }, ...clubs];
+  }
+
+  return { premiumAds, localNews, featuredPosts, clubPosts: clubs, marketPosts };
 }
 
 function padAds(ads) {

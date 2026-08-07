@@ -1291,6 +1291,134 @@ main:has(.home-page) {
   border-top: 3px solid #b0839a;
 }
 
+/* Clubs board — simple line items */
+.clubs-board {
+  padding: 0;
+  overflow: hidden;
+}
+
+.clubs-board-list {
+  padding: 0 18px;
+}
+
+.clubs-board-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--row-line);
+}
+
+.clubs-board-row:last-child {
+  border-bottom: none;
+}
+
+.clubs-board-row-main {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.clubs-board-row-title {
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.45;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clubs-board-row:hover .clubs-board-row-title {
+  color: var(--accent-dark);
+}
+
+.clubs-board-row-place {
+  flex: 0 1 auto;
+  max-width: 42%;
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clubs-info-card {
+  margin: 0 0 16px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.clubs-info-title {
+  margin: 0;
+  padding: 12px 16px;
+  font-size: 15px;
+  font-weight: 750;
+  border-bottom: 1px solid var(--row-line);
+  background: #fafbfc;
+}
+
+.clubs-info-list {
+  margin: 0;
+  padding: 4px 0;
+}
+
+.clubs-info-row {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--row-line);
+  font-size: 15px;
+}
+
+.clubs-info-row:last-child {
+  border-bottom: none;
+}
+
+.clubs-info-row dt {
+  margin: 0;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.clubs-info-row dd {
+  margin: 0;
+  font-weight: 550;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 720px) {
+  .clubs-board-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 12px 0;
+  }
+
+  .clubs-board-row-main {
+    flex-wrap: wrap;
+    gap: 6px 10px;
+  }
+
+  .clubs-board-row-title {
+    white-space: normal;
+    flex: 1 1 100%;
+  }
+
+  .clubs-board-row-place {
+    max-width: none;
+  }
+
+  .clubs-info-row {
+    grid-template-columns: 84px minmax(0, 1fr);
+  }
+}
+
 .wf-bottom-divider {
   background: var(--row-line);
 }

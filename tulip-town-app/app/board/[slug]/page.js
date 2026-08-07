@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import ClubsBoardPage from '../../../components/ClubsBoardPage';
 import FreeBoardPage from '../../../components/FreeBoardPage';
 import HousingBoardPage from '../../../components/HousingBoardPage';
 import JobsBoardPage from '../../../components/JobsBoardPage';
@@ -20,6 +21,9 @@ export default async function BoardPage({ params, searchParams }) {
   }
   if (params.slug === 'housing') {
     return <HousingBoardPage searchParams={searchParams} />;
+  }
+  if (params.slug === 'clubs') {
+    return <ClubsBoardPage />;
   }
 
   const category = getCategory(params.slug);

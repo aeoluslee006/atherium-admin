@@ -3434,29 +3434,39 @@ main:has(.home-page) {
   color: #1f6b45;
 }
 
-.housing-detail-top {
+.housing-detail-split {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(200px, 280px);
+  grid-template-columns: 1fr;
   gap: 16px;
   align-items: start;
   margin: 0 0 18px;
 }
 
-.housing-detail-top .housing-gallery {
-  margin: 0;
-  max-width: none;
+.housing-detail-split.has-photos {
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 44%);
 }
 
-.housing-detail-media-empty {
-  display: none;
+.housing-detail-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.housing-detail-media {
+  min-width: 0;
+}
+
+.housing-detail-media .housing-gallery {
+  margin: 0;
+  max-width: none;
 }
 
 .housing-detail-aside {
   background: #f7faf8;
   border: 1px solid #d7e5dc;
   border-radius: 10px;
-  padding: 16px 16px 14px;
-  min-height: 120px;
+  padding: 14px 16px 12px;
 }
 
 .housing-aside-label {
@@ -3490,7 +3500,7 @@ main:has(.home-page) {
 }
 
 .housing-spec-card {
-  margin: 0 0 18px;
+  margin: 0;
   padding: 0;
   overflow: hidden;
 }
@@ -3579,13 +3589,13 @@ main:has(.home-page) {
     grid-template-columns: 92px minmax(0, 1fr);
   }
 
-  .housing-detail-top {
+  .housing-detail-split,
+  .housing-detail-split.has-photos {
     grid-template-columns: 1fr;
-    gap: 12px;
   }
 
-  .housing-detail-aside {
-    min-height: 0;
+  .housing-detail-media {
+    order: -1;
   }
 }
 

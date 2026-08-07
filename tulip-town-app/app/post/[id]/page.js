@@ -147,17 +147,14 @@ export default async function PostPage({ params }) {
         ['월세/가격', post.rent_price_text || '—'],
         ['보증금', post.deposit_text || '—'],
         ['침실/욕실', [post.beds && `${post.beds} bed`, post.baths && `${post.baths} bath`].filter(Boolean).join(' · ') || '—'],
+        ['주소', post.address_text || '—'],
+        ['지역', post.city || '—'],
+        ['입주', post.available_text || '—'],
         ['연락처', post.contact_text || '—'],
       ]
     : [];
 
-  const housingLocation = isHousing
-    ? {
-        address: post.address_text || '',
-        city: post.city || '',
-      }
-    : null;
-  const hasHousingLocation = Boolean(housingLocation?.address || housingLocation?.city);
+  const hasHousingLocation = Boolean(post.address_text || post.city);
 
   const jobContact =
     [post.contact_name, post.contact_phone, post.contact_email].filter(Boolean).join(' · ') ||
@@ -276,41 +273,46 @@ export default async function PostPage({ params }) {
         ) : null}
       </div>
 
-      {isHousing && (housingImages.length || hasHousingLocation) ? (
-        <div className={`housing-detail-top${housingImages.length ? '' : ' no-photos'}`}>
-          {housingImages.length ? (
-            <HousingPhotoGallery images={housingImages} title={post.title || '매물 사진'} />
-          ) : (
-            <div className="housing-detail-media-empty" aria-hidden="true" />
-          )}
-          {hasHousingLocation ? (
-            <aside className="housing-detail-aside">
-              <div className="housing-aside-label">위치</div>
-              {housingLocation.address ? (
-                <div className="housing-aside-address">{housingLocation.address}</div>
-              ) : null}
-              {housingLocation.city ? (
-                <div className="housing-aside-city">{housingLocation.city}</div>
-              ) : null}
-              {post.available_text ? (
-                <div className="housing-aside-meta">입주 {post.available_text}</div>
-              ) : null}
-            </aside>
-          ) : null}
-        </div>
-      ) : null}
-
-      {isHousing && housingSpecs.length ? (
-        <div className="card housing-spec-card">
-          <h3 className="housing-spec-title">매물 정보</h3>
-          <dl className="housing-spec-list">
-            {housingSpecs.map(([label, value]) => (
-              <div key={label} className="housing-spec-row">
-                <dt>{label}</dt>
-                <dd>{value}</dd>
+      {isHousing && (housingSpecs.length || housingImages.length) ? (
+        <div className={`housing-detail-split${housingImages.length ? ' has-photos' : ''}`}>
+          <div className="housing-detail-info">
+            {hasHousingLocation ? (
+              <aside className="housing-detail-aside">
+                <div className="housing-aside-label">위치</div>
+                {post.address_text ? (
+                  <div className="housing-aside-address">{post.address_text}</div>
+                ) : null}
+                {post.city ? <div className="housing-aside-city">{post.city}</div> : null}
+                {post.available_text ? (
+                  <div className="housing-aside-meta">입주 {post.available_text}</div>
+                ) : null}
+              </aside>
+            ) : null}
+            {housingSpecs.length ? (
+              <div className="card housing-spec-card">
+                <h3 className="housing-spec-title">매물 정보</h3>
+                <dl className="housing-spec-list">
+                  {housingSpecs
+                    .filter(([label]) => {
+                      // Location already shown in aside when present
+                      if (!hasHousingLocation) return true;
+                      return label !== '주소' && label !== '지역' && label !== '입주';
+                    })
+                    .map(([label, value]) => (
+                      <div key={label} className="housing-spec-row">
+                        <dt>{label}</dt>
+                        <dd>{value}</dd>
+                      </div>
+                    ))}
+                </dl>
               </div>
-            ))}
-          </dl>
+            ) : null}
+          </div>
+          {housingImages.length ? (
+            <div className="housing-detail-media">
+              <HousingPhotoGallery images={housingImages} title={post.title || '매물 사진'} />
+            </div>
+          ) : null}
         </div>
       ) : null}
 

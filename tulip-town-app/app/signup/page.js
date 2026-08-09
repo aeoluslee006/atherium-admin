@@ -16,7 +16,6 @@ export default function SignupPage() {
   const router = useRouter();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -33,16 +32,11 @@ export default function SignupPage() {
 
     const first = firstName.trim();
     const last = lastName.trim();
-    const phoneValue = phone.trim();
     const publicId = normalizeUsername(username);
 
     try {
       if (!first || !last) {
         setError('First name과 Last name을 모두 입력해 주세요.');
-        return;
-      }
-      if (!phoneValue) {
-        setError('전화번호를 입력해 주세요.');
         return;
       }
       if (!/^[a-z0-9._-]{3,20}$/.test(publicId)) {
@@ -70,7 +64,6 @@ export default function SignupPage() {
           data: {
             first_name: first,
             last_name: last,
-            phone: phoneValue,
             username: publicId,
             display_name: publicId,
           },
@@ -82,7 +75,6 @@ export default function SignupPage() {
         const fullProfile = {
           id: data.user.id,
           email,
-          phone: phoneValue,
           first_name: first,
           last_name: last,
           username: publicId,
@@ -93,7 +85,6 @@ export default function SignupPage() {
           await supabase.from('profiles').upsert({
             id: data.user.id,
             email,
-            phone: phoneValue,
             display_name: publicId,
           });
         }
@@ -138,17 +129,6 @@ export default function SignupPage() {
             />
           </div>
         </div>
-
-        <label htmlFor="phone">전화번호</label>
-        <input
-          id="phone"
-          type="tel"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          placeholder="예: 616-555-0100"
-          autoComplete="tel"
-          required
-        />
 
         <label htmlFor="email">이메일</label>
         <input

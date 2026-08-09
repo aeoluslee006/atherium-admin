@@ -5,21 +5,29 @@ import Dashboard from './pages/Dashboard'
 import Customers from './pages/Customers'
 import Reports from './pages/Reports'
 import Login from './pages/Login'
+import { useIdleLogout } from './hooks/useIdleLogout'
+import { isOtpPending, setOtpPending } from './lib/otpGate'
 import { supabase } from './lib/supabase'
 
 export default function App() {
   const [activePage, setActivePage] = useState('dashboard')
   const [session, setSession] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
+  const [idleTimedOut, setIdleTimedOut] = useState(false)
 
   useEffect(() => {
     let alive = true
     supabase.auth.getSession().then(({ data }) => {
       if (!alive) return
-      setSession(data.session)
+      // Ignore password-only session while email OTP step is in progress.
+      setSession(isOtpPending() ? null : data.session)
       setAuthLoading(false)
     })
     const { data: sub } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (isOtpPending() && nextSession) {
+        // Keep Login mounted until verifyOtp clears the OTP gate.
+        return
+      }
       setSession(nextSession)
       setAuthLoading(false)
     })
@@ -30,9 +38,15 @@ export default function App() {
   }, [])
 
   const handleSignOut = async () => {
+    setOtpPending(false)
     await supabase.auth.signOut()
     setSession(null)
   }
+
+  useIdleLogout(!!session, async () => {
+    setIdleTimedOut(true)
+    await handleSignOut()
+  }, 20 * 60 * 1000)
 
   if (authLoading) {
     return (
@@ -43,7 +57,16 @@ export default function App() {
   }
 
   if (!session) {
-    return <Login onSignedIn={setSession} />
+    return (
+      <Login
+        onSignedIn={(next) => {
+          setIdleTimedOut(false)
+          setOtpPending(false)
+          setSession(next)
+        }}
+        timedOut={idleTimedOut}
+      />
+    )
   }
 
   const pages = {

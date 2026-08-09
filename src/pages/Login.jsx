@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import './Login.css'
 
-export default function Login({ onSignedIn }) {
+export default function Login({ onSignedIn, timedOut }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -55,6 +55,10 @@ export default function Login({ onSignedIn }) {
 
         <div style={s.title}>Sign in</div>
         <div style={s.sub}>Access the holdings dashboard</div>
+
+        {timedOut && (
+          <div style={s.error}>장시간 활동이 없어 자동으로 로그아웃되었습니다. 다시 로그인해주세요.</div>
+        )}
 
         <form onSubmit={handleSubmit} style={s.form}>
           <label style={s.label}>

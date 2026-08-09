@@ -167,7 +167,6 @@ export default function Login({ onSignedIn, timedOut }) {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="admin@atherium.cosmonova.io"
                     required
                     autoComplete="email"
                     style={s.input}

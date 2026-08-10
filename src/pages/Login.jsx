@@ -47,10 +47,9 @@ export default function Login({ onSignedIn, timedOut }) {
       setEmail(trimmedEmail)
       setOtpCode('')
       setStep('otp')
-      setInfo('이메일로 받은 6자리 코드를 입력하세요.')
     } catch (err) {
       setOtpPending(false)
-      setError(err.message || '인증 코드 발송에 실패했습니다.')
+      setError(err.message || 'Failed to send the verification code.')
     } finally {
       setLoading(false)
     }
@@ -63,8 +62,8 @@ export default function Login({ onSignedIn, timedOut }) {
     setInfo('')
     try {
       const token = otpCode.trim()
-      if (!/^\d{6}$/.test(token)) {
-        setError('6자리 숫자 코드를 입력해 주세요.')
+      if (!/^\d{6,10}$/.test(token)) {
+        setError('Enter the code from your email.')
         return
       }
 
@@ -78,14 +77,14 @@ export default function Login({ onSignedIn, timedOut }) {
         return
       }
       if (!data.session) {
-        setError('인증에 실패했습니다. 코드를 다시 확인해 주세요.')
+        setError('Verification failed. Please check the code and try again.')
         return
       }
 
       setOtpPending(false)
       onSignedIn(data.session)
     } catch (err) {
-      setError(err.message || '인증에 실패했습니다.')
+      setError(err.message || 'Verification failed.')
     } finally {
       setLoading(false)
     }
@@ -97,9 +96,9 @@ export default function Login({ onSignedIn, timedOut }) {
     setInfo('')
     try {
       await sendOtp(email.trim())
-      setInfo('인증 코드를 다시 보냈습니다. 이메일을 확인해 주세요.')
+      setInfo('Code resent — check your email.')
     } catch (err) {
-      setError(err.message || '코드 재전송에 실패했습니다.')
+      setError(err.message || 'Failed to resend the code.')
     } finally {
       setLoading(false)
     }
@@ -149,13 +148,13 @@ export default function Login({ onSignedIn, timedOut }) {
             <div style={s.title}>{step === 'otp' ? 'Security code' : 'Sign in'}</div>
             <div style={s.sub}>
               {step === 'otp'
-                ? `${email} 으로 보낸 코드를 입력하세요`
+                ? `Enter the code sent to ${email}`
                 : 'Access the holdings dashboard'}
             </div>
 
             {timedOut && step === 'password' && (
               <div style={{ ...s.error, marginBottom: 16 }}>
-                장시간 활동이 없어 자동으로 로그아웃되었습니다. 다시 로그인해주세요.
+                You were signed out due to inactivity. Please sign in again.
               </div>
             )}
 
@@ -196,10 +195,9 @@ export default function Login({ onSignedIn, timedOut }) {
                     type="text"
                     inputMode="numeric"
                     pattern="[0-9]*"
-                    maxLength={6}
+                    maxLength={10}
                     value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    placeholder="6자리 코드"
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 10))}
                     required
                     autoComplete="one-time-code"
                     style={{ ...s.input, letterSpacing: 4, fontSize: 16 }}
@@ -208,7 +206,7 @@ export default function Login({ onSignedIn, timedOut }) {
                 {info && <div style={s.info}>{info}</div>}
                 {error && <div style={s.error}>{error}</div>}
                 <button type="submit" disabled={loading} style={{ ...s.button, opacity: loading ? 0.7 : 1 }}>
-                  {loading ? 'Verifying…' : '확인'}
+                  {loading ? 'Verifying…' : 'Verify'}
                 </button>
                 <div style={s.otpActions}>
                   <button
@@ -217,7 +215,7 @@ export default function Login({ onSignedIn, timedOut }) {
                     onClick={handleResend}
                     style={s.linkButton}
                   >
-                    코드 재전송
+                    Resend code
                   </button>
                   <button
                     type="button"
@@ -225,7 +223,7 @@ export default function Login({ onSignedIn, timedOut }) {
                     onClick={handleBackToPassword}
                     style={s.linkButton}
                   >
-                    이메일 변경
+                    Change email
                   </button>
                 </div>
               </form>

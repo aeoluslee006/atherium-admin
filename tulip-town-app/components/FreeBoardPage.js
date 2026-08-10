@@ -32,7 +32,8 @@ export default async function FreeBoardPage({ searchParams = {} }) {
     let path =
       'posts?select=id,title,subcategory,created_at,is_featured&category_slug=eq.free';
     if (isFeaturedFilter) {
-      path += '&is_featured=eq.true';
+      // All 좋은글 posts (board), not only home-dashboard selections
+      path += '&or=(subcategory.eq.featured,is_featured.eq.true)';
     } else if (tag === 'meetup') {
       // Include legacy 동호회 (club) posts under 모임/동호회
       path += '&subcategory=in.(meetup,club)';
@@ -115,7 +116,7 @@ export default async function FreeBoardPage({ searchParams = {} }) {
           ) : (
             <div className="empty-state">
               {isFeaturedFilter
-                ? '아직 좋은글로 지정된 글이 없습니다.'
+                ? '아직 좋은글이 없습니다. 글쓰기에서 「좋은글」을 선택해 등록해 보세요.'
                 : tag !== 'all'
                   ? '이 태그로 등록된 글이 아직 없습니다.'
                   : '아직 게시글이 없습니다. 첫 글을 남겨보세요!'}

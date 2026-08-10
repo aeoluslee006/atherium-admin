@@ -6,11 +6,17 @@ import Link from 'next/link';
 import JobsComposeForm from '../../../../components/JobsComposeForm';
 import HousingPhotosField from '../../../../components/HousingPhotosField';
 import MarketBodyEditor from '../../../../components/MarketBodyEditor';
+import StationeryPicker from '../../../../components/StationeryPicker';
 import { getCategory } from '../../../../lib/categories';
 import { FREE_BOARD_WRITE_TAGS, isValidFreeBoardWriteTag } from '../../../../lib/freeBoardTags';
 import { HOUSING_TAGS, HOUSING_TYPES, isValidHousingTag } from '../../../../lib/housingTags';
 import { MARKET_TAGS, isValidMarketTag } from '../../../../lib/marketTags';
 import { serializeImageUrls } from '../../../../lib/postImages';
+import {
+  DEFAULT_STATIONERY_ID,
+  isValidStationeryId,
+  stationeryClassName,
+} from '../../../../lib/stationery';
 import { supabase } from '../../../../lib/supabaseClient';
 
 const CITIES = ['Holland', 'Grand Rapids', 'Zeeland', 'Hudsonville', 'Other'];
@@ -36,6 +42,8 @@ export default function NewPostPage() {
   const isClasses = params.slug === 'classes';
   const [authReady, setAuthReady] = useState(false);
   const [subcategory, setSubcategory] = useState('');
+  const [stationeryId, setStationeryId] = useState(DEFAULT_STATIONERY_ID);
+  const [showOnDashboard, setShowOnDashboard] = useState(false);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [city, setCity] = useState('Holland');
@@ -191,6 +199,10 @@ export default function NewPostPage() {
         setError('서브카테고리를 선택해 주세요.');
         return;
       }
+      if (isFree && subcategory === 'featured' && !isValidStationeryId(stationeryId)) {
+        setError('편지지를 선택해 주세요.');
+        return;
+      }
       if (isMarket && !isValidMarketTag(subcategory)) {
         setError('구분(팝니다/삽니다 등)을 선택해 주세요.');
         return;
@@ -229,7 +241,11 @@ export default function NewPostPage() {
       };
       if (isFree) {
         payload.subcategory = subcategory;
-        payload.is_featured = subcategory === 'featured';
+        // 좋은글 board list vs home dashboard: many featured posts, only checked ones on home.
+        payload.is_featured = subcategory === 'featured' && showOnDashboard;
+        if (subcategory === 'featured') {
+          payload.stationery_id = stationeryId;
+        }
       }
       if (isMarket) {
         payload.subcategory = subcategory;
@@ -255,6 +271,18 @@ export default function NewPostPage() {
       }
 
       let { data, error: insertError } = await supabase.from('posts').insert(payload).select('id').single();
+
+      if (insertError && isFree && payload.stationery_id) {
+        const { stationery_id, ...withoutStationery } = payload;
+        const retry = await supabase.from('posts').insert(withoutStationery).select('id').single();
+        if (!retry.error) {
+          setError(
+            '글은 등록됐지만 편지지 컬럼이 아직 DB에 없습니다. featured_stationery_schema.sql을 실행해 주세요.'
+          );
+        }
+        data = retry.data;
+        insertError = retry.error;
+      }
 
       if (insertError && isMarket) {
         const { price_text, contact_text, image_urls, ...basic } = payload;
@@ -381,6 +409,8 @@ export default function NewPostPage() {
         ? FREE_BOARD_WRITE_TAGS
         : null;
   const needsSubcategory = isFree || isMarket || isHousing;
+  const isFeaturedWrite = isFree && subcategory === 'featured';
+  const letterPaperClass = isFeaturedWrite ? stationeryClassName(stationeryId) : '';
 
   return (
     <div className="container">
@@ -416,7 +446,12 @@ export default function NewPostPage() {
                       name="subcategory"
                       value={tag.slug}
                       checked={selected}
-                      onChange={() => setSubcategory(tag.slug)}
+                      onChange={() => {
+                        setSubcategory(tag.slug);
+                        if (tag.slug !== 'featured') {
+                          setShowOnDashboard(false);
+                        }
+                      }}
                       required
                     />
                     <span>{tag.nameKo}</span>
@@ -425,6 +460,30 @@ export default function NewPostPage() {
               })}
             </div>
           </fieldset>
+        ) : null}
+
+        {isFeaturedWrite ? (
+          <>
+            <StationeryPicker
+              value={stationeryId}
+              onChange={setStationeryId}
+              disabled={saving}
+            />
+            <label className="dashboard-feature-toggle">
+              <input
+                type="checkbox"
+                checked={showOnDashboard}
+                onChange={(e) => setShowOnDashboard(e.target.checked)}
+                disabled={saving}
+              />
+              <span>
+                홈 대시보드 <strong>좋은 글</strong> 창에 표시
+                <em className="dashboard-feature-hint">
+                  체크한 글만 메인 화면에 보입니다. 좋은글 게시판에는 모두 남습니다.
+                </em>
+              </span>
+            </label>
+          </>
         ) : null}
 
         {isHousing ? (
@@ -582,6 +641,17 @@ export default function NewPostPage() {
                 : undefined
             }
           />
+        ) : isFeaturedWrite ? (
+          <div className={`letter-compose ${letterPaperClass}`}>
+            <textarea
+              id="body"
+              className="letter-compose-textarea"
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              placeholder="편지지 위에 마음을 적어 보세요…"
+              required
+            />
+          </div>
         ) : (
           <textarea id="body" value={body} onChange={(e) => setBody(e.target.value)} required />
         )}

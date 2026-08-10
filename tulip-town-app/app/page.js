@@ -3,6 +3,7 @@ import LocalNewsPanel from '../components/LocalNewsPanel';
 import { getCategory } from '../lib/categories';
 import { isExampleLocalNews } from '../lib/localNews';
 import { getSampleClassesPost, SAMPLE_CLASSES_POST_ID } from '../lib/sampleClassesPost';
+import { stationeryClassName } from '../lib/stationery';
 import { supabaseRest } from '../lib/supabaseRest';
 
 export const dynamic = 'force-dynamic';
@@ -35,16 +36,19 @@ async function safeRest(path) {
 }
 
 async function getHomeData() {
-  const [premiumAds, localNewsRaw, featuredPosts, classPosts, marketPosts] = await Promise.all([
+  const featuredSelectWithPaper =
+    'posts?select=id,title,body,category_slug,created_at,is_featured,stationery_id,subcategory&is_featured=eq.true&order=created_at.desc&limit=10';
+  const featuredSelectBasic =
+    'posts?select=id,title,body,category_slug,created_at,is_featured&is_featured=eq.true&order=created_at.desc&limit=10';
+
+  const [premiumAds, localNewsRaw, featuredWithPaper, classPosts, marketPosts] = await Promise.all([
     safeRest(
       'sponsors?select=id,business_name,category,city,description,website_url,discount_text,tier,listing_type,status&listing_type=eq.banner&status=eq.approved&tier=eq.premium&order=created_at.desc&limit=2'
     ),
     safeRest(
       'local_news?select=id,title,source,url,published_at,is_active&is_active=eq.true&order=published_at.desc&limit=20'
     ),
-    safeRest(
-      'posts?select=id,title,body,category_slug,created_at,is_featured&is_featured=eq.true&order=created_at.desc&limit=10'
-    ),
+    safeRest(featuredSelectWithPaper),
     safeRest(
       'posts?select=id,title,created_at&category_slug=eq.classes&order=created_at.desc&limit=6'
     ),
@@ -52,6 +56,11 @@ async function getHomeData() {
       'posts?select=id,title,created_at&category_slug=eq.market&order=created_at.desc&limit=6'
     ),
   ]);
+
+  let featuredPosts = Array.isArray(featuredWithPaper) ? featuredWithPaper : [];
+  if (!featuredPosts.length) {
+    featuredPosts = await safeRest(featuredSelectBasic);
+  }
 
   const localNews = (Array.isArray(localNewsRaw) ? localNewsRaw : [])
     .filter((row) => !isExampleLocalNews(row))
@@ -144,14 +153,21 @@ export default async function HomePage() {
         <div className="wf-box wf-featured">
           <div className="panel-header">
             <h2 className="panel-title">좋은 글</h2>
+            <Link href="/board/free?tag=featured" className="panel-more">
+              더보기
+            </Link>
           </div>
           {featuredPosts?.length ? (
             <ul className="wf-featured-list">
               {featuredPosts.map((post) => {
                 const cat = getCategory(post.category_slug);
+                const paper = stationeryClassName(post.stationery_id);
                 return (
                   <li key={post.id}>
-                    <Link href={`/post/${post.id}`} className="wf-featured-row">
+                    <Link
+                      href={`/post/${post.id}`}
+                      className={`wf-featured-row${paper ? ` ${paper}` : ''}`}
+                    >
                       <div className="wf-featured-meta">
                         <span>{cat?.nameKo || post.category_slug || '게시판'}</span>
                         <time>{formatDate(post.created_at)}</time>
@@ -166,7 +182,10 @@ export default async function HomePage() {
               })}
             </ul>
           ) : (
-            <div className="wf-empty wf-empty--grow">아직 지정된 좋은글이 없습니다.</div>
+            <div className="wf-empty wf-empty--grow">
+              아직 홈에 올린 좋은글이 없습니다. 글쓰기에서 「좋은글」선택 후 「홈 대시보드에 표시」를
+              체크하세요.
+            </div>
           )}
         </div>
       </section>

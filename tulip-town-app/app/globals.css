@@ -4308,3 +4308,261 @@ main:has(.home-page) {
     height: 36px;
   }
 }
+
+/* —— 좋은글 letter paper / stationery —— */
+.stationery-fieldset {
+  border: 0;
+  margin: 0 0 18px;
+  padding: 0;
+}
+
+.stationery-fieldset legend {
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.stationery-hint {
+  margin: 0 0 10px;
+}
+
+.stationery-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 640px) {
+  .stationery-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.stationery-option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 88px;
+  padding: 12px 12px 10px;
+  border: 1.5px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(40, 30, 20, 0.06);
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.stationery-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.stationery-option-name {
+  position: relative;
+  z-index: 1;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.stationery-option-lines {
+  position: relative;
+  z-index: 1;
+  display: block;
+  height: 28px;
+  margin-top: 8px;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 8px,
+    currentColor 8px,
+    currentColor 9px
+  );
+  opacity: 0.22;
+}
+
+.stationery-option.is-selected {
+  border-color: #2f4a3a;
+  box-shadow: 0 0 0 2px rgba(47, 74, 58, 0.18);
+  transform: translateY(-1px);
+}
+
+.dashboard-feature-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border: 1px solid #e3e7ec;
+  border-radius: 10px;
+  background: #fafbfc;
+  cursor: pointer;
+  font-size: var(--text-body);
+  color: var(--ink);
+}
+
+.dashboard-feature-toggle input {
+  margin-top: 3px;
+  width: auto;
+  flex-shrink: 0;
+}
+
+.dashboard-feature-toggle strong {
+  font-weight: 700;
+}
+
+.dashboard-feature-hint {
+  display: block;
+  margin-top: 4px;
+  font-style: normal;
+  font-size: var(--text-meta);
+  color: var(--ink-soft);
+  line-height: 1.4;
+}
+
+.letter-compose {
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 4px;
+  border: 1px solid rgba(40, 30, 20, 0.08);
+}
+
+.letter-compose-textarea {
+  width: 100%;
+  min-height: 220px;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  resize: vertical;
+  line-height: 1.75;
+  font-size: 15px;
+  padding: 18px 20px !important;
+}
+
+.letter-paper {
+  --letter-ink: #2a261f;
+  --letter-line: rgba(60, 50, 40, 0.12);
+  color: var(--letter-ink);
+  background-color: #f7f1e4;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 27px,
+    var(--letter-line) 27px,
+    var(--letter-line) 28px
+  );
+  background-size: 100% 28px;
+}
+
+.letter-paper--cream-lined {
+  --letter-ink: #2a261f;
+  --letter-line: rgba(70, 55, 35, 0.14);
+  background-color: #f4ecd9;
+}
+
+.letter-paper--blush-petal {
+  --letter-ink: #3a2a2e;
+  --letter-line: rgba(140, 70, 80, 0.14);
+  background-color: #f8e8ea;
+  background-image:
+    radial-gradient(ellipse 80% 60% at 100% 0%, rgba(230, 160, 170, 0.35), transparent 55%),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 27px,
+      var(--letter-line) 27px,
+      var(--letter-line) 28px
+    );
+}
+
+.letter-paper--sage-leaf {
+  --letter-ink: #24332a;
+  --letter-line: rgba(50, 90, 65, 0.14);
+  background-color: #e7efe6;
+  background-image:
+    radial-gradient(ellipse 70% 50% at 0% 100%, rgba(120, 160, 130, 0.28), transparent 50%),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 27px,
+      var(--letter-line) 27px,
+      var(--letter-line) 28px
+    );
+}
+
+.letter-paper--sky-note {
+  --letter-ink: #1f2c3a;
+  --letter-line: rgba(55, 95, 130, 0.14);
+  background-color: #e6eef6;
+  background-image:
+    radial-gradient(ellipse 90% 55% at 50% -10%, rgba(140, 180, 220, 0.4), transparent 55%),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 27px,
+      var(--letter-line) 27px,
+      var(--letter-line) 28px
+    );
+}
+
+.letter-paper--linen-grid {
+  --letter-ink: #2c2924;
+  --letter-line: rgba(80, 70, 50, 0.1);
+  background-color: #efe9dc;
+  background-image:
+    linear-gradient(var(--letter-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--letter-line) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+.letter-paper--parchment {
+  --letter-ink: #3a3226;
+  --letter-line: rgba(90, 70, 40, 0.12);
+  background-color: #ead9b8;
+  background-image:
+    radial-gradient(ellipse at 20% 20%, rgba(255, 245, 220, 0.55), transparent 45%),
+    radial-gradient(ellipse at 80% 90%, rgba(160, 120, 70, 0.18), transparent 50%),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 27px,
+      var(--letter-line) 27px,
+      var(--letter-line) 28px
+    );
+}
+
+.letter-paper-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.55;
+  margin-bottom: 10px;
+}
+
+.card.letter-paper {
+  border-color: rgba(40, 30, 20, 0.1);
+  box-shadow: 0 8px 24px rgba(40, 30, 20, 0.06);
+}
+
+.wf-featured-row.letter-paper {
+  background-size: 100% 24px;
+  border-bottom: 1px solid rgba(40, 30, 20, 0.06);
+}
+
+.wf-featured-row.letter-paper--linen-grid {
+  background-size: 18px 18px;
+}
+
+.wf-featured-row.letter-paper .wf-featured-name,
+.wf-featured-row.letter-paper .wf-featured-excerpt,
+.wf-featured-row.letter-paper .wf-featured-meta {
+  color: inherit;
+}
+
+.wf-featured-row.letter-paper .wf-featured-meta {
+  opacity: 0.7;
+}

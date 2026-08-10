@@ -4,6 +4,8 @@ import Topbar from './components/Topbar'
 import Dashboard from './pages/Dashboard'
 import Customers from './pages/Customers'
 import Reports from './pages/Reports'
+import CommunitySites from './pages/CommunitySites'
+import TtkcAdmin from './pages/TtkcAdmin'
 import Login from './pages/Login'
 import { useIdleLogout } from './hooks/useIdleLogout'
 import { isOtpPending, setOtpPending } from './lib/otpGate'
@@ -73,6 +75,8 @@ export default function App() {
     dashboard: <Dashboard />,
     customers: <Customers />,
     reports: <Reports />,
+    community: <CommunitySites onOpenAdmin={setActivePage} />,
+    ttkc: <TtkcAdmin />,
   }
 
   const userEmail = session.user?.email || 'Admin'
@@ -81,7 +85,12 @@ export default function App() {
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       <Sidebar activePage={activePage} setActivePage={setActivePage} userEmail={userEmail} onSignOut={handleSignOut} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar activePage={activePage} userEmail={userEmail} onSignOut={handleSignOut} />
+        <Topbar
+          activePage={activePage}
+          userEmail={userEmail}
+          onSignOut={handleSignOut}
+          onNavigate={setActivePage}
+        />
         <main style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
           {pages[activePage] || <Dashboard />}
         </main>

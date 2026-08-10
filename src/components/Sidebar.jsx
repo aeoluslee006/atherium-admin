@@ -6,9 +6,17 @@ const NAV = [
     { id: 'customers', icon: 'ti-users', label: 'Customer Management' },
     { id: 'reports', icon: 'ti-chart-bar', label: 'Reports' },
   ]},
+  { section: 'Community', items: [
+    { id: 'community', icon: 'ti-building-community', label: 'Community Sites' },
+  ]},
   { section: 'Platforms', items: [
     { id: null, icon: 'ti-building-store', label: 'Cosmonova' },
     { id: null, icon: 'ti-building-skyscraper', label: 'Cosmoenterprise' },
+    {
+      id: 'ttkc',
+      icon: 'ti-flower',
+      label: 'TTKC / Tulip Town',
+    },
   ]},
   { section: 'System', items: [
     { id: null, icon: 'ti-credit-card', label: 'Billing' },
@@ -41,7 +49,14 @@ export default function Sidebar({ activePage, setActivePage, userEmail = 'Admin'
                 <div
                   key={item.label}
                   style={{ ...s.navItem, ...(active ? s.navItemActive : {}) }}
-                  onClick={() => item.id && setActivePage(item.id)}
+                  onClick={() => {
+                    if (item.href) {
+                      window.open(item.href, '_blank', 'noopener,noreferrer')
+                      return
+                    }
+                    if (item.id) setActivePage(item.id)
+                  }}
+                  title={item.href ? 'Open in new tab' : undefined}
                 >
                   <i className={`ti ${item.icon}`} style={{ fontSize: 16, width: 18 }} aria-hidden="true" />
                   {item.label}
@@ -106,6 +121,6 @@ const s = {
     width: 28, height: 28, borderRadius: '50%',
     background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: 10, fontWeight: 600, color: 'var(--night)', fontFamily: "'Cinzel', serif",
+    fontSize: 12, fontWeight: 600, color: 'var(--night)',
   },
 }

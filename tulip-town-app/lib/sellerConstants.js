@@ -1,6 +1,12 @@
-export const SELLER_PRODUCT_LIMIT = 30;
-export const SELLER_FEE_PERCENT = 2;
-export const SELLER_PLAN_KEY = 'seller_monthly';
+/** Tulip shop (sponsors listing_type=shop + products). */
+
+export const SHOP_BASIC_PRODUCT_LIMIT = 6;
+export const SHOP_EXTENDED_PRODUCT_LIMIT = 30;
+export const SHOP_BASIC_PLAN = 'basic';
+export const SHOP_EXTENDED_PLAN = 'extended';
+
+export const SHOP_MONTHLY_KEY = 'shop_monthly';
+export const SHOP_UPGRADE_MONTHLY_KEY = 'shop_upgrade_monthly';
 
 export const SELLER_CITIES = ['Holland', 'Grand Rapids', 'Zeeland', 'Hudsonville', 'Other'];
 
@@ -19,18 +25,35 @@ export const SUB_STATUS_LABEL = {
   canceled: '해지',
 };
 
-/** Required fields for seller application (individuals OK — no business license required). */
-export const SELLER_APPLY_FIELDS = [
-  { key: 'shop_name', label: '상점명', required: true, hint: '튤립가게에 보여질 이름' },
-  { key: 'contact_name', label: '이름(담당자)', required: true, hint: '개인이면 본명' },
-  { key: 'phone', label: '휴대폰', required: true },
-  { key: 'email', label: '이메일', required: true },
-  { key: 'city', label: '지역', required: true },
-  { key: 'seller_type', label: '판매 유형', required: true },
-  { key: 'business_name', label: '상호(선택)', required: false, hint: '사업자 있을 때만' },
-  { key: 'bio', label: '소개', required: true, hint: '무엇을 파는지 짧게' },
-  { key: 'pickup_note', label: '수령/배송 안내(선택)', required: false },
-];
+/** Legacy gift-seller constants (kept for /gift flows). */
+export const SELLER_PRODUCT_LIMIT = 30;
+export const SELLER_FEE_PERCENT = 2;
+export const SELLER_PLAN_KEY = 'seller_monthly';
+
+export const EIN_PATTERN = /^\d{2}-\d{7}$/;
+
+export function isValidEin(value) {
+  return EIN_PATTERN.test(String(value || '').trim());
+}
+
+export function formatPriceCents(cents) {
+  const n = Number(cents);
+  if (!Number.isFinite(n)) return '';
+  return `$${(n / 100).toFixed(n % 100 === 0 ? 0 : 2)}`;
+}
+
+/** Approved shop seller may list products immediately (billing is separate). */
+export function canManageShopProducts(sponsor) {
+  return Boolean(sponsor && sponsor.listing_type === 'shop' && sponsor.status === 'approved');
+}
+
+export function shopProductLimit(sponsor) {
+  const limit = Number(sponsor?.product_limit);
+  if (Number.isFinite(limit) && limit > 0) return limit;
+  return sponsor?.plan_tier === SHOP_EXTENDED_PLAN
+    ? SHOP_EXTENDED_PRODUCT_LIMIT
+    : SHOP_BASIC_PRODUCT_LIMIT;
+}
 
 export function canManageProducts(seller) {
   return (

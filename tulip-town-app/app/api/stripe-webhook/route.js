@@ -91,6 +91,28 @@ async function syncSellerSubscription(admin, subscription, status) {
   return true;
 }
 
+async function syncShopSponsorPlan(admin, subscriptionOrSession) {
+  const meta = subscriptionOrSession?.metadata || {};
+  const kind = meta.kind;
+  const sponsorId = meta.sponsor_id;
+  if (!sponsorId) return false;
+  if (kind !== 'shop_upgrade' && kind !== 'shop_subscription') return false;
+
+  const patch = {};
+  if (kind === 'shop_upgrade') {
+    patch.plan_tier = 'extended';
+    patch.product_limit = 30;
+  } else if (kind === 'shop_subscription') {
+    // Keep defaults; ensure basic tier if unset
+    patch.plan_tier = 'basic';
+    patch.product_limit = 6;
+  }
+
+  const { error } = await admin.from('sponsors').update(patch).eq('id', sponsorId).eq('listing_type', 'shop');
+  if (error) throw error;
+  return true;
+}
+
 export async function POST(request) {
   const stripe = getStripe();
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -114,6 +136,23 @@ export async function POST(request) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object;
+        if (
+          session.metadata?.kind === 'shop_upgrade' ||
+          session.metadata?.kind === 'shop_subscription'
+        ) {
+          await syncShopSponsorPlan(admin, session);
+          if (session.subscription) {
+            const subscriptionId =
+              typeof session.subscription === 'string'
+                ? session.subscription
+                : session.subscription?.id;
+            if (subscriptionId) {
+              const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+              await syncShopSponsorPlan(admin, subscription);
+            }
+          }
+          break;
+        }
         if (session.metadata?.kind === 'seller_subscription') {
           const subscriptionId =
             typeof session.subscription === 'string'
@@ -165,6 +204,7 @@ export async function POST(request) {
           typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id;
         if (subscriptionId) {
           const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          if (await syncShopSponsorPlan(admin, subscription)) break;
           if (await syncSellerSubscription(admin, subscription, 'active')) break;
           const sponsorId = subscription.metadata?.sponsor_id;
           await upsertPaymentFromSubscription({

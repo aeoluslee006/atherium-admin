@@ -4,9 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../../lib/supabaseClient';
-
-const CITIES = ['Holland', 'Grand Rapids', 'Zeeland', 'Hudsonville', 'Other'];
-const CATEGORIES = ['생활용품', '가전', '가구', '유아/아동', '패션', '식품', '기타'];
+import { shopProductLimit } from '../../../lib/sellerConstants';
 
 export default function ShopNewPage() {
   const router = useRouter();
@@ -14,21 +12,72 @@ export default function ShopNewPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [sponsor, setSponsor] = useState(null);
+  const [limitInfo, setLimitInfo] = useState({ limit: 6, activeCount: 0 });
+  const [needsUpgrade, setNeedsUpgrade] = useState(false);
   const [form, setForm] = useState({
-    business_name: '',
-    price_text: '',
-    category: '생활용품',
-    city: 'Holland',
-    contact: '',
+    title: '',
+    price_usd: '',
     image_url: '',
     description: '',
   });
 
+  async function authHeaders() {
+    const { data } = await supabase.auth.getSession();
+    return {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${data.session?.access_token || ''}`,
+    };
+  }
+
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setLoading(false);
-      if (!data.session) router.replace('/login?next=/shop/new');
-    });
+    let cancelled = false;
+    async function boot() {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        router.replace('/login?next=/shop/new');
+        return;
+      }
+      try {
+        const meRes = await fetch('/api/seller/me', { headers: await authHeaders() });
+        const me = await meRes.json();
+        if (!meRes.ok) throw new Error(me.error || '판매자 정보를 불러오지 못했습니다.');
+        const s = me.sponsor || me.seller;
+        if (!s) {
+          if (!cancelled) {
+            setSponsor(null);
+            setLoading(false);
+          }
+          return;
+        }
+        if (s.status !== 'approved') {
+          if (!cancelled) {
+            setSponsor(s);
+            setLoading(false);
+          }
+          return;
+        }
+        const prodRes = await fetch('/api/seller/products', { headers: await authHeaders() });
+        const prod = await prodRes.json();
+        if (!cancelled) {
+          setSponsor(s);
+          setLimitInfo({
+            limit: prod.limit || shopProductLimit(s),
+            activeCount: prod.activeCount || 0,
+          });
+          setLoading(false);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err.message);
+          setLoading(false);
+        }
+      }
+    }
+    boot();
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   function update(key, value) {
@@ -39,45 +88,32 @@ export default function ShopNewPage() {
     e.preventDefault();
     setError('');
     setMessage('');
+    setNeedsUpgrade(false);
     setSaving(true);
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) {
-        setError('로그인이 필요합니다.');
-        return;
+      const priceUsd = Number(form.price_usd);
+      if (!Number.isFinite(priceUsd) || priceUsd < 0) {
+        throw new Error('가격을 확인해 주세요.');
       }
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('is_banned, banned_reason, suspended_until')
-        .eq('id', sessionData.session.user.id)
-        .maybeSingle();
-
-      if (profile?.is_banned) {
-        setError(profile.banned_reason || '이용이 제한된 계정입니다.');
-        return;
-      }
-      if (profile?.suspended_until && new Date(profile.suspended_until).getTime() > Date.now()) {
-        setError(`계정이 ${new Date(profile.suspended_until).toLocaleString('ko-KR')}까지 정지되었습니다.`);
-        return;
-      }
-
-      const { error: insertError } = await supabase.from('sponsors').insert({
-        business_name: form.business_name.trim(),
-        description: form.description.trim(),
-        category: form.category,
-        city: form.city,
-        contact: form.contact.trim(),
-        image_url: form.image_url.trim() || null,
-        price_text: form.price_text.trim() || null,
-        listing_type: 'shop',
-        status: 'pending',
-        submitted_by: sessionData.session.user.id,
+      const res = await fetch('/api/seller/products', {
+        method: 'POST',
+        headers: await authHeaders(),
+        body: JSON.stringify({
+          title: form.title.trim(),
+          description: form.description.trim(),
+          price_usd: priceUsd,
+          image_url: form.image_url.trim() || null,
+        }),
       });
-      if (insertError) throw insertError;
-
-      setMessage('등록되었습니다. 관리자 승인 후 튤립가게에 노출됩니다. (첫 3개월 무료)');
-      setTimeout(() => router.push('/shop'), 1200);
+      const payload = await res.json();
+      if (!res.ok) {
+        if (payload.code === 'PRODUCT_LIMIT' || payload.upgrade) {
+          setNeedsUpgrade(true);
+        }
+        throw new Error(payload.error || '등록 실패');
+      }
+      setMessage('상품이 등록되었습니다.');
+      setTimeout(() => router.push(`/shop/${payload.product.id}`), 800);
     } catch (err) {
       setError(err.message || '등록에 실패했습니다.');
     } finally {
@@ -93,13 +129,55 @@ export default function ShopNewPage() {
     );
   }
 
+  if (!sponsor) {
+    return (
+      <div className="container">
+        <div className="card empty-state">
+          사업자 입점 신청 후 상품을 등록할 수 있습니다.
+          <div style={{ marginTop: 12 }}>
+            <Link href="/seller/apply" className="btn">
+              입점 신청하기
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (sponsor.status !== 'approved') {
+    return (
+      <div className="container">
+        <div className="card empty-state">
+          {sponsor.status === 'pending'
+            ? '관리자 검토 중입니다. 승인되면 상품을 등록할 수 있습니다.'
+            : sponsor.status === 'rejected'
+              ? `입점 신청이 거절되었습니다.${sponsor.review_notes ? ` 사유: ${sponsor.review_notes}` : ''}`
+              : '상품을 등록할 수 없는 상태입니다.'}
+          <div style={{ marginTop: 12, display: 'flex', gap: 10, justifyContent: 'center' }}>
+            <Link href="/seller" className="btn btn-outline">
+              판매자 홈
+            </Link>
+            {sponsor.status === 'rejected' ? (
+              <Link href="/seller/apply" className="btn">
+                다시 신청
+              </Link>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const atLimit = limitInfo.activeCount >= limitInfo.limit;
+
   return (
     <div className="container">
       <div className="row-between">
         <div>
-          <h2 className="section-title">튤립가게 · 물건 올리기</h2>
+          <h2 className="section-title">튤립가게 · 상품 등록</h2>
           <p className="hint-text">
-            앱 결제 없음 · 문의처로 직접 거래 · 입점 월 $10 (첫 3개월 무료, 승인 시 적용)
+            {sponsor.business_name} · 활성 상품 {limitInfo.activeCount}/{limitInfo.limit}개
+            {sponsor.plan_tier === 'extended' ? ' (확장 요금제)' : ' (기본 요금제)'}
           </p>
         </div>
         <Link href="/shop" className="btn btn-outline">
@@ -107,49 +185,40 @@ export default function ShopNewPage() {
         </Link>
       </div>
 
+      {atLimit || needsUpgrade ? (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <strong>상품 한도에 도달했습니다.</strong>
+          <p className="hint-text" style={{ marginTop: 8 }}>
+            확장 요금제(+$20, 최대 30개)로 업그레이드하면 더 등록할 수 있습니다.
+          </p>
+          <Link href="/seller" className="btn" style={{ marginTop: 12, display: 'inline-flex' }}>
+            업그레이드하러 가기
+          </Link>
+        </div>
+      ) : null}
+
       <form className="card form-card" onSubmit={handleSubmit}>
-        <label htmlFor="business_name">제목 (상품/판매자명) *</label>
+        <label htmlFor="title">상품명 *</label>
         <input
-          id="business_name"
-          value={form.business_name}
-          onChange={(e) => update('business_name', e.target.value)}
-          placeholder="예: 아이스박스 대형 / 미나네 베이크 세트"
+          id="title"
+          value={form.title}
+          onChange={(e) => update('title', e.target.value)}
+          placeholder="예: 수제 쿠키 박스"
           required
+          disabled={atLimit}
         />
 
-        <label htmlFor="price_text">가격 표시</label>
+        <label htmlFor="price_usd">가격 (USD) *</label>
         <input
-          id="price_text"
-          value={form.price_text}
-          onChange={(e) => update('price_text', e.target.value)}
-          placeholder='예: $15 · 나눔 · $20 OBO'
-        />
-
-        <label htmlFor="category">분류</label>
-        <select id="category" value={form.category} onChange={(e) => update('category', e.target.value)}>
-          {CATEGORIES.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-
-        <label htmlFor="city">지역</label>
-        <select id="city" value={form.city} onChange={(e) => update('city', e.target.value)}>
-          {CITIES.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-
-        <label htmlFor="contact">구매 문의처 *</label>
-        <input
-          id="contact"
-          value={form.contact}
-          onChange={(e) => update('contact', e.target.value)}
-          placeholder="휴대폰 / 카톡 ID / 이메일"
+          id="price_usd"
+          type="number"
+          min="0"
+          step="0.01"
+          value={form.price_usd}
+          onChange={(e) => update('price_usd', e.target.value)}
+          placeholder="15"
           required
+          disabled={atLimit}
         />
 
         <label htmlFor="image_url">사진 URL</label>
@@ -158,6 +227,7 @@ export default function ShopNewPage() {
           value={form.image_url}
           onChange={(e) => update('image_url', e.target.value)}
           placeholder="https://..."
+          disabled={atLimit}
         />
 
         <label htmlFor="description">설명 *</label>
@@ -165,15 +235,16 @@ export default function ShopNewPage() {
           id="description"
           value={form.description}
           onChange={(e) => update('description', e.target.value)}
-          placeholder="상태, 픽업 가능 여부, 거래 방법 등"
+          placeholder="상태, 구성, 픽업/배송 안내 등"
           required
+          disabled={atLimit}
         />
 
         {error ? <div className="error-text">{error}</div> : null}
         {message ? <div className="hint-text">{message}</div> : null}
 
-        <button className="btn" type="submit" disabled={saving}>
-          {saving ? '등록 중…' : '등록하고 승인 요청'}
+        <button className="btn" type="submit" disabled={saving || atLimit}>
+          {saving ? '등록 중…' : '상품 등록'}
         </button>
       </form>
     </div>

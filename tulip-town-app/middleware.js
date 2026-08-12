@@ -39,6 +39,7 @@ export async function middleware(request) {
   const isMemberWriteRoute =
     /^\/board\/[^/]+\/new\/?$/.test(path) ||
     /^\/directory\/new\/?$/.test(path) ||
+    /^\/directory\/pages\/apply\/?$/.test(path) ||
     /^\/shop\/new\/?$/.test(path) ||
     path.startsWith('/seller');
 

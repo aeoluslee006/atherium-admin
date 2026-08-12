@@ -19,9 +19,14 @@ export default async function DirectoryPage() {
     <div className="container">
       <div className="row-between">
         <h2 className="section-title">업체 디렉토리 · Business Directory</h2>
-        <Link href="/directory/new" className="btn">
-          업체 등록
-        </Link>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Link href="/directory/pages" className="btn btn-outline">
+            지면 보기
+          </Link>
+          <Link href="/directory/new" className="btn">
+            업체 등록
+          </Link>
+        </div>
       </div>
 
       <Suspense fallback={null}>

@@ -29,21 +29,16 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
     [pages, page]
   );
 
+  /** Vacancy table follows the selected page tab (not all 90 rows at once). */
   const availableRows = useMemo(() => {
-    const rows = [];
-    for (const p of pages) {
-      for (const slot of p.slots || []) {
-        if (slot.status === 'available') {
-          rows.push({ ...slot, pageNumber: p.pageNumber });
-        }
-      }
-    }
+    const rows = (current.slots || [])
+      .filter((slot) => slot.status === 'available')
+      .map((slot) => ({ ...slot, pageNumber: current.pageNumber }));
     return rows.sort((a, b) => {
-      if (a.pageNumber !== b.pageNumber) return a.pageNumber - b.pageNumber;
       if (a.row_index !== b.row_index) return a.row_index - b.row_index;
       return a.col_index - b.col_index;
     });
-  }, [pages]);
+  }, [current]);
 
   const categories = listDirectoryCategories();
   const pageIndex = pageNumbers.indexOf(page);
@@ -212,7 +207,9 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
           <h3 className="section-title" style={{ margin: 0, fontSize: 18 }}>
             빈 자리 안내
           </h3>
-          <p className="hint-text">페이지·위치·크기·가격을 확인하세요. 신청은 곧 연결됩니다.</p>
+          <p className="hint-text">
+            현재 {page}면 빈 자리만 표시합니다. 위치·크기·가격을 확인하세요. 신청은 곧 연결됩니다.
+          </p>
         </div>
 
         {availableRows.length ? (
@@ -253,7 +250,7 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
             </table>
           </div>
         ) : (
-          <div className="card empty-state">현재 표시할 빈 자리가 없습니다.</div>
+          <div className="card empty-state">{page}면에 표시할 빈 자리가 없습니다.</div>
         )}
       </section>
     </div>

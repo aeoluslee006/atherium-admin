@@ -1,7 +1,7 @@
 /** Helpers for directory_slots newspaper grid. */
 
-export const DIRECTORY_GRID_COLS = 4;
-export const DIRECTORY_GRID_ROWS = 6;
+export const DIRECTORY_GRID_COLS = 6;
+export const DIRECTORY_GRID_ROWS = 8;
 
 export const SIZE_TIER_LABEL = {
   small: '소형',
@@ -20,7 +20,11 @@ export function sizeTierLabel(tier) {
   return SIZE_TIER_LABEL[tier] || tier || '—';
 }
 
-/** Default slot template when admin adds a new page (matches seeded layout intent). */
+/**
+ * Default slot template when admin adds a new page.
+ * 6×8 board (48 cells): 4 large (2×2), 6 medium (2×1), 20 small (1×1) = 30 slots.
+ * Matches seeded layout density; prices are placeholders.
+ */
 export function buildDefaultPageSlots(pageNumber) {
   const page = Number(pageNumber);
   const page1Premium = page === 1;
@@ -28,16 +32,40 @@ export function buildDefaultPageSlots(pageNumber) {
     ? { small: 2500, medium: 7000, large: 14000 }
     : { small: 1800, medium: 5000, large: 10000 };
 
-  // 4x6 board: 2 large (2x3), 2 medium (2x2), 4 small (1x1) — 8 sellable slots.
   const specs = [
-    { row: 0, col: 0, spanCols: 2, spanRows: 3, tier: 'large', label: 'A-1' },
-    { row: 0, col: 2, spanCols: 2, spanRows: 3, tier: 'large', label: 'A-3' },
-    { row: 3, col: 0, spanCols: 2, spanRows: 2, tier: 'medium', label: 'D-1' },
-    { row: 3, col: 2, spanCols: 2, spanRows: 2, tier: 'medium', label: 'D-3' },
+    // Large 2×2
+    { row: 0, col: 0, spanCols: 2, spanRows: 2, tier: 'large', label: 'A-1' },
+    { row: 0, col: 2, spanCols: 2, spanRows: 2, tier: 'large', label: 'A-3' },
+    { row: 0, col: 4, spanCols: 2, spanRows: 2, tier: 'large', label: 'A-5' },
+    { row: 2, col: 0, spanCols: 2, spanRows: 2, tier: 'large', label: 'C-1' },
+    // Medium 2×1
+    { row: 2, col: 2, spanCols: 2, spanRows: 1, tier: 'medium', label: 'C-3' },
+    { row: 2, col: 4, spanCols: 2, spanRows: 1, tier: 'medium', label: 'C-5' },
+    { row: 3, col: 2, spanCols: 2, spanRows: 1, tier: 'medium', label: 'D-3' },
+    { row: 3, col: 4, spanCols: 2, spanRows: 1, tier: 'medium', label: 'D-5' },
+    { row: 4, col: 0, spanCols: 2, spanRows: 1, tier: 'medium', label: 'E-1' },
+    { row: 4, col: 2, spanCols: 2, spanRows: 1, tier: 'medium', label: 'E-3' },
+    // Small 1×1 — E-5, E-6 + F/G/H full rows
+    { row: 4, col: 4, spanCols: 1, spanRows: 1, tier: 'small', label: 'E-5' },
+    { row: 4, col: 5, spanCols: 1, spanRows: 1, tier: 'small', label: 'E-6' },
     { row: 5, col: 0, spanCols: 1, spanRows: 1, tier: 'small', label: 'F-1' },
     { row: 5, col: 1, spanCols: 1, spanRows: 1, tier: 'small', label: 'F-2' },
     { row: 5, col: 2, spanCols: 1, spanRows: 1, tier: 'small', label: 'F-3' },
     { row: 5, col: 3, spanCols: 1, spanRows: 1, tier: 'small', label: 'F-4' },
+    { row: 5, col: 4, spanCols: 1, spanRows: 1, tier: 'small', label: 'F-5' },
+    { row: 5, col: 5, spanCols: 1, spanRows: 1, tier: 'small', label: 'F-6' },
+    { row: 6, col: 0, spanCols: 1, spanRows: 1, tier: 'small', label: 'G-1' },
+    { row: 6, col: 1, spanCols: 1, spanRows: 1, tier: 'small', label: 'G-2' },
+    { row: 6, col: 2, spanCols: 1, spanRows: 1, tier: 'small', label: 'G-3' },
+    { row: 6, col: 3, spanCols: 1, spanRows: 1, tier: 'small', label: 'G-4' },
+    { row: 6, col: 4, spanCols: 1, spanRows: 1, tier: 'small', label: 'G-5' },
+    { row: 6, col: 5, spanCols: 1, spanRows: 1, tier: 'small', label: 'G-6' },
+    { row: 7, col: 0, spanCols: 1, spanRows: 1, tier: 'small', label: 'H-1' },
+    { row: 7, col: 1, spanCols: 1, spanRows: 1, tier: 'small', label: 'H-2' },
+    { row: 7, col: 2, spanCols: 1, spanRows: 1, tier: 'small', label: 'H-3' },
+    { row: 7, col: 3, spanCols: 1, spanRows: 1, tier: 'small', label: 'H-4' },
+    { row: 7, col: 4, spanCols: 1, spanRows: 1, tier: 'small', label: 'H-5' },
+    { row: 7, col: 5, spanCols: 1, spanRows: 1, tier: 'small', label: 'H-6' },
   ];
 
   return specs.map((s) => ({

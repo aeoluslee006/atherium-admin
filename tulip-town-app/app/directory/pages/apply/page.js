@@ -4,9 +4,9 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
-import { listDirectoryCategories, isValidDirectoryCategory } from '../../../lib/directoryCategories';
-import { formatSlotPrice, sizeTierLabel } from '../../../lib/directorySlots';
-import { supabase } from '../../../lib/supabaseClient';
+import { listDirectoryCategories, isValidDirectoryCategory } from '../../../../lib/directoryCategories';
+import { formatSlotPrice, sizeTierLabel } from '../../../../lib/directorySlots';
+import { supabase } from '../../../../lib/supabaseClient';
 
 function ApplyInner() {
   const router = useRouter();

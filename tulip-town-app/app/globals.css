@@ -4734,9 +4734,11 @@ main:has(.home-page) {
 .dir-grid {
   display: grid;
   grid-template-columns: repeat(var(--dir-cols, 6), minmax(0, 1fr));
-  grid-template-rows: repeat(var(--dir-rows, 8), minmax(56px, auto));
-  gap: 6px;
-  min-height: 520px;
+  grid-template-rows: repeat(var(--dir-rows, 8), minmax(0, 1fr));
+  /* fr rows need a definite block size; flat crossroads-style board */
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  gap: 5px;
   pointer-events: none; /* 지면 클릭 불가 */
 }
 
@@ -4745,11 +4747,11 @@ main:has(.home-page) {
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.45);
   overflow: hidden;
-  min-height: 56px;
+  min-width: 0;
+  min-height: 0;
 }
 
 .dir-cell.tier-small {
-  min-height: 48px;
   border-radius: 6px;
 }
 
@@ -4782,11 +4784,14 @@ main:has(.home-page) {
 }
 
 .dir-cell.tier-small .dir-ad-image {
-  height: 48%;
+  flex: 1 1 0;
+  min-height: 0;
+  height: auto;
+  max-height: 52%;
 }
 
 .dir-cell.tier-small .dir-ad-image--placeholder {
-  min-height: 28px;
+  min-height: 0;
 }
 
 .dir-cell.is-occupied {
@@ -4823,30 +4828,40 @@ main:has(.home-page) {
   height: 100%;
   display: flex;
   flex-direction: column;
+  min-width: 0;
   min-height: 0;
 }
 
 .dir-ad-image {
   width: 100%;
-  height: 58%;
+  max-width: 100%;
+  min-width: 0;
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: 55%;
   object-fit: cover;
   display: block;
   background: #efe7d8;
 }
 
 .dir-ad-image--placeholder {
-  min-height: 48px;
+  min-height: 0;
 }
 
 .dir-ad-body {
-  padding: 6px 8px 8px;
+  padding: 5px 6px 6px;
+  flex: 0 0 auto;
+  min-width: 0;
 }
 
 .dir-ad-title {
   font-size: 12px;
   font-weight: 700;
-  line-height: 1.3;
+  line-height: 1.25;
   color: #2a261f;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dir-ad-cat {
@@ -4909,17 +4924,8 @@ main:has(.home-page) {
   }
 
   .dir-grid {
-    grid-template-rows: repeat(var(--dir-rows, 8), minmax(48px, auto));
-    min-height: 420px;
+    aspect-ratio: 3 / 2;
     gap: 4px;
-  }
-
-  .dir-cell {
-    min-height: 48px;
-  }
-
-  .dir-cell.tier-small {
-    min-height: 40px;
   }
 
   .dir-ad-title {

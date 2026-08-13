@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { listDirectoryCategories, getDirectoryCategoryLabel } from '../lib/directoryCategories';
 import {
@@ -16,12 +15,14 @@ function activeAd(slot) {
   return list.find((a) => a && a.status === 'active') || null;
 }
 
+/** Phase 1: view-only 지면. Apply/checkout wired in a later phase. */
 export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
   const pageNumbers = pages.map((p) => p.pageNumber);
   const [page, setPage] = useState(
     pageNumbers.includes(Number(initialPage)) ? Number(initialPage) : pageNumbers[0] || 1
   );
   const [category, setCategory] = useState('all');
+  const [mobileMode, setMobileMode] = useState('grid'); // grid | list
 
   const current = useMemo(
     () => pages.find((p) => p.pageNumber === page) || pages[0] || { pageNumber: 1, slots: [] },
@@ -82,7 +83,25 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
             →
           </button>
         </div>
-        <p className="hint-text dir-pages-hint">지면은 보기 전용입니다. 신청은 아래 빈 자리 안내에서 하세요.</p>
+        <div className="dir-mobile-toggle" role="group" aria-label="모바일 보기 방식">
+          <button
+            type="button"
+            className={`dir-pages-tab${mobileMode === 'grid' ? ' is-active' : ''}`}
+            onClick={() => setMobileMode('grid')}
+          >
+            그리드
+          </button>
+          <button
+            type="button"
+            className={`dir-pages-tab${mobileMode === 'list' ? ' is-active' : ''}`}
+            onClick={() => setMobileMode('list')}
+          >
+            리스트
+          </button>
+        </div>
+        <p className="hint-text dir-pages-hint">
+          지면은 보기 전용입니다. 광고 신청은 다음 단계에서 연결됩니다.
+        </p>
       </div>
 
       <div className="dir-cat-menu" role="listbox" aria-label="카테고리 필터">
@@ -106,70 +125,94 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
       </div>
 
       <div
-        className="dir-paper"
-        style={{
-          '--dir-cols': DIRECTORY_GRID_COLS,
-          '--dir-rows': DIRECTORY_GRID_ROWS,
-        }}
+        className={`dir-paper-scroll${mobileMode === 'list' ? ' is-list-mode' : ''}`}
       >
-        <div className="dir-paper-label">{page}면</div>
-        <div className="dir-grid" aria-label={`${page}면 광고 지면`}>
+        <div
+          className="dir-paper"
+          style={{
+            '--dir-cols': DIRECTORY_GRID_COLS,
+            '--dir-rows': DIRECTORY_GRID_ROWS,
+          }}
+        >
+          <div className="dir-paper-label">{page}면</div>
+          <div className="dir-grid" aria-label={`${page}면 광고 지면`}>
+            {(current.slots || []).map((slot) => {
+              const ad = activeAd(slot);
+              const occupied = slot.status === 'occupied' && ad;
+              const dim =
+                category !== 'all' && occupied && ad.category_slug && ad.category_slug !== category;
+              const highlight =
+                category !== 'all' && occupied && ad.category_slug === category;
+
+              return (
+                <div
+                  key={slot.id}
+                  className={[
+                    'dir-cell',
+                    occupied ? 'is-occupied' : 'is-empty',
+                    dim ? 'is-dimmed' : '',
+                    highlight ? 'is-highlight' : '',
+                    `tier-${slot.size_tier || 'small'}`,
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                  style={{
+                    gridColumn: `${(slot.col_index || 0) + 1} / span ${slot.span_cols || 1}`,
+                    gridRow: `${(slot.row_index || 0) + 1} / span ${slot.span_rows || 1}`,
+                  }}
+                >
+                  {occupied ? (
+                    <div className="dir-ad">
+                      {ad.ad_image_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={ad.ad_image_url} alt="" className="dir-ad-image" />
+                      ) : (
+                        <div className="dir-ad-image dir-ad-image--placeholder" />
+                      )}
+                      <div className="dir-ad-body">
+                        <div className="dir-ad-title">{ad.ad_title}</div>
+                        <div className="dir-ad-cat">
+                          {getDirectoryCategoryLabel(ad.category_slug)}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="dir-empty-label">{slot.position_label || '—'}</div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {mobileMode === 'list' ? (
+        <div className="dir-mobile-list card" aria-label="현재 면 슬롯 리스트">
           {(current.slots || []).map((slot) => {
             const ad = activeAd(slot);
             const occupied = slot.status === 'occupied' && ad;
-            const dim =
-              category !== 'all' && occupied && ad.category_slug && ad.category_slug !== category;
-            const highlight =
-              category !== 'all' && occupied && ad.category_slug === category;
-
             return (
-              <div
-                key={slot.id}
-                className={[
-                  'dir-cell',
-                  occupied ? 'is-occupied' : 'is-empty',
-                  dim ? 'is-dimmed' : '',
-                  highlight ? 'is-highlight' : '',
-                  `tier-${slot.size_tier || 'small'}`,
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-                style={{
-                  gridColumn: `${(slot.col_index || 0) + 1} / span ${slot.span_cols || 1}`,
-                  gridRow: `${(slot.row_index || 0) + 1} / span ${slot.span_rows || 1}`,
-                }}
-                aria-hidden={false}
-              >
-                {occupied ? (
-                  <div className="dir-ad">
-                    {ad.ad_image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={ad.ad_image_url} alt="" className="dir-ad-image" />
-                    ) : (
-                      <div className="dir-ad-image dir-ad-image--placeholder" />
-                    )}
-                    <div className="dir-ad-body">
-                      <div className="dir-ad-title">{ad.ad_title}</div>
-                      <div className="dir-ad-cat">
-                        {getDirectoryCategoryLabel(ad.category_slug)}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="dir-empty-label">{slot.position_label || '—'}</div>
-                )}
+              <div key={slot.id} className="dir-mobile-list-row">
+                <strong>{slot.position_label}</strong>
+                <span>{sizeTierLabel(slot.size_tier)}</span>
+                <span>
+                  {occupied
+                    ? `${ad.ad_title} · ${getDirectoryCategoryLabel(ad.category_slug)}`
+                    : '빈 자리'}
+                </span>
+                <span>{formatSlotPrice(slot.base_price_cents)}</span>
               </div>
             );
           })}
         </div>
-      </div>
+      ) : null}
 
       <section className="dir-vacancy" aria-label="빈 자리 안내">
         <div className="dir-vacancy-head">
           <h3 className="section-title" style={{ margin: 0, fontSize: 18 }}>
             빈 자리 안내
           </h3>
-          <p className="hint-text">가격과 위치를 확인한 뒤 광고를 신청하세요.</p>
+          <p className="hint-text">페이지·위치·크기·가격을 확인하세요. 신청은 곧 연결됩니다.</p>
         </div>
 
         {availableRows.length ? (
@@ -194,12 +237,15 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
                     <td>{sizeTierLabel(slot.size_tier)}</td>
                     <td>{formatSlotPrice(slot.base_price_cents)}</td>
                     <td>
-                      <Link
-                        href={`/directory/pages/apply?slot=${encodeURIComponent(slot.id)}`}
-                        className="btn"
+                      <button
+                        type="button"
+                        className="btn btn-outline"
+                        disabled
+                        title="준비중 — 다음 단계에서 신청이 연결됩니다"
+                        aria-disabled="true"
                       >
-                        광고 신청
-                      </Link>
+                        광고 신청 (준비중)
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -207,7 +253,7 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
             </table>
           </div>
         ) : (
-          <div className="card empty-state">현재 신청 가능한 빈 자리가 없습니다.</div>
+          <div className="card empty-state">현재 표시할 빈 자리가 없습니다.</div>
         )}
       </section>
     </div>

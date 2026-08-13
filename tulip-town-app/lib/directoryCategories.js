@@ -27,6 +27,11 @@ export function getDirectoryCategory(slug) {
   return DIRECTORY_CATEGORIES.find((c) => c.slug === slug) || null;
 }
 
+/** Alias used by directory UI helpers. */
+export function getCategory(slug) {
+  return getDirectoryCategory(slug);
+}
+
 export function getDirectoryCategoryLabel(slug) {
   return getDirectoryCategory(slug)?.nameKo || slug || '';
 }

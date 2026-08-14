@@ -39,6 +39,14 @@ export function computePageGridSize(slots = []) {
   return { cols, rows };
 }
 
+const ROW_LETTERS = 'ABCDEFGHIJ';
+
+/** New display number after 2×2 merge, e.g. row 0 col 0 → A-1. */
+export function displayCellLabel(displayRow, displayCol) {
+  const letter = ROW_LETTERS[Number(displayRow) || 0] || String((Number(displayRow) || 0) + 1);
+  return `${letter}-${(Number(displayCol) || 0) + 1}`;
+}
+
 /** Dense board pages (2+) show 2×2 slot groups as one cell for readability. */
 export function getDisplayMergeFactor(pageNumber, cols, rows) {
   const page = Number(pageNumber) || 1;
@@ -59,6 +67,7 @@ export function mergeSlotsForDisplay(slots = [], mergeFactor = 1) {
       displayCol: Number(slot.col_index) || 0,
       displayRow: Number(slot.row_index) || 0,
       primary: slot,
+      label: slot.position_label || '—',
     }));
   }
 
@@ -90,11 +99,10 @@ export function mergeSlotsForDisplay(slots = [], mergeFactor = 1) {
         displayCol: Number(key.split('-')[1]),
         displayRow: Number(key.split('-')[0]),
         primary: occupied || sorted[0],
+        label: displayCellLabel(Number(key.split('-')[0]), Number(key.split('-')[1])),
       };
     });
 }
-
-const ROW_LETTERS = 'ABCDEFGHIJ';
 
 function coverPageSpecs() {
   // Page 1: 1×3 stack of large ads

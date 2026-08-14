@@ -7,6 +7,7 @@ import {
   buildDirectorySpreads,
   computePageGridSize,
   directorySpreadLabel,
+  displayCellLabel,
   formatSlotPrice,
   getDisplayMergeFactor,
   mergeSlotsForDisplay,
@@ -84,7 +85,6 @@ function DirectoryPaper({ pageData, category }) {
       >
         <div className="dir-paper-label">
           {pageNumber}면 · {displayCols}열×{displayRows}행
-          {mergeFactor > 1 ? ' (4칸 묶음)' : ''}
         </div>
         <div className="dir-grid" aria-label={`${pageNumber}면 광고 지면`}>
           {displayCells.map((cell) => {
@@ -96,6 +96,7 @@ function DirectoryPaper({ pageData, category }) {
             const highlight =
               category !== 'all' && occupied && ad.category_slug === category;
             const isMerged = cell.slots.length > 1;
+            const cellLabel = cell.label || displayCellLabel(cell.displayRow, cell.displayCol);
 
             return (
               <div
@@ -131,23 +132,9 @@ function DirectoryPaper({ pageData, category }) {
                       {ad.ad_phone ? <div className="dir-ad-phone">{ad.ad_phone}</div> : null}
                     </div>
                   </div>
-                ) : isMerged ? (
-                  <div className="dir-cell-empty dir-cell-empty--merged">
-                    <div className="dir-merged-labels">
-                      {cell.slots.map((s) => (
-                        <span key={s.id} className="dir-merged-label-item">
-                          {s.position_label}
-                        </span>
-                      ))}
-                    </div>
-                    <div className="dir-slot-meta">
-                      {sizeTierLabel(slot.size_tier)} · {formatSlotPrice(slot.base_price_cents)}
-                      {cell.slots.length > 1 ? ` 외 ${cell.slots.length - 1}칸` : ''}
-                    </div>
-                  </div>
                 ) : (
                   <div className="dir-cell-empty">
-                    <div className="dir-slot-position">{slot.position_label || '—'}</div>
+                    <div className="dir-slot-position">{cellLabel}</div>
                     <div className="dir-slot-meta">
                       {sizeTierLabel(slot.size_tier)} · {formatSlotPrice(slot.base_price_cents)}
                     </div>

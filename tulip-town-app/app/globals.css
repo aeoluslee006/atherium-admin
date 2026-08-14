@@ -5269,15 +5269,16 @@ main:has(.home-page) {
     flex: none;
     gap: 6px;
     padding: 0 0 6px;
+    justify-content: stretch;
   }
 
   .dir-side-menu--left .dir-side-cat,
   .dir-side-menu--right .dir-side-cat,
   .dir-side-menu--right .dir-side-list {
     flex: 1 1 auto;
-    min-width: 52px;
-    min-height: 34px;
-    border-radius: 8px;
+    min-width: 64px;
+    min-height: 44px;
+    border-radius: 10px;
     border: 1px solid #d9dee6;
   }
 
@@ -5306,8 +5307,8 @@ main:has(.home-page) {
 
   .dir-spread-papers {
     --spread-paper-h: min(
-      calc(100dvh - 320px),
-      calc((100vw - 24px) * 297 / 210)
+      calc(100dvh - 220px),
+      calc((100vw - 16px) * 297 / 210)
     );
   }
 
@@ -5319,8 +5320,11 @@ main:has(.home-page) {
     gap: 3px;
   }
 
-  .dir-ad-title {
-    font-size: 11px;
+  .dir-pages-controls {
+    width: calc(100% - 16px);
+    margin-top: -36px;
+    border-radius: 18px;
+    padding: 8px 10px;
   }
 
   .dir-vacancy-table .btn {

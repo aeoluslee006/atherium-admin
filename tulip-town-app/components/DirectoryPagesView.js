@@ -44,17 +44,6 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
     [current]
   );
 
-  /** Vacancy table follows the selected page tab. */
-  const availableRows = useMemo(() => {
-    const list = (current.slots || [])
-      .filter((slot) => slot.status === 'available')
-      .map((slot) => ({ ...slot, pageNumber: current.pageNumber }));
-    return list.sort((a, b) => {
-      if (a.row_index !== b.row_index) return a.row_index - b.row_index;
-      return a.col_index - b.col_index;
-    });
-  }, [current]);
-
   const categories = listDirectoryCategories();
   const pageIndex = pageNumbers.indexOf(page);
 
@@ -141,7 +130,7 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
           </button>
         </div>
         <p className="hint-text dir-pages-hint">
-          지면은 보기 전용입니다. 글자가 작으면 + 로 확대하세요. 광고 신청은 다음 단계에서 연결됩니다.
+          지면은 보기 전용입니다. 빈 칸 하단에 크기·가격이 표시됩니다. 글자가 작으면 + 로 확대하세요.
         </p>
       </div>
 
@@ -166,7 +155,7 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
       </div>
 
       <div
-        className={`dir-paper-scroll${mobileMode === 'list' ? ' is-list-mode' : ''}`}
+        className={`dir-paper-scroll${mobileMode === 'list' ? ' is-list-mode' : ''}${zoom > 1 ? ' is-zoomed' : ''}`}
         style={{ '--dir-zoom': zoom }}
       >
         <div className="dir-paper-zoom-sizer">
@@ -223,7 +212,12 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
                         </div>
                       </div>
                     ) : (
-                      <div className="dir-empty-label">{slot.position_label || '—'}</div>
+                      <div className="dir-cell-empty">
+                        <div className="dir-slot-position">{slot.position_label || '—'}</div>
+                        <div className="dir-slot-meta">
+                          {sizeTierLabel(slot.size_tier)} · {formatSlotPrice(slot.base_price_cents)}
+                        </div>
+                      </div>
                     )}
                   </div>
                 );
@@ -253,58 +247,6 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
           })}
         </div>
       ) : null}
-
-      <section className="dir-vacancy" aria-label="빈 자리 안내">
-        <div className="dir-vacancy-head">
-          <h3 className="section-title" style={{ margin: 0, fontSize: 18 }}>
-            빈 자리 안내
-          </h3>
-          <p className="hint-text">
-            현재 {page}면 빈 자리만 표시합니다. 위치·크기·가격을 확인하세요. 신청은 곧 연결됩니다.
-          </p>
-        </div>
-
-        {availableRows.length ? (
-          <div className="card dir-vacancy-table-wrap">
-            <table className="dir-vacancy-table">
-              <thead>
-                <tr>
-                  <th>페이지</th>
-                  <th>위치</th>
-                  <th>크기</th>
-                  <th>가격</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {availableRows.map((slot) => (
-                  <tr key={slot.id}>
-                    <td>{slot.pageNumber}면</td>
-                    <td>
-                      <strong>{slot.position_label}</strong>
-                    </td>
-                    <td>{sizeTierLabel(slot.size_tier)}</td>
-                    <td>{formatSlotPrice(slot.base_price_cents)}</td>
-                    <td>
-                      <button
-                        type="button"
-                        className="btn btn-outline"
-                        disabled
-                        title="준비중 — 다음 단계에서 신청이 연결됩니다"
-                        aria-disabled="true"
-                      >
-                        광고 신청 (준비중)
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="card empty-state">{page}면에 표시할 빈 자리가 없습니다.</div>
-        )}
-      </section>
     </div>
   );
 }

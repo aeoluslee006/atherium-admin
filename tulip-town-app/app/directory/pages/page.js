@@ -55,16 +55,11 @@ export default async function DirectoryPagesPage({ searchParams }) {
 
   return (
     <div className="container dir-pages-page">
-      <div className="row-between" style={{ marginBottom: 16 }}>
-        <div>
-          <h2 className="section-title">업체 디렉토리 · 지면 보기</h2>
-          <p className="hint-text">신문 지면처럼 자리를 확인하고, 빈 자리에 광고를 신청하세요.</p>
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Link href="/directory" className="btn btn-outline">
-            리스트 보기
-          </Link>
-        </div>
+      <div className="row-between dir-pages-head">
+        <h2 className="section-title" style={{ margin: 0 }}>업체 디렉토리 · 지면 보기</h2>
+        <Link href="/directory" className="btn btn-outline">
+          리스트 보기
+        </Link>
       </div>
 
       {pages.length ? (

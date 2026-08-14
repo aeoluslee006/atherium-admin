@@ -129,9 +129,6 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
             리스트
           </button>
         </div>
-        <p className="hint-text dir-pages-hint">
-          지면은 보기 전용입니다. 빈 칸 하단에 크기·가격이 표시됩니다. 글자가 작으면 + 로 확대하세요.
-        </p>
       </div>
 
       <div className="dir-cat-menu" role="listbox" aria-label="카테고리 필터">

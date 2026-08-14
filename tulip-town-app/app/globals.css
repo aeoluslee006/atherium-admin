@@ -4603,19 +4603,28 @@ main:has(.home-page) {
 
 /* —— Directory 지면 (교차로-style) —— */
 .dir-pages-page {
-  padding-bottom: 48px;
+  padding-bottom: 32px;
   max-width: 1680px;
 }
 
+.dir-pages-head {
+  align-items: center;
+  margin-bottom: 10px;
+}
+
 .dir-pages-toolbar {
-  margin-bottom: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 10px;
 }
 
 .dir-pages-nav {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .dir-pages-arrow {
@@ -4649,8 +4658,9 @@ main:has(.home-page) {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  margin-top: 10px;
+  gap: 6px;
+  margin-top: 0;
+  margin-left: auto;
 }
 
 .dir-zoom-btn {
@@ -4673,8 +4683,8 @@ main:has(.home-page) {
 .dir-cat-menu {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 6px;
+  margin-bottom: 10px;
 }
 
 .dir-cat-chip {
@@ -4700,7 +4710,7 @@ main:has(.home-page) {
 .dir-paper-scroll {
   /* A4 portrait: 210×297mm (~794×1123px @ 96dpi). At 100% zoom, show actual A4 size when it fits. */
   --dir-a4-width: 210mm;
-  --dir-paper-base: min(var(--dir-a4-width), 100%, calc((100dvh - 360px) * 210 / 297));
+  --dir-paper-base: min(var(--dir-a4-width), 100%, calc((100dvh - 300px) * 210 / 297));
   overflow: hidden;
   margin: 0 auto 20px;
   max-width: var(--dir-a4-width);

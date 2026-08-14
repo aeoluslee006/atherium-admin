@@ -4603,8 +4603,12 @@ main:has(.home-page) {
 
 /* —— Directory 지면 (교차로-style) —— */
 .dir-pages-page {
-  padding-bottom: 16px;
+  padding-bottom: 8px;
   max-width: none;
+}
+
+.dir-pages {
+  position: relative;
 }
 
 .dir-spread-stage {
@@ -4623,24 +4627,24 @@ main:has(.home-page) {
   overflow: hidden;
   display: flex;
   justify-content: center;
-  padding: 4px 0;
+  padding: 0 0 36px;
 }
 
 .dir-spread-viewport.is-zoomed {
   overflow: auto;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-x pan-y pinch-zoom;
-  max-height: min(92dvh, 1400px);
+  max-height: min(96dvh, 1600px);
 }
 
 .dir-spread-papers {
-  --side-menu-w: 48px;
+  --side-menu-w: 72px;
   --side-menus-w: calc(var(--side-menu-w) * 2);
-  --spread-gap: 6px;
+  --spread-gap: 8px;
   --spread-page-count: 2;
   --spread-paper-h: min(
-    calc(100dvh - 152px),
-    calc((100vw - var(--side-menus-w) - 32px - var(--spread-gap)) * 297 / (210 * var(--spread-page-count)))
+    calc(100dvh - 108px),
+    calc((100vw - var(--side-menus-w) - 20px - var(--spread-gap)) * 297 / (210 * var(--spread-page-count)))
   );
   display: flex;
   align-items: stretch;
@@ -4673,37 +4677,38 @@ main:has(.home-page) {
 }
 
 .dir-side-menu {
-  flex: 0 0 var(--side-menu-w, 48px);
-  width: var(--side-menu-w, 48px);
+  flex: 0 0 var(--side-menu-w, 72px);
+  width: var(--side-menu-w, 72px);
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 2px 0;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 4px 0;
   align-self: stretch;
 }
 
 .dir-side-menu--left {
-  padding-right: 2px;
+  padding-right: 6px;
 }
 
 .dir-side-menu--right {
-  padding-left: 2px;
+  padding-left: 6px;
 }
 
 .dir-side-menu--left .dir-side-cat,
 .dir-side-menu--left .dir-side-list {
   border-right: none;
-  border-radius: 8px 0 0 8px;
+  border-radius: 10px 0 0 10px;
 }
 
 .dir-side-menu--right .dir-side-cat,
 .dir-side-menu--right .dir-side-list {
   border-left: none;
-  border-radius: 0 8px 8px 0;
+  border-radius: 0 10px 10px 0;
 }
 
 .dir-side-menu--right .dir-side-cat.is-active {
-  box-shadow: 2px 0 0 #2f5d4a inset;
+  box-shadow: 3px 0 0 #2f5d4a inset;
 }
 
 .dir-side-cat {
@@ -4711,21 +4716,21 @@ main:has(.home-page) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  flex: 0 0 auto;
-  min-height: 38px;
-  padding: 3px 2px;
+  gap: 3px;
+  flex: 1 1 0;
+  min-height: 0;
+  padding: 6px 4px;
   border: 1px solid #d9dee6;
   background: linear-gradient(180deg, #fafbfc 0%, #f0f2f5 100%);
   cursor: pointer;
   color: var(--ink-soft);
-  font-size: 8px;
-  line-height: 1.12;
+  font-size: 11px;
+  line-height: 1.2;
   text-align: center;
 }
 
 .dir-side-cat-icon {
-  font-size: 13px;
+  font-size: 18px;
   line-height: 1;
 }
 
@@ -4735,7 +4740,7 @@ main:has(.home-page) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 600;
+  font-weight: 650;
   letter-spacing: -0.02em;
 }
 
@@ -4748,16 +4753,16 @@ main:has(.home-page) {
 }
 
 .dir-side-list {
-  margin-top: auto;
+  margin-top: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 32px;
-  padding: 4px 2px;
+  min-height: 42px;
+  padding: 6px 4px;
   border: 1px dashed #c8ced6;
   background: #fff;
   color: var(--ink-soft);
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 650;
   text-decoration: none;
   text-align: center;
@@ -4770,13 +4775,37 @@ main:has(.home-page) {
 }
 
 .dir-pages-controls {
+  position: sticky;
+  bottom: 10px;
+  z-index: 8;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   gap: 10px 16px;
-  margin: 10px auto 12px;
-  width: 100%;
+  width: min(720px, calc(100% - 32px));
+  margin: -42px auto 10px;
+  padding: 8px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.38);
+  backdrop-filter: blur(14px) saturate(1.35);
+  -webkit-backdrop-filter: blur(14px) saturate(1.35);
+  box-shadow: 0 8px 28px rgba(40, 30, 20, 0.12);
+}
+
+.dir-pages-controls .dir-pages-tab,
+.dir-pages-controls .dir-pages-arrow,
+.dir-pages-controls .dir-zoom-btn {
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+}
+
+.dir-pages-controls .dir-pages-tab.is-active {
+  background: rgba(31, 42, 36, 0.82);
+  border-color: transparent;
+  color: #fff;
 }
 
 .dir-pages-nav {

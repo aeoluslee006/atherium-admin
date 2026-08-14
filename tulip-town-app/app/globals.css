@@ -4607,9 +4607,21 @@ main:has(.home-page) {
   max-width: 1680px;
 }
 
-.dir-pages-head {
-  align-items: center;
+.dir-pages-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 12px;
   margin-bottom: 10px;
+}
+
+.dir-list-link {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  white-space: nowrap;
+  font-size: 13px;
+  padding: 6px 12px;
 }
 
 .dir-pages-toolbar {
@@ -4684,7 +4696,9 @@ main:has(.home-page) {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-bottom: 10px;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-bottom: 0;
 }
 
 .dir-cat-chip {

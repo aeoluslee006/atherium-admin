@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { listDirectoryCategories, getDirectoryCategoryLabel } from '../lib/directoryCategories';
 import {
@@ -56,6 +57,31 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
 
   return (
     <div className="dir-pages">
+      <div className="dir-pages-top">
+        <div className="dir-cat-menu" role="listbox" aria-label="카테고리 필터">
+          <button
+            type="button"
+            className={`dir-cat-chip${category === 'all' ? ' is-active' : ''}`}
+            onClick={() => setCategory('all')}
+          >
+            <span aria-hidden="true">📋</span> 전체
+          </button>
+          {categories.map((c) => (
+            <button
+              key={c.slug}
+              type="button"
+              className={`dir-cat-chip${category === c.slug ? ' is-active' : ''}`}
+              onClick={() => setCategory(c.slug)}
+            >
+              <span aria-hidden="true">{c.icon}</span> {c.nameKo}
+            </button>
+          ))}
+        </div>
+        <Link href="/directory" className="btn btn-outline dir-list-link">
+          리스트 보기
+        </Link>
+      </div>
+
       <div className="dir-pages-toolbar">
         <div className="dir-pages-nav" role="tablist" aria-label="지면 페이지">
           <button type="button" className="btn btn-outline dir-pages-arrow" onClick={goPrev} disabled={pageIndex <= 0}>
@@ -129,26 +155,6 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
             리스트
           </button>
         </div>
-      </div>
-
-      <div className="dir-cat-menu" role="listbox" aria-label="카테고리 필터">
-        <button
-          type="button"
-          className={`dir-cat-chip${category === 'all' ? ' is-active' : ''}`}
-          onClick={() => setCategory('all')}
-        >
-          <span aria-hidden="true">📋</span> 전체
-        </button>
-        {categories.map((c) => (
-          <button
-            key={c.slug}
-            type="button"
-            className={`dir-cat-chip${category === c.slug ? ' is-active' : ''}`}
-            onClick={() => setCategory(c.slug)}
-          >
-            <span aria-hidden="true">{c.icon}</span> {c.nameKo}
-          </button>
-        ))}
       </div>
 
       <div

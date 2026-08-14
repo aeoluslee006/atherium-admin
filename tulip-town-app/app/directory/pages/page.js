@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import DirectoryPagesView from '../../../components/DirectoryPagesView';
 import { groupSlotsByPage } from '../../../lib/directorySlots';
 import { supabaseRest } from '../../../lib/supabaseRest';
@@ -55,13 +54,6 @@ export default async function DirectoryPagesPage({ searchParams }) {
 
   return (
     <div className="container dir-pages-page">
-      <div className="row-between dir-pages-head">
-        <h2 className="section-title" style={{ margin: 0 }}>업체 디렉토리 · 지면 보기</h2>
-        <Link href="/directory" className="btn btn-outline">
-          리스트 보기
-        </Link>
-      </div>
-
       {pages.length ? (
         <DirectoryPagesView pages={pages} initialPage={initialPage} />
       ) : (

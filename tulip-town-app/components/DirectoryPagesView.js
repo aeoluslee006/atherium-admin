@@ -3,11 +3,20 @@
 import { useMemo, useState } from 'react';
 import { listDirectoryCategories, getDirectoryCategoryLabel } from '../lib/directoryCategories';
 import {
-  DIRECTORY_GRID_COLS,
-  DIRECTORY_GRID_ROWS,
+  computePageGridSize,
   formatSlotPrice,
   sizeTierLabel,
 } from '../lib/directorySlots';
+
+const ZOOM_MIN = 0.75;
+const ZOOM_MAX = 2.5;
+const ZOOM_STEP = 0.25;
+
+function clampZoom(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 1;
+  return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(n / ZOOM_STEP) * ZOOM_STEP));
+}
 
 function activeAd(slot) {
   const ads = slot.directory_slot_ads || slot.ads || [];
@@ -23,18 +32,24 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
   );
   const [category, setCategory] = useState('all');
   const [mobileMode, setMobileMode] = useState('grid'); // grid | list
+  const [zoom, setZoom] = useState(1);
 
   const current = useMemo(
     () => pages.find((p) => p.pageNumber === page) || pages[0] || { pageNumber: 1, slots: [] },
     [pages, page]
   );
 
-  /** Vacancy table follows the selected page tab (not all 90 rows at once). */
+  const { cols, rows } = useMemo(
+    () => computePageGridSize(current.slots || []),
+    [current]
+  );
+
+  /** Vacancy table follows the selected page tab. */
   const availableRows = useMemo(() => {
-    const rows = (current.slots || [])
+    const list = (current.slots || [])
       .filter((slot) => slot.status === 'available')
       .map((slot) => ({ ...slot, pageNumber: current.pageNumber }));
-    return rows.sort((a, b) => {
+    return list.sort((a, b) => {
       if (a.row_index !== b.row_index) return a.row_index - b.row_index;
       return a.col_index - b.col_index;
     });
@@ -78,6 +93,37 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
             →
           </button>
         </div>
+        <div className="dir-zoom" role="group" aria-label="지면 확대">
+          <button
+            type="button"
+            className="btn btn-outline dir-zoom-btn"
+            onClick={() => setZoom((z) => clampZoom(z - ZOOM_STEP))}
+            disabled={zoom <= ZOOM_MIN}
+            aria-label="축소"
+          >
+            −
+          </button>
+          <input
+            className="dir-zoom-slider"
+            type="range"
+            min={ZOOM_MIN}
+            max={ZOOM_MAX}
+            step={ZOOM_STEP}
+            value={zoom}
+            onChange={(e) => setZoom(clampZoom(e.target.value))}
+            aria-label="확대 비율"
+          />
+          <button
+            type="button"
+            className="btn btn-outline dir-zoom-btn"
+            onClick={() => setZoom((z) => clampZoom(z + ZOOM_STEP))}
+            disabled={zoom >= ZOOM_MAX}
+            aria-label="확대"
+          >
+            +
+          </button>
+          <span className="dir-zoom-pct">{Math.round(zoom * 100)}%</span>
+        </div>
         <div className="dir-mobile-toggle" role="group" aria-label="모바일 보기 방식">
           <button
             type="button"
@@ -95,7 +141,7 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
           </button>
         </div>
         <p className="hint-text dir-pages-hint">
-          지면은 보기 전용입니다. 광고 신청은 다음 단계에서 연결됩니다.
+          지면은 보기 전용입니다. 글자가 작으면 + 로 확대하세요. 광고 신청은 다음 단계에서 연결됩니다.
         </p>
       </div>
 
@@ -121,62 +167,68 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
 
       <div
         className={`dir-paper-scroll${mobileMode === 'list' ? ' is-list-mode' : ''}`}
+        style={{ '--dir-zoom': zoom }}
       >
-        <div
-          className="dir-paper"
-          style={{
-            '--dir-cols': DIRECTORY_GRID_COLS,
-            '--dir-rows': DIRECTORY_GRID_ROWS,
-          }}
-        >
-          <div className="dir-paper-label">{page}면</div>
-          <div className="dir-grid" aria-label={`${page}면 광고 지면`}>
-            {(current.slots || []).map((slot) => {
-              const ad = activeAd(slot);
-              const occupied = slot.status === 'occupied' && ad;
-              const dim =
-                category !== 'all' && occupied && ad.category_slug && ad.category_slug !== category;
-              const highlight =
-                category !== 'all' && occupied && ad.category_slug === category;
+        <div className="dir-paper-zoom-sizer">
+          <div
+            className="dir-paper"
+            style={{
+              '--dir-cols': cols,
+              '--dir-rows': rows,
+            }}
+          >
+            <div className="dir-paper-label">
+              {page}면 · {cols}열×{rows}행
+            </div>
+            <div className="dir-grid" aria-label={`${page}면 광고 지면`}>
+              {(current.slots || []).map((slot) => {
+                const ad = activeAd(slot);
+                const occupied = slot.status === 'occupied' && ad;
+                const dim =
+                  category !== 'all' && occupied && ad.category_slug && ad.category_slug !== category;
+                const highlight =
+                  category !== 'all' && occupied && ad.category_slug === category;
 
-              return (
-                <div
-                  key={slot.id}
-                  className={[
-                    'dir-cell',
-                    occupied ? 'is-occupied' : 'is-empty',
-                    dim ? 'is-dimmed' : '',
-                    highlight ? 'is-highlight' : '',
-                    `tier-${slot.size_tier || 'small'}`,
-                  ]
-                    .filter(Boolean)
-                    .join(' ')}
-                  style={{
-                    gridColumn: `${(slot.col_index || 0) + 1} / span ${slot.span_cols || 1}`,
-                    gridRow: `${(slot.row_index || 0) + 1} / span ${slot.span_rows || 1}`,
-                  }}
-                >
-                  {occupied ? (
-                    <div className="dir-ad">
-                      {ad.ad_image_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={ad.ad_image_url} alt="" className="dir-ad-image" />
-                      ) : (
-                        <div className="dir-ad-image dir-ad-image--placeholder" />
-                      )}
-                      <div className="dir-ad-body">
-                        <div className="dir-ad-title">{ad.ad_title}</div>
-                        <div className="dir-ad-cat">
-                          {getDirectoryCategoryLabel(ad.category_slug)}
+                return (
+                  <div
+                    key={slot.id}
+                    className={[
+                      'dir-cell',
+                      occupied ? 'is-occupied' : 'is-empty',
+                      dim ? 'is-dimmed' : '',
+                      highlight ? 'is-highlight' : '',
+                      `tier-${slot.size_tier || 'small'}`,
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                    style={{
+                      gridColumn: `${(slot.col_index || 0) + 1} / span ${slot.span_cols || 1}`,
+                      gridRow: `${(slot.row_index || 0) + 1} / span ${slot.span_rows || 1}`,
+                    }}
+                  >
+                    {occupied ? (
+                      <div className="dir-ad">
+                        {ad.ad_image_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={ad.ad_image_url} alt="" className="dir-ad-image" />
+                        ) : (
+                          <div className="dir-ad-image dir-ad-image--placeholder" />
+                        )}
+                        <div className="dir-ad-body">
+                          <div className="dir-ad-title">{ad.ad_title}</div>
+                          <div className="dir-ad-cat">
+                            {getDirectoryCategoryLabel(ad.category_slug)}
+                          </div>
+                          {ad.ad_phone ? <div className="dir-ad-phone">{ad.ad_phone}</div> : null}
                         </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="dir-empty-label">{slot.position_label || '—'}</div>
-                  )}
-                </div>
-              );
-            })}
+                    ) : (
+                      <div className="dir-empty-label">{slot.position_label || '—'}</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>

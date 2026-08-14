@@ -8,6 +8,8 @@ import {
   computePageGridSize,
   directorySpreadLabel,
   formatSlotPrice,
+  getDisplayMergeFactor,
+  mergeSlotsForDisplay,
   sizeTierLabel,
 } from '../lib/directorySlots';
 
@@ -27,44 +29,90 @@ function activeAd(slot) {
   return list.find((a) => a && a.status === 'active') || null;
 }
 
+function SideMenu({ side, categories, category, onSelect, showAll, showList }) {
+  return (
+    <aside className={`dir-side-menu dir-side-menu--${side}`} aria-label={`카테고리 필터 (${side})`}>
+      {showAll ? (
+        <button
+          type="button"
+          className={`dir-side-cat${category === 'all' ? ' is-active' : ''}`}
+          onClick={() => onSelect('all')}
+          title="전체"
+        >
+          <span className="dir-side-cat-icon" aria-hidden="true">📋</span>
+          <span className="dir-side-cat-label">전체</span>
+        </button>
+      ) : null}
+      {categories.map((c) => (
+        <button
+          key={c.slug}
+          type="button"
+          className={`dir-side-cat${category === c.slug ? ' is-active' : ''}`}
+          onClick={() => onSelect(c.slug)}
+          title={c.nameKo}
+        >
+          <span className="dir-side-cat-icon" aria-hidden="true">{c.icon}</span>
+          <span className="dir-side-cat-label">{c.nameKo}</span>
+        </button>
+      ))}
+      {showList ? (
+        <Link href="/directory" className="dir-side-list" title="리스트 보기">
+          리스트
+        </Link>
+      ) : null}
+    </aside>
+  );
+}
+
 function DirectoryPaper({ pageData, category }) {
   const pageNumber = pageData?.pageNumber || 1;
   const slots = pageData?.slots || [];
-  const { cols, rows } = computePageGridSize(slots);
+  const rawSize = computePageGridSize(slots);
+  const mergeFactor = getDisplayMergeFactor(pageNumber, rawSize.cols, rawSize.rows);
+  const displayCells = useMemo(
+    () => mergeSlotsForDisplay(slots, mergeFactor),
+    [slots, mergeFactor]
+  );
+  const displayCols = Math.ceil(rawSize.cols / mergeFactor);
+  const displayRows = Math.ceil(rawSize.rows / mergeFactor);
 
   return (
     <div className="dir-spread-paper">
       <div
-        className="dir-paper"
-        style={{ '--dir-cols': cols, '--dir-rows': rows }}
+        className={`dir-paper${mergeFactor > 1 ? ' is-merged-display' : ''}`}
+        style={{ '--dir-cols': displayCols, '--dir-rows': displayRows }}
       >
         <div className="dir-paper-label">
-          {pageNumber}면 · {cols}열×{rows}행
+          {pageNumber}면 · {displayCols}열×{displayRows}행
+          {mergeFactor > 1 ? ' (4칸 묶음)' : ''}
         </div>
         <div className="dir-grid" aria-label={`${pageNumber}면 광고 지면`}>
-          {slots.map((slot) => {
+          {displayCells.map((cell) => {
+            const slot = cell.primary;
             const ad = activeAd(slot);
             const occupied = slot.status === 'occupied' && ad;
             const dim =
               category !== 'all' && occupied && ad.category_slug && ad.category_slug !== category;
             const highlight =
               category !== 'all' && occupied && ad.category_slug === category;
+            const isMerged = cell.slots.length > 1;
 
             return (
               <div
-                key={slot.id}
+                key={cell.key}
                 className={[
                   'dir-cell',
                   occupied ? 'is-occupied' : 'is-empty',
                   dim ? 'is-dimmed' : '',
                   highlight ? 'is-highlight' : '',
+                  isMerged ? 'is-merged-block' : '',
                   `tier-${slot.size_tier || 'small'}`,
                 ]
                   .filter(Boolean)
                   .join(' ')}
                 style={{
-                  gridColumn: `${(slot.col_index || 0) + 1} / span ${slot.span_cols || 1}`,
-                  gridRow: `${(slot.row_index || 0) + 1} / span ${slot.span_rows || 1}`,
+                  gridColumn: `${cell.displayCol + 1} / span 1`,
+                  gridRow: `${cell.displayRow + 1} / span 1`,
                 }}
               >
                 {occupied ? (
@@ -81,6 +129,20 @@ function DirectoryPaper({ pageData, category }) {
                         {getDirectoryCategoryLabel(ad.category_slug)}
                       </div>
                       {ad.ad_phone ? <div className="dir-ad-phone">{ad.ad_phone}</div> : null}
+                    </div>
+                  </div>
+                ) : isMerged ? (
+                  <div className="dir-cell-empty dir-cell-empty--merged">
+                    <div className="dir-merged-labels">
+                      {cell.slots.map((s) => (
+                        <span key={s.id} className="dir-merged-label-item">
+                          {s.position_label}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="dir-slot-meta">
+                      {sizeTierLabel(slot.size_tier)} · {formatSlotPrice(slot.base_price_cents)}
+                      {cell.slots.length > 1 ? ` 외 ${cell.slots.length - 1}칸` : ''}
                     </div>
                   </div>
                 ) : (
@@ -125,7 +187,10 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
   const rightPage = spread.right != null ? pageByNumber.get(spread.right) : null;
   const isSingleSpread = rightPage == null;
 
-  const categories = listDirectoryCategories();
+  const allCategories = listDirectoryCategories();
+  const categoryHalf = Math.ceil(allCategories.length / 2);
+  const leftCategories = allCategories.slice(0, categoryHalf);
+  const rightCategories = allCategories.slice(categoryHalf);
 
   const listSlots = useMemo(() => {
     const nums = [spread.left, spread.right].filter((n) => n != null);
@@ -147,6 +212,14 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
   return (
     <div className={`dir-pages${mobileMode === 'list' ? ' is-list-mode' : ''}`}>
       <div className="dir-spread-stage">
+        <SideMenu
+          side="left"
+          categories={leftCategories}
+          category={category}
+          onSelect={setCategory}
+          showAll
+        />
+
         <div
           className={`dir-spread-viewport${zoom > 1 ? ' is-zoomed' : ''}`}
           style={{ '--dir-zoom': zoom }}
@@ -160,32 +233,13 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
           </div>
         </div>
 
-        <aside className="dir-side-menu" aria-label="카테고리 필터">
-          <button
-            type="button"
-            className={`dir-side-cat${category === 'all' ? ' is-active' : ''}`}
-            onClick={() => setCategory('all')}
-            title="전체"
-          >
-            <span className="dir-side-cat-icon" aria-hidden="true">📋</span>
-            <span className="dir-side-cat-label">전체</span>
-          </button>
-          {categories.map((c) => (
-            <button
-              key={c.slug}
-              type="button"
-              className={`dir-side-cat${category === c.slug ? ' is-active' : ''}`}
-              onClick={() => setCategory(c.slug)}
-              title={c.nameKo}
-            >
-              <span className="dir-side-cat-icon" aria-hidden="true">{c.icon}</span>
-              <span className="dir-side-cat-label">{c.nameKo}</span>
-            </button>
-          ))}
-          <Link href="/directory" className="dir-side-list" title="리스트 보기">
-            리스트
-          </Link>
-        </aside>
+        <SideMenu
+          side="right"
+          categories={rightCategories}
+          category={category}
+          onSelect={setCategory}
+          showList
+        />
       </div>
 
       <div className="dir-pages-controls">

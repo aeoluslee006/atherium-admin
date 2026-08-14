@@ -39,6 +39,61 @@ export function computePageGridSize(slots = []) {
   return { cols, rows };
 }
 
+/** Dense board pages (2+) show 2×2 slot groups as one cell for readability. */
+export function getDisplayMergeFactor(pageNumber, cols, rows) {
+  const page = Number(pageNumber) || 1;
+  if (page >= 2 && cols >= 6 && rows >= 8) return 2;
+  return 1;
+}
+
+/**
+ * Merge every mergeFactor×mergeFactor block of slots into one display cell.
+ * DB slots unchanged; display grid becomes cols/mergeFactor × rows/mergeFactor.
+ */
+export function mergeSlotsForDisplay(slots = [], mergeFactor = 1) {
+  const factor = Math.max(1, Number(mergeFactor) || 1);
+  if (factor <= 1) {
+    return (slots || []).map((slot) => ({
+      key: slot.id,
+      slots: [slot],
+      displayCol: Number(slot.col_index) || 0,
+      displayRow: Number(slot.row_index) || 0,
+      primary: slot,
+    }));
+  }
+
+  const groups = new Map();
+  for (const slot of slots || []) {
+    const dc = Math.floor((Number(slot.col_index) || 0) / factor);
+    const dr = Math.floor((Number(slot.row_index) || 0) / factor);
+    const key = `${dr}-${dc}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(slot);
+  }
+
+  return [...groups.entries()]
+    .sort(([a], [b]) => {
+      const [ar, ac] = a.split('-').map(Number);
+      const [br, bc] = b.split('-').map(Number);
+      if (ar !== br) return ar - br;
+      return ac - bc;
+    })
+    .map(([key, group]) => {
+      const sorted = [...group].sort((a, b) => {
+        if (a.row_index !== b.row_index) return a.row_index - b.row_index;
+        return a.col_index - b.col_index;
+      });
+      const occupied = sorted.find((s) => s.status === 'occupied');
+      return {
+        key,
+        slots: sorted,
+        displayCol: Number(key.split('-')[1]),
+        displayRow: Number(key.split('-')[0]),
+        primary: occupied || sorted[0],
+      };
+    });
+}
+
 const ROW_LETTERS = 'ABCDEFGHIJ';
 
 function coverPageSpecs() {

@@ -105,3 +105,19 @@ export function groupSlotsByPage(slots) {
     .sort((a, b) => a[0] - b[0])
     .map(([pageNumber, pageSlots]) => ({ pageNumber, slots: pageSlots }));
 }
+
+/** Facing-page spreads: [1,2], [3], … (Crossroads-style). */
+export function buildDirectorySpreads(pageNumbers = []) {
+  const sorted = [...pageNumbers].sort((a, b) => a - b);
+  const spreads = [];
+  for (let i = 0; i < sorted.length; i += 2) {
+    spreads.push({ left: sorted[i], right: sorted[i + 1] ?? null });
+  }
+  return spreads;
+}
+
+export function directorySpreadLabel(spread) {
+  if (!spread) return '';
+  if (spread.right != null) return `${spread.left}-${spread.right}면`;
+  return `${spread.left}면`;
+}

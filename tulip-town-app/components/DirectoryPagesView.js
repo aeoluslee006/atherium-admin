@@ -4,7 +4,9 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { listDirectoryCategories, getDirectoryCategoryLabel } from '../lib/directoryCategories';
 import {
+  buildDirectorySpreads,
   computePageGridSize,
+  directorySpreadLabel,
   formatSlotPrice,
   sizeTierLabel,
 } from '../lib/directorySlots';
@@ -25,158 +27,189 @@ function activeAd(slot) {
   return list.find((a) => a && a.status === 'active') || null;
 }
 
+function DirectoryPaper({ pageData, category }) {
+  const pageNumber = pageData?.pageNumber || 1;
+  const slots = pageData?.slots || [];
+  const { cols, rows } = computePageGridSize(slots);
+
+  return (
+    <div className="dir-spread-paper">
+      <div
+        className="dir-paper"
+        style={{ '--dir-cols': cols, '--dir-rows': rows }}
+      >
+        <div className="dir-paper-label">
+          {pageNumber}면 · {cols}열×{rows}행
+        </div>
+        <div className="dir-grid" aria-label={`${pageNumber}면 광고 지면`}>
+          {slots.map((slot) => {
+            const ad = activeAd(slot);
+            const occupied = slot.status === 'occupied' && ad;
+            const dim =
+              category !== 'all' && occupied && ad.category_slug && ad.category_slug !== category;
+            const highlight =
+              category !== 'all' && occupied && ad.category_slug === category;
+
+            return (
+              <div
+                key={slot.id}
+                className={[
+                  'dir-cell',
+                  occupied ? 'is-occupied' : 'is-empty',
+                  dim ? 'is-dimmed' : '',
+                  highlight ? 'is-highlight' : '',
+                  `tier-${slot.size_tier || 'small'}`,
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                style={{
+                  gridColumn: `${(slot.col_index || 0) + 1} / span ${slot.span_cols || 1}`,
+                  gridRow: `${(slot.row_index || 0) + 1} / span ${slot.span_rows || 1}`,
+                }}
+              >
+                {occupied ? (
+                  <div className="dir-ad">
+                    {ad.ad_image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={ad.ad_image_url} alt="" className="dir-ad-image" />
+                    ) : (
+                      <div className="dir-ad-image dir-ad-image--placeholder" />
+                    )}
+                    <div className="dir-ad-body">
+                      <div className="dir-ad-title">{ad.ad_title}</div>
+                      <div className="dir-ad-cat">
+                        {getDirectoryCategoryLabel(ad.category_slug)}
+                      </div>
+                      {ad.ad_phone ? <div className="dir-ad-phone">{ad.ad_phone}</div> : null}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="dir-cell-empty">
+                    <div className="dir-slot-position">{slot.position_label || '—'}</div>
+                    <div className="dir-slot-meta">
+                      {sizeTierLabel(slot.size_tier)} · {formatSlotPrice(slot.base_price_cents)}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** Phase 1: view-only 지면. Apply/checkout wired in a later phase. */
 export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
   const pageNumbers = pages.map((p) => p.pageNumber);
-  const [page, setPage] = useState(
-    pageNumbers.includes(Number(initialPage)) ? Number(initialPage) : pageNumbers[0] || 1
+  const spreads = useMemo(() => buildDirectorySpreads(pageNumbers), [pageNumbers]);
+  const pageByNumber = useMemo(
+    () => new Map(pages.map((p) => [p.pageNumber, p])),
+    [pages]
   );
+
+  const initialSpreadIndex = useMemo(() => {
+    const n = Number(initialPage) || 1;
+    const idx = spreads.findIndex((s) => s.left === n || s.right === n);
+    return idx >= 0 ? idx : 0;
+  }, [spreads, initialPage]);
+
+  const [spreadIndex, setSpreadIndex] = useState(initialSpreadIndex);
   const [category, setCategory] = useState('all');
-  const [mobileMode, setMobileMode] = useState('grid'); // grid | list
+  const [mobileMode, setMobileMode] = useState('grid');
   const [zoom, setZoom] = useState(1);
 
-  const current = useMemo(
-    () => pages.find((p) => p.pageNumber === page) || pages[0] || { pageNumber: 1, slots: [] },
-    [pages, page]
-  );
-
-  const { cols, rows } = useMemo(
-    () => computePageGridSize(current.slots || []),
-    [current]
-  );
+  const spread = spreads[spreadIndex] || spreads[0] || { left: 1, right: null };
+  const leftPage = pageByNumber.get(spread.left);
+  const rightPage = spread.right != null ? pageByNumber.get(spread.right) : null;
+  const isSingleSpread = rightPage == null;
 
   const categories = listDirectoryCategories();
-  const pageIndex = pageNumbers.indexOf(page);
+
+  const listSlots = useMemo(() => {
+    const nums = [spread.left, spread.right].filter((n) => n != null);
+    const rows = [];
+    for (const n of nums) {
+      const p = pageByNumber.get(n);
+      for (const slot of p?.slots || []) rows.push(slot);
+    }
+    return rows;
+  }, [spread, pageByNumber]);
 
   function goPrev() {
-    if (pageIndex > 0) setPage(pageNumbers[pageIndex - 1]);
+    if (spreadIndex > 0) setSpreadIndex(spreadIndex - 1);
   }
   function goNext() {
-    if (pageIndex >= 0 && pageIndex < pageNumbers.length - 1) setPage(pageNumbers[pageIndex + 1]);
+    if (spreadIndex < spreads.length - 1) setSpreadIndex(spreadIndex + 1);
   }
 
   return (
     <div className={`dir-pages${mobileMode === 'list' ? ' is-list-mode' : ''}`}>
-      <div className="dir-pages-top">
-        <div className="dir-cat-menu" role="listbox" aria-label="카테고리 필터">
+      <div className="dir-spread-stage">
+        <div
+          className={`dir-spread-viewport${zoom > 1 ? ' is-zoomed' : ''}`}
+          style={{ '--dir-zoom': zoom }}
+        >
+          <div
+            className={`dir-spread-papers${isSingleSpread ? ' is-single' : ''}`}
+            style={{ '--spread-page-count': isSingleSpread ? 1 : 2 }}
+          >
+            {leftPage ? <DirectoryPaper pageData={leftPage} category={category} /> : null}
+            {rightPage ? <DirectoryPaper pageData={rightPage} category={category} /> : null}
+          </div>
+        </div>
+
+        <aside className="dir-side-menu" aria-label="카테고리 필터">
           <button
             type="button"
-            className={`dir-cat-chip${category === 'all' ? ' is-active' : ''}`}
+            className={`dir-side-cat${category === 'all' ? ' is-active' : ''}`}
             onClick={() => setCategory('all')}
+            title="전체"
           >
-            <span aria-hidden="true">📋</span> 전체
+            <span className="dir-side-cat-icon" aria-hidden="true">📋</span>
+            <span className="dir-side-cat-label">전체</span>
           </button>
           {categories.map((c) => (
             <button
               key={c.slug}
               type="button"
-              className={`dir-cat-chip${category === c.slug ? ' is-active' : ''}`}
+              className={`dir-side-cat${category === c.slug ? ' is-active' : ''}`}
               onClick={() => setCategory(c.slug)}
+              title={c.nameKo}
             >
-              <span aria-hidden="true">{c.icon}</span> {c.nameKo}
+              <span className="dir-side-cat-icon" aria-hidden="true">{c.icon}</span>
+              <span className="dir-side-cat-label">{c.nameKo}</span>
             </button>
           ))}
-        </div>
-        <Link href="/directory" className="btn btn-outline dir-list-link">
-          리스트 보기
-        </Link>
-      </div>
-
-      <div
-        className={`dir-paper-scroll${zoom > 1 ? ' is-zoomed' : ''}`}
-        style={{ '--dir-zoom': zoom }}
-      >
-        <div className="dir-paper-zoom-sizer">
-          <div
-            className="dir-paper"
-            style={{
-              '--dir-cols': cols,
-              '--dir-rows': rows,
-            }}
-          >
-            <div className="dir-paper-label">
-              {page}면 · {cols}열×{rows}행
-            </div>
-            <div className="dir-grid" aria-label={`${page}면 광고 지면`}>
-              {(current.slots || []).map((slot) => {
-                const ad = activeAd(slot);
-                const occupied = slot.status === 'occupied' && ad;
-                const dim =
-                  category !== 'all' && occupied && ad.category_slug && ad.category_slug !== category;
-                const highlight =
-                  category !== 'all' && occupied && ad.category_slug === category;
-
-                return (
-                  <div
-                    key={slot.id}
-                    className={[
-                      'dir-cell',
-                      occupied ? 'is-occupied' : 'is-empty',
-                      dim ? 'is-dimmed' : '',
-                      highlight ? 'is-highlight' : '',
-                      `tier-${slot.size_tier || 'small'}`,
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
-                    style={{
-                      gridColumn: `${(slot.col_index || 0) + 1} / span ${slot.span_cols || 1}`,
-                      gridRow: `${(slot.row_index || 0) + 1} / span ${slot.span_rows || 1}`,
-                    }}
-                  >
-                    {occupied ? (
-                      <div className="dir-ad">
-                        {ad.ad_image_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={ad.ad_image_url} alt="" className="dir-ad-image" />
-                        ) : (
-                          <div className="dir-ad-image dir-ad-image--placeholder" />
-                        )}
-                        <div className="dir-ad-body">
-                          <div className="dir-ad-title">{ad.ad_title}</div>
-                          <div className="dir-ad-cat">
-                            {getDirectoryCategoryLabel(ad.category_slug)}
-                          </div>
-                          {ad.ad_phone ? <div className="dir-ad-phone">{ad.ad_phone}</div> : null}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="dir-cell-empty">
-                        <div className="dir-slot-position">{slot.position_label || '—'}</div>
-                        <div className="dir-slot-meta">
-                          {sizeTierLabel(slot.size_tier)} · {formatSlotPrice(slot.base_price_cents)}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+          <Link href="/directory" className="dir-side-list" title="리스트 보기">
+            리스트
+          </Link>
+        </aside>
       </div>
 
       <div className="dir-pages-controls">
         <div className="dir-pages-nav" role="tablist" aria-label="지면 페이지">
-          <button type="button" className="btn btn-outline dir-pages-arrow" onClick={goPrev} disabled={pageIndex <= 0}>
+          <button type="button" className="btn btn-outline dir-pages-arrow" onClick={goPrev} disabled={spreadIndex <= 0}>
             ←
           </button>
-          {pageNumbers.map((n) => (
+          {spreads.map((s, i) => (
             <button
-              key={n}
+              key={`${s.left}-${s.right ?? 'x'}`}
               type="button"
               role="tab"
-              aria-selected={n === page}
-              className={`dir-pages-tab${n === page ? ' is-active' : ''}`}
-              onClick={() => setPage(n)}
+              aria-selected={i === spreadIndex}
+              className={`dir-pages-tab${i === spreadIndex ? ' is-active' : ''}`}
+              onClick={() => setSpreadIndex(i)}
             >
-              {n}면
+              {directorySpreadLabel(s)}
             </button>
           ))}
           <button
             type="button"
             className="btn btn-outline dir-pages-arrow"
             onClick={goNext}
-            disabled={pageIndex < 0 || pageIndex >= pageNumbers.length - 1}
+            disabled={spreadIndex >= spreads.length - 1}
           >
             →
           </button>
@@ -232,7 +265,7 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
 
       {mobileMode === 'list' ? (
         <div className="dir-mobile-list card" aria-label="현재 면 슬롯 리스트">
-          {(current.slots || []).map((slot) => {
+          {listSlots.map((slot) => {
             const ad = activeAd(slot);
             const occupied = slot.status === 'occupied' && ad;
             return (

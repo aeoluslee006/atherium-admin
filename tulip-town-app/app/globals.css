@@ -4624,12 +4624,15 @@ main:has(.home-page) {
   padding: 6px 12px;
 }
 
-.dir-pages-toolbar {
+.dir-pages-controls {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 12px;
-  margin-bottom: 10px;
+  justify-content: center;
+  gap: 10px 16px;
+  margin: 12px auto 16px;
+  max-width: var(--dir-a4-width, 210mm);
+  width: 100%;
 }
 
 .dir-pages-nav {
@@ -4670,9 +4673,9 @@ main:has(.home-page) {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  margin-top: 0;
-  margin-left: auto;
+  margin: 0;
 }
 
 .dir-zoom-btn {
@@ -4726,7 +4729,7 @@ main:has(.home-page) {
   --dir-a4-width: 210mm;
   --dir-paper-base: min(var(--dir-a4-width), 100%, calc((100dvh - 300px) * 210 / 297));
   overflow: hidden;
-  margin: 0 auto 20px;
+  margin: 0 auto;
   max-width: var(--dir-a4-width);
   width: 100%;
 }
@@ -4739,6 +4742,10 @@ main:has(.home-page) {
 }
 
 .dir-paper-scroll.is-list-mode {
+  display: none;
+}
+
+.dir-pages.is-list-mode .dir-paper-scroll {
   display: none;
 }
 

@@ -56,7 +56,7 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
   }
 
   return (
-    <div className="dir-pages">
+    <div className={`dir-pages${mobileMode === 'list' ? ' is-list-mode' : ''}`}>
       <div className="dir-pages-top">
         <div className="dir-cat-menu" role="listbox" aria-label="카테고리 필터">
           <button
@@ -82,7 +82,80 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
         </Link>
       </div>
 
-      <div className="dir-pages-toolbar">
+      <div
+        className={`dir-paper-scroll${zoom > 1 ? ' is-zoomed' : ''}`}
+        style={{ '--dir-zoom': zoom }}
+      >
+        <div className="dir-paper-zoom-sizer">
+          <div
+            className="dir-paper"
+            style={{
+              '--dir-cols': cols,
+              '--dir-rows': rows,
+            }}
+          >
+            <div className="dir-paper-label">
+              {page}면 · {cols}열×{rows}행
+            </div>
+            <div className="dir-grid" aria-label={`${page}면 광고 지면`}>
+              {(current.slots || []).map((slot) => {
+                const ad = activeAd(slot);
+                const occupied = slot.status === 'occupied' && ad;
+                const dim =
+                  category !== 'all' && occupied && ad.category_slug && ad.category_slug !== category;
+                const highlight =
+                  category !== 'all' && occupied && ad.category_slug === category;
+
+                return (
+                  <div
+                    key={slot.id}
+                    className={[
+                      'dir-cell',
+                      occupied ? 'is-occupied' : 'is-empty',
+                      dim ? 'is-dimmed' : '',
+                      highlight ? 'is-highlight' : '',
+                      `tier-${slot.size_tier || 'small'}`,
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                    style={{
+                      gridColumn: `${(slot.col_index || 0) + 1} / span ${slot.span_cols || 1}`,
+                      gridRow: `${(slot.row_index || 0) + 1} / span ${slot.span_rows || 1}`,
+                    }}
+                  >
+                    {occupied ? (
+                      <div className="dir-ad">
+                        {ad.ad_image_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={ad.ad_image_url} alt="" className="dir-ad-image" />
+                        ) : (
+                          <div className="dir-ad-image dir-ad-image--placeholder" />
+                        )}
+                        <div className="dir-ad-body">
+                          <div className="dir-ad-title">{ad.ad_title}</div>
+                          <div className="dir-ad-cat">
+                            {getDirectoryCategoryLabel(ad.category_slug)}
+                          </div>
+                          {ad.ad_phone ? <div className="dir-ad-phone">{ad.ad_phone}</div> : null}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="dir-cell-empty">
+                        <div className="dir-slot-position">{slot.position_label || '—'}</div>
+                        <div className="dir-slot-meta">
+                          {sizeTierLabel(slot.size_tier)} · {formatSlotPrice(slot.base_price_cents)}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="dir-pages-controls">
         <div className="dir-pages-nav" role="tablist" aria-label="지면 페이지">
           <button type="button" className="btn btn-outline dir-pages-arrow" onClick={goPrev} disabled={pageIndex <= 0}>
             ←
@@ -154,79 +227,6 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
           >
             리스트
           </button>
-        </div>
-      </div>
-
-      <div
-        className={`dir-paper-scroll${mobileMode === 'list' ? ' is-list-mode' : ''}${zoom > 1 ? ' is-zoomed' : ''}`}
-        style={{ '--dir-zoom': zoom }}
-      >
-        <div className="dir-paper-zoom-sizer">
-          <div
-            className="dir-paper"
-            style={{
-              '--dir-cols': cols,
-              '--dir-rows': rows,
-            }}
-          >
-            <div className="dir-paper-label">
-              {page}면 · {cols}열×{rows}행
-            </div>
-            <div className="dir-grid" aria-label={`${page}면 광고 지면`}>
-              {(current.slots || []).map((slot) => {
-                const ad = activeAd(slot);
-                const occupied = slot.status === 'occupied' && ad;
-                const dim =
-                  category !== 'all' && occupied && ad.category_slug && ad.category_slug !== category;
-                const highlight =
-                  category !== 'all' && occupied && ad.category_slug === category;
-
-                return (
-                  <div
-                    key={slot.id}
-                    className={[
-                      'dir-cell',
-                      occupied ? 'is-occupied' : 'is-empty',
-                      dim ? 'is-dimmed' : '',
-                      highlight ? 'is-highlight' : '',
-                      `tier-${slot.size_tier || 'small'}`,
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
-                    style={{
-                      gridColumn: `${(slot.col_index || 0) + 1} / span ${slot.span_cols || 1}`,
-                      gridRow: `${(slot.row_index || 0) + 1} / span ${slot.span_rows || 1}`,
-                    }}
-                  >
-                    {occupied ? (
-                      <div className="dir-ad">
-                        {ad.ad_image_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={ad.ad_image_url} alt="" className="dir-ad-image" />
-                        ) : (
-                          <div className="dir-ad-image dir-ad-image--placeholder" />
-                        )}
-                        <div className="dir-ad-body">
-                          <div className="dir-ad-title">{ad.ad_title}</div>
-                          <div className="dir-ad-cat">
-                            {getDirectoryCategoryLabel(ad.category_slug)}
-                          </div>
-                          {ad.ad_phone ? <div className="dir-ad-phone">{ad.ad_phone}</div> : null}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="dir-cell-empty">
-                        <div className="dir-slot-position">{slot.position_label || '—'}</div>
-                        <div className="dir-slot-meta">
-                          {sizeTierLabel(slot.size_tier)} · {formatSlotPrice(slot.base_price_cents)}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
         </div>
       </div>
 

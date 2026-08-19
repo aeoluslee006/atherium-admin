@@ -150,7 +150,7 @@ function ApplyInner() {
           <h2 className="section-title">지면 광고 신청</h2>
           <p className="hint-text">결제 완료 후 즉시 지면에 게재됩니다. (사업자 서류 심사 없음)</p>
         </div>
-        <Link href="/directory/pages" className="btn btn-outline">
+        <Link href="/directory" className="btn btn-outline">
           지면으로
         </Link>
       </div>

@@ -225,7 +225,7 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
           categories={rightCategories}
           category={category}
           onSelect={setCategory}
-          showList
+          showList={false}
         />
       </div>
 

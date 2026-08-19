@@ -116,9 +116,12 @@ function SellerDashboardInner() {
       <div className="container">
         <div className="card empty-state">
           아직 입점 신청이 없습니다.
-          <div style={{ marginTop: 12 }}>
+          <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
             <Link href="/seller/apply" className="btn">
               사업자 입점 신청
+            </Link>
+            <Link href="/directory/new" className="btn btn-outline">
+              지면 광고 등록
             </Link>
           </div>
         </div>
@@ -142,7 +145,13 @@ function SellerDashboardInner() {
               : ''}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <Link href="/directory/pages" className="btn btn-outline">
+            지면 보기
+          </Link>
+          <Link href="/directory/new" className="btn btn-outline">
+            지면 광고 등록
+          </Link>
           <Link href="/shop" className="btn btn-outline">
             튤립가게
           </Link>

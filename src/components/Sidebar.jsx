@@ -1,10 +1,12 @@
 import React from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 const NAV = [
   { section: 'Main', items: [
-    { id: 'dashboard', icon: 'ti-layout-dashboard', label: 'Dashboard' },
-    { id: 'customers', icon: 'ti-users', label: 'Customer Management' },
-    { id: 'reports', icon: 'ti-chart-bar', label: 'Reports' },
+    { id: 'dashboard', path: '/dashboard', icon: 'ti-layout-dashboard', label: 'Dashboard' },
+    { id: 'calendar', path: '/calendar', emoji: '📅', label: 'Calendar' },
+    { id: 'customers', path: '/customers', icon: 'ti-users', label: 'Customer Management' },
+    { id: 'reports', path: '/reports', icon: 'ti-chart-bar', label: 'Reports' },
   ]},
   { section: 'Platforms', items: [
     { id: null, icon: 'ti-building-store', label: 'Cosmonova' },
@@ -18,7 +20,10 @@ const NAV = [
   ]},
 ]
 
-export default function Sidebar({ activePage, setActivePage, userEmail = 'Admin', onSignOut }) {
+export default function Sidebar({ activePage, userEmail = 'Admin', onSignOut }) {
+  const location = useLocation()
+  const navigate = useNavigate()
+
   return (
     <aside style={s.sidebar}>
       <div style={s.logoWrap}>
@@ -36,14 +41,20 @@ export default function Sidebar({ activePage, setActivePage, userEmail = 'Admin'
           <div key={group.section} style={s.navSection}>
             <div style={s.navLabel}>{group.section}</div>
             {group.items.map(item => {
-              const active = item.id && activePage === item.id
+              const active = item.path
+                ? location.pathname === item.path
+                : item.id && activePage === item.id
               return (
                 <div
                   key={item.label}
                   style={{ ...s.navItem, ...(active ? s.navItemActive : {}) }}
-                  onClick={() => item.id && setActivePage(item.id)}
+                  onClick={() => item.path && navigate(item.path)}
                 >
-                  <i className={`ti ${item.icon}`} style={{ fontSize: 16, width: 18 }} aria-hidden="true" />
+                  {item.emoji ? (
+                    <span style={{ fontSize: 16, width: 18, textAlign: 'center' }}>{item.emoji}</span>
+                  ) : (
+                    <i className={`ti ${item.icon}`} style={{ fontSize: 16, width: 18 }} aria-hidden="true" />
+                  )}
                   {item.label}
                 </div>
               )

@@ -1,24 +1,116 @@
 import React, { useState } from 'react'
+import { setOtpPending } from '../lib/otpGate'
 import { supabase } from '../lib/supabase'
 import './Login.css'
 
-export default function Login({ onSignedIn }) {
+export default function Login({ onSignedIn, timedOut }) {
+  const [step, setStep] = useState('password')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [otpCode, setOtpCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [info, setInfo] = useState('')
 
-  const handleSubmit = async (e) => {
+  const sendOtp = async (targetEmail) => {
+    const { error: otpError } = await supabase.auth.signInWithOtp({
+      email: targetEmail,
+      options: { shouldCreateUser: false },
+    })
+    if (otpError) throw otpError
+  }
+
+  const handlePasswordSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
     setError('')
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
-    setLoading(false)
-    if (signInError) {
-      setError(signInError.message)
-      return
+    setInfo('')
+    try {
+      const trimmedEmail = email.trim()
+      // Block App from treating the password session as a full login.
+      setOtpPending(true)
+
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: trimmedEmail,
+        password,
+      })
+      if (signInError) {
+        setOtpPending(false)
+        setError(signInError.message)
+        return
+      }
+
+      // Clear password session so dashboard stays locked until OTP succeeds.
+      await supabase.auth.signOut()
+
+      await sendOtp(trimmedEmail)
+      setEmail(trimmedEmail)
+      setOtpCode('')
+      setStep('otp')
+    } catch (err) {
+      setOtpPending(false)
+      setError(err.message || 'Failed to send the verification code.')
+    } finally {
+      setLoading(false)
     }
-    if (data.session) onSignedIn(data.session)
+  }
+
+  const handleOtpSubmit = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+    setInfo('')
+    try {
+      const token = otpCode.trim()
+      if (!/^\d{6,10}$/.test(token)) {
+        setError('Enter the code from your email.')
+        return
+      }
+
+      const { data, error: verifyError } = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token,
+        type: 'email',
+      })
+      if (verifyError) {
+        setError(verifyError.message)
+        return
+      }
+      if (!data.session) {
+        setError('Verification failed. Please check the code and try again.')
+        return
+      }
+
+      setOtpPending(false)
+      onSignedIn(data.session)
+    } catch (err) {
+      setError(err.message || 'Verification failed.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleResend = async () => {
+    setLoading(true)
+    setError('')
+    setInfo('')
+    try {
+      await sendOtp(email.trim())
+      setInfo('Code resent — check your email.')
+    } catch (err) {
+      setError(err.message || 'Failed to resend the code.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleBackToPassword = async () => {
+    setOtpPending(false)
+    setStep('password')
+    setOtpCode('')
+    setError('')
+    setInfo('')
+    setPassword('')
   }
 
   return (
@@ -44,48 +136,99 @@ export default function Login({ onSignedIn }) {
 
       <div className="login-form-column">
         <div className="login-form-shift">
-        <div style={s.card}>
-        <div style={s.logoMark}>
-          <div style={s.logoA} />
-          <div>
-            <div style={s.logoText}>ATHERIUM</div>
-            <div style={s.logoSub}>Holdings Admin</div>
+          <div style={s.card}>
+            <div style={s.logoMark}>
+              <div style={s.logoA} />
+              <div>
+                <div style={s.logoText}>ATHERIUM</div>
+                <div style={s.logoSub}>Holdings Admin</div>
+              </div>
+            </div>
+
+            <div style={s.title}>{step === 'otp' ? 'Security code' : 'Sign in'}</div>
+            <div style={s.sub}>
+              {step === 'otp'
+                ? `Enter the code sent to ${email}`
+                : 'Access the holdings dashboard'}
+            </div>
+
+            {timedOut && step === 'password' && (
+              <div style={{ ...s.error, marginBottom: 16 }}>
+                You were signed out due to inactivity. Please sign in again.
+              </div>
+            )}
+
+            {step === 'password' ? (
+              <form onSubmit={handlePasswordSubmit} style={s.form}>
+                <label style={s.label}>
+                  Email
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    autoComplete="email"
+                    style={s.input}
+                  />
+                </label>
+                <label style={s.label}>
+                  Password
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoComplete="current-password"
+                    style={s.input}
+                  />
+                </label>
+                {error && <div style={s.error}>{error}</div>}
+                <button type="submit" disabled={loading} style={{ ...s.button, opacity: loading ? 0.7 : 1 }}>
+                  {loading ? 'Signing in…' : 'Continue'}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleOtpSubmit} style={s.form}>
+                <label style={s.label}>
+                  Email code
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={10}
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    required
+                    autoComplete="one-time-code"
+                    style={{ ...s.input, letterSpacing: 4, fontSize: 16 }}
+                  />
+                </label>
+                {info && <div style={s.info}>{info}</div>}
+                {error && <div style={s.error}>{error}</div>}
+                <button type="submit" disabled={loading} style={{ ...s.button, opacity: loading ? 0.7 : 1 }}>
+                  {loading ? 'Verifying…' : 'Verify'}
+                </button>
+                <div style={s.otpActions}>
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={handleResend}
+                    style={s.linkButton}
+                  >
+                    Resend code
+                  </button>
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={handleBackToPassword}
+                    style={s.linkButton}
+                  >
+                    Change email
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
-        </div>
-
-        <div style={s.title}>Sign in</div>
-        <div style={s.sub}>Access the holdings dashboard</div>
-
-        <form onSubmit={handleSubmit} style={s.form}>
-          <label style={s.label}>
-            Email
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@atherium.cosmonova.io"
-              required
-              autoComplete="email"
-              style={s.input}
-            />
-          </label>
-          <label style={s.label}>
-            Password
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-              style={s.input}
-            />
-          </label>
-          {error && <div style={s.error}>{error}</div>}
-          <button type="submit" disabled={loading} style={{ ...s.button, opacity: loading ? 0.7 : 1 }}>
-            {loading ? 'Signing in…' : 'Sign in'}
-          </button>
-        </form>
-        </div>
         </div>
       </div>
     </div>
@@ -143,5 +286,28 @@ const s = {
     padding: '8px 12px',
     fontSize: 12,
     color: 'var(--danger)',
+  },
+  info: {
+    background: 'rgba(201,168,76,0.12)',
+    border: '1px solid rgba(201,168,76,0.35)',
+    borderRadius: 8,
+    padding: '8px 12px',
+    fontSize: 12,
+    color: 'var(--gold)',
+  },
+  otpActions: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 4,
+  },
+  linkButton: {
+    background: 'none',
+    border: 'none',
+    padding: 0,
+    color: 'var(--muted)',
+    fontSize: 12,
+    cursor: 'pointer',
+    textDecoration: 'underline',
   },
 }

@@ -8,9 +8,18 @@ const NAV = [
     { id: 'customers', path: '/customers', icon: 'ti-users', label: 'Customer Management' },
     { id: 'reports', path: '/reports', icon: 'ti-chart-bar', label: 'Reports' },
   ]},
+  { section: 'Community', items: [
+    { id: 'community', path: '/community', icon: 'ti-building-community', label: 'Community Sites' },
+  ]},
   { section: 'Platforms', items: [
     { id: null, icon: 'ti-building-store', label: 'Cosmonova' },
     { id: null, icon: 'ti-building-skyscraper', label: 'Cosmoenterprise' },
+    {
+      id: 'ttkc',
+      path: '/ttkc',
+      icon: 'ti-flower',
+      label: 'TTKC / Tulip Town',
+    },
   ]},
   { section: 'System', items: [
     { id: null, icon: 'ti-credit-card', label: 'Billing' },
@@ -48,7 +57,14 @@ export default function Sidebar({ activePage, userEmail = 'Admin', onSignOut }) 
                 <div
                   key={item.label}
                   style={{ ...s.navItem, ...(active ? s.navItemActive : {}) }}
-                  onClick={() => item.path && navigate(item.path)}
+                  onClick={() => {
+                    if (item.href) {
+                      window.open(item.href, '_blank', 'noopener,noreferrer')
+                      return
+                    }
+                    if (item.path) navigate(item.path)
+                  }}
+                  title={item.href ? 'Open in new tab' : undefined}
                 >
                   {item.emoji ? (
                     <span style={{ fontSize: 16, width: 18, textAlign: 'center' }}>{item.emoji}</span>
@@ -117,6 +133,6 @@ const s = {
     width: 28, height: 28, borderRadius: '50%',
     background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: 10, fontWeight: 600, color: 'var(--night)', fontFamily: "'Cinzel', serif",
+    fontSize: 12, fontWeight: 600, color: 'var(--night)',
   },
 }

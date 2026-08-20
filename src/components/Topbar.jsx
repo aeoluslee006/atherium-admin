@@ -4,12 +4,14 @@ const PAGE_TITLES = {
   dashboard: 'Overview',
   customers: 'Customer Management',
   reports: 'Reports & Analytics',
+  community: 'Community Sites',
+  ttkc: 'TTKC Admin',
 }
 
-export default function Topbar({ activePage, userEmail, onSignOut }) {
+export default function Topbar({ activePage, userEmail, onSignOut, onNavigate }) {
   return (
     <div style={s.topbar}>
-      <div style={s.title}>ATHERIUM HOLDINGS</div>
+      <div style={s.title}>ATHERIUM HOLDINGS{PAGE_TITLES[activePage] ? ` · ${PAGE_TITLES[activePage]}` : ''}</div>
       <div style={s.actions}>
         <div style={{ ...s.badge, ...s.badgeCosmo }}>
           <div style={{ ...s.dot, background: 'var(--cosmo)' }} />
@@ -19,6 +21,15 @@ export default function Topbar({ activePage, userEmail, onSignOut }) {
           <div style={{ ...s.dot, background: 'var(--enterprise)' }} />
           Cosmoenterprise
         </div>
+        <button
+          type="button"
+          onClick={() => onNavigate?.('ttkc')}
+          style={{ ...s.badge, ...s.badgeTtkc, ...(activePage === 'ttkc' ? s.badgeTtkcActive : {}) }}
+          title="TTKC Admin in Atherium"
+        >
+          <div style={{ ...s.dot, background: 'var(--tulip, #d94f8c)' }} />
+          TTKC
+        </button>
         <button style={s.iconBtn} aria-label="Notifications">
           <i className="ti ti-bell" style={{ fontSize: 16 }} aria-hidden="true" />
         </button>
@@ -49,6 +60,17 @@ const s = {
   },
   badgeCosmo: { borderColor: 'rgba(79,143,232,0.4)', color: 'var(--cosmo)', background: 'rgba(79,143,232,0.08)' },
   badgeEnt: { borderColor: 'rgba(123,92,240,0.4)', color: 'var(--enterprise)', background: 'rgba(123,92,240,0.08)' },
+  badgeTtkc: {
+    borderColor: 'rgba(217,79,140,0.45)',
+    color: '#e87aaa',
+    background: 'rgba(217,79,140,0.1)',
+    cursor: 'pointer',
+    font: 'inherit',
+  },
+  badgeTtkcActive: {
+    borderColor: 'rgba(217,79,140,0.8)',
+    background: 'rgba(217,79,140,0.22)',
+  },
   dot: { width: 6, height: 6, borderRadius: '50%' },
   iconBtn: {
     width: 32, height: 32, borderRadius: 8, background: 'var(--night3)',

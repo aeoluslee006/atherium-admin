@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
 import Topbar from './components/Topbar'
 import Dashboard from './pages/Dashboard'
@@ -21,14 +21,6 @@ function AdminLayout({ userEmail, onSignOut }) {
     ? pathPage
     : 'dashboard'
 
-  const pages = {
-    dashboard: <Dashboard />,
-    customers: <Customers />,
-    reports: <Reports />,
-    community: <CommunitySites onOpenAdmin={(page) => navigate(`/${page}`)} />,
-    ttkc: <TtkcAdmin />,
-  }
-
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       <Sidebar activePage={activePage} userEmail={userEmail} onSignOut={onSignOut} />
@@ -40,18 +32,29 @@ function AdminLayout({ userEmail, onSignOut }) {
           onNavigate={(page) => navigate(`/${page}`)}
         />
         <main style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
-          <Routes>
-            <Route path="/dashboard" element={pages.dashboard} />
-            <Route path="/customers" element={pages.customers} />
-            <Route path="/reports" element={pages.reports} />
-            <Route path="/community" element={pages.community} />
-            <Route path="/ttkc" element={pages.ttkc} />
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
+          <Outlet />
         </main>
       </div>
     </div>
+  )
+}
+
+function AuthenticatedRoutes({ userEmail, onSignOut }) {
+  const navigate = useNavigate()
+
+  return (
+    <Routes>
+      <Route path="/calendar" element={<CalendarPage />} />
+      <Route element={<AdminLayout userEmail={userEmail} onSignOut={onSignOut} />}>
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/customers" element={<Customers />} />
+        <Route path="/reports" element={<Reports />} />
+        <Route path="/community" element={<CommunitySites onOpenAdmin={(page) => navigate(`/${page}`)} />} />
+        <Route path="/ttkc" element={<TtkcAdmin />} />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
   )
 }
 
@@ -114,10 +117,5 @@ export default function App() {
 
   const userEmail = session.user?.email || 'Admin'
 
-  return (
-    <Routes>
-      <Route path="/calendar" element={<CalendarPage />} />
-      <Route path="/*" element={<AdminLayout userEmail={userEmail} onSignOut={handleSignOut} />} />
-    </Routes>
-  )
+  return <AuthenticatedRoutes userEmail={userEmail} onSignOut={handleSignOut} />
 }

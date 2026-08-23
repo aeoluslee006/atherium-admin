@@ -8,7 +8,6 @@
 // ============================================================
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
 // ── 상수 ─────────────────────────────────────────────────
@@ -34,7 +33,6 @@ const getQ     = (d) => { const dt = new Date(d); return `Q${Math.ceil((dt.getMo
 
 // ── 컴포넌트 ─────────────────────────────────────────────
 export default function CalendarPage() {
-  const navigate = useNavigate();
   const today = new Date();
   const [viewYear,  setViewYear]  = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
@@ -169,22 +167,6 @@ export default function CalendarPage() {
 
       {/* ── LEFT SIDEBAR: 다가오는 이벤트 ── */}
       <div style={{width:240,background:"#0d1424",borderRight:"1px solid #1e3a5f",display:"flex",flexDirection:"column",flexShrink:0}}>
-        <button
-          type="button"
-          onClick={() => navigate("/dashboard")}
-          style={{
-            margin: "10px 14px 0",
-            padding: 0,
-            background: "none",
-            border: "none",
-            color: "#64748b",
-            fontSize: 11,
-            cursor: "pointer",
-            textAlign: "left",
-          }}
-        >
-          ← Dashboard
-        </button>
         {/* 헤더 */}
         <div style={{padding:"14px 14px 10px",borderBottom:"1px solid #1e3a5f"}}>
           <div style={{fontWeight:800,fontSize:13,marginBottom:2}}>📅 Pharma Calendar</div>

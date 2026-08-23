@@ -5,31 +5,32 @@ const MONTH_NAMES = ["January","February","March","April","May","June","July","A
 const NOTE_COLORS = ["#fef9c3","#dcfce7","#dbeafe","#fce7f3","#ede9fe","#fee2e2"];
 const ALL = "All";
 
+// Atherium palette — slightly lifted from pure night, matches admin shell
 const THEME = {
-  bg: "#eef2f7",
-  surface: "#ffffff",
-  surfaceAlt: "#f8fafc",
-  surfaceHover: "#f1f5f9",
-  border: "#e2e8f0",
-  borderStrong: "#cbd5e1",
-  text: "#0f172a",
-  textMuted: "#64748b",
-  textFaint: "#94a3b8",
-  accent: "#2563eb",
-  accentSoft: "#dbeafe",
-  accentText: "#1d4ed8",
-  today: "#2563eb",
-  selDay: "#eff6ff",
+  bg: "#0F1220",           // --night2
+  surface: "#151929",      // --night3
+  surfaceAlt: "#1C2235",   // --night4
+  surfaceHover: "#252D45", // --dim
+  border: "rgba(201,168,76,0.15)",
+  borderStrong: "rgba(201,168,76,0.28)",
+  text: "#D4DCF0",
+  textMuted: "#8892AA",
+  textFaint: "#5A6478",
+  accent: "#C9A84C",       // --gold
+  accentSoft: "rgba(201,168,76,0.12)",
+  accentText: "#E8D08A",   // --gold-light
+  today: "#C9A84C",
+  selDay: "rgba(201,168,76,0.08)",
 };
 
 const STATUS_META = {
-  approved: { label:"Approved", dot:"#16a34a", bg:"#dcfce7", border:"#86efac", text:"#166534" },
-  pending:  { label:"FDA Pending", dot:"#d97706", bg:"#fef3c7", border:"#fcd34d", text:"#92400e" },
-  trial:    { label:"Trial", dot:"#0891b2", bg:"#cffafe", border:"#67e8f9", text:"#155e75" },
-  event:    { label:"IR", dot:"#7c3aed", bg:"#ede9fe", border:"#c4b5fd", text:"#5b21b6" },
-  upcoming: { label:"Upcoming", dot:"#64748b", bg:"#f1f5f9", border:"#cbd5e1", text:"#475569" },
-  failed:   { label:"Failed", dot:"#dc2626", bg:"#fee2e2", border:"#fca5a5", text:"#991b1b" },
-  earnings: { label:"Earnings", dot:"#2563eb", bg:"#dbeafe", border:"#93c5fd", text:"#1e40af" },
+  approved: { label:"Approved", dot:"#2EC08A", bg:"rgba(46,192,138,0.14)", border:"rgba(46,192,138,0.35)", text:"#7ee8b8" },
+  pending:  { label:"FDA Pending", dot:"#E8943A", bg:"rgba(232,148,58,0.14)", border:"rgba(232,148,58,0.35)", text:"#fcd34d" },
+  trial:    { label:"Trial", dot:"#4F8FE8", bg:"rgba(79,143,232,0.14)", border:"rgba(79,143,232,0.35)", text:"#93c5fd" },
+  event:    { label:"IR", dot:"#7B5CF0", bg:"rgba(123,92,240,0.14)", border:"rgba(123,92,240,0.35)", text:"#c4b5fd" },
+  upcoming: { label:"Upcoming", dot:"#8892AA", bg:"rgba(136,146,170,0.1)", border:"rgba(136,146,170,0.22)", text:"#8892AA" },
+  failed:   { label:"Failed", dot:"#E84F4F", bg:"rgba(232,79,79,0.14)", border:"rgba(232,79,79,0.35)", text:"#fca5a5" },
+  earnings: { label:"Earnings", dot:"#4F8FE8", bg:"rgba(79,143,232,0.14)", border:"rgba(79,143,232,0.35)", text:"#93c5fd" },
 };
 
 const TYPE_ICON = { FDA:"💊", TRIAL:"🧪", IR:"📢", EARN:"📊", OTHER:"📌" };
@@ -40,9 +41,9 @@ const diffDays = (d) => Math.ceil((new Date(d) - new Date()) / 86400000);
 
 function PriorityBadge({ level }) {
   const styles = {
-    P1: { bg: "#fef3c7", color: "#92400e", label: "P1" },
-    P2: { bg: "#e0e7ff", color: "#3730a3", label: "P2" },
-    bonus: { bg: "#f3e8ff", color: "#6b21a8", label: "Bonus" },
+    P1: { bg: "rgba(232,148,58,0.18)", color: "#E8943A", label: "P1" },
+    P2: { bg: "rgba(79,143,232,0.18)", color: "#4F8FE8", label: "P2" },
+    bonus: { bg: "rgba(123,92,240,0.18)", color: "#7B5CF0", label: "Bonus" },
   };
   const s = styles[level];
   return (
@@ -148,7 +149,7 @@ function CompanyDetailPanel({ ticker, events, earnings, onClose }) {
                 </div>
                 <span style={{
                   fontSize: 9, fontWeight: 700,
-                  color: diffDays(e.report_date) <= 7 ? "#dc2626" : THEME.textMuted,
+                  color: diffDays(e.report_date) <= 7 ? "#E84F4F" : THEME.textMuted,
                 }}>D-{diffDays(e.report_date)}</span>
               </div>
             ))
@@ -178,7 +179,7 @@ function CompanyDetailPanel({ ticker, events, earnings, onClose }) {
                       <div style={{ fontSize: 8, color: THEME.textFaint }}>{k}</div>
                       <div style={{
                         fontSize: 10, fontWeight: 600,
-                        color: k === "Beat" && e.eps_beat === true ? "#16a34a" : k === "Beat" && e.eps_beat === false ? "#dc2626" : THEME.text,
+                        color: k === "Beat" && e.eps_beat === true ? "#2EC08A" : k === "Beat" && e.eps_beat === false ? "#E84F4F" : THEME.text,
                       }}>{v}</div>
                     </div>
                   ))}
@@ -186,7 +187,7 @@ function CompanyDetailPanel({ ticker, events, earnings, onClose }) {
                 {e.eps_surprise_pct != null && (
                   <div style={{
                     marginTop: 4, fontSize: 9, fontWeight: 600, textAlign: "center",
-                    color: e.eps_surprise_pct >= 0 ? "#16a34a" : "#dc2626",
+                    color: e.eps_surprise_pct >= 0 ? "#2EC08A" : "#E84F4F",
                   }}>
                     {e.eps_surprise_pct >= 0 ? "▲ Beat" : "▼ Miss"} {Math.abs(e.eps_surprise_pct).toFixed(1)}%
                   </div>
@@ -373,7 +374,7 @@ export default function CalendarPage() {
           overflow: "hidden", cursor: "pointer",
           transition: "box-shadow 0.15s",
         }}
-        onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 1px 4px rgba(0,0,0,0.08)"; }}
+        onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 0 0 1px rgba(201,168,76,0.25)"; }}
         onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; }}
       >
         <span style={{ fontSize: compact ? 8 : 10, flexShrink: 0 }}>{TYPE_ICON[ev.event_type] ?? TYPE_ICON.OTHER}</span>
@@ -401,12 +402,12 @@ export default function CalendarPage() {
   }
 
   return (
-    <div style={{ display: "flex", height: "100vh", background: THEME.bg, color: THEME.text, fontFamily: "'Inter', sans-serif", overflow: "hidden", fontSize: 12 }}>
+    <div style={{ display: "flex", height: "100vh", background: THEME.bg, color: THEME.text, fontFamily: "'Outfit', sans-serif", overflow: "hidden", fontSize: 12 }}>
 
       {/* Left sidebar */}
       <div style={{ width: 200, background: THEME.surface, borderRight: `1px solid ${THEME.border}`, display: "flex", flexDirection: "column", flexShrink: 0 }}>
         <div style={{ padding: "10px 10px 8px", borderBottom: `1px solid ${THEME.border}` }}>
-          <div style={{ fontWeight: 700, fontSize: 12, color: THEME.text }}>📅 Calendar</div>
+          <div style={{ fontWeight: 700, fontSize: 12, color: THEME.accentText, letterSpacing: 0.5 }}>📅 Calendar</div>
           {lastSync && (
             <div style={{ fontSize: 9, color: THEME.textFaint, marginTop: 2 }}>
               Last sync: {new Date(lastSync).toLocaleString("en-US")}
@@ -437,7 +438,7 @@ export default function CalendarPage() {
                   <span style={{ fontWeight: 700, color: sm.dot, fontSize: 10 }}>{ev.ticker}</span>
                   <span style={{
                     marginLeft: "auto", fontSize: 9, fontWeight: 700,
-                    color: diff <= 7 ? "#dc2626" : diff <= 30 ? "#d97706" : THEME.textFaint,
+                    color: diff <= 7 ? "#E84F4F" : diff <= 30 ? "#E8943A" : THEME.textFaint,
                     padding: "0 4px", borderRadius: 3,
                   }}>D-{diff}</span>
                 </div>
@@ -483,9 +484,9 @@ export default function CalendarPage() {
 
           <button type="button" onClick={() => setNotesOpen(o => !o)} style={{
             padding: "2px 8px", borderRadius: 5, fontSize: 10, fontWeight: 600, cursor: "pointer",
-            background: notesOpen ? "#ede9fe" : "transparent",
-            border: `1px solid ${notesOpen ? "#8b5cf6" : THEME.border}`,
-            color: notesOpen ? "#6d28d9" : THEME.textMuted,
+            background: notesOpen ? "rgba(123,92,240,0.15)" : "transparent",
+            border: `1px solid ${notesOpen ? "rgba(123,92,240,0.4)" : THEME.border}`,
+            color: notesOpen ? "#c4b5fd" : THEME.textMuted,
           }}>📌 Notes</button>
         </div>
 
@@ -495,7 +496,7 @@ export default function CalendarPage() {
           <div style={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column", minWidth: 0 }}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", background: THEME.surface, borderBottom: `1px solid ${THEME.border}`, flexShrink: 0 }}>
               {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
-                <div key={d} style={{ textAlign: "center", padding: "4px 0", fontSize: 10, fontWeight: 600, color: i === 0 ? "#dc2626" : i === 6 ? THEME.accentText : THEME.textMuted }}>{d}</div>
+                <div key={d} style={{ textAlign: "center", padding: "4px 0", fontSize: 10, fontWeight: 600, color: i === 0 ? "#E84F4F" : i === 6 ? "#4F8FE8" : THEME.textMuted }}>{d}</div>
               ))}
             </div>
 
@@ -511,12 +512,12 @@ export default function CalendarPage() {
                 return (
                   <div key={day} onClick={() => setSelDay(isSel ? null : day)} style={{
                     padding: "3px 3px 2px", borderRight: `1px solid ${THEME.border}`, borderBottom: `1px solid ${THEME.border}`,
-                    background: isSel ? THEME.selDay : isToday ? "#f0f7ff" : THEME.surface,
+                    background: isSel ? THEME.selDay : isToday ? "rgba(201,168,76,0.06)" : THEME.surface,
                     cursor: "pointer", overflow: "hidden",
                   }}>
                     <div style={{ marginBottom: 2 }}>
                       {isToday
-                        ? <span style={{ background: THEME.today, color: "#fff", borderRadius: 99, width: 18, height: 18, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700 }}>{day}</span>
+                        ? <span style={{ background: THEME.today, color: "#0A0C14", borderRadius: 99, width: 18, height: 18, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700 }}>{day}</span>
                         : <span style={{ fontSize: 10, color: THEME.textMuted }}>{day}</span>}
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
@@ -581,7 +582,7 @@ export default function CalendarPage() {
                     onKeyDown={e => e.key === "Enter" && addNote()}
                     placeholder="Add note, press Enter"
                     style={{ flex: 1, background: THEME.surfaceAlt, border: `1px solid ${THEME.border}`, color: THEME.text, borderRadius: 5, padding: "4px 6px", fontSize: 10 }} />
-                  <button type="button" onClick={addNote} style={{ background: THEME.accent, color: "#fff", border: "none", borderRadius: 5, padding: "4px 8px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>+</button>
+                  <button type="button" onClick={addNote} style={{ background: THEME.accent, color: "#0A0C14", border: "none", borderRadius: 5, padding: "4px 8px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>+</button>
                 </div>
               </div>
 
@@ -596,7 +597,7 @@ export default function CalendarPage() {
                     background: note.color, color: "#1e293b", borderRadius: 6,
                     padding: "6px 22px 6px 8px", width: 150,
                     fontSize: 10, fontWeight: 500, cursor: "grab", lineHeight: 1.4,
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)", userSelect: "none",
+                    boxShadow: "0 2px 12px rgba(0,0,0,0.35)", userSelect: "none",
                     zIndex: dragging === note.id ? 100 : 1,
                   }}>
                     <button type="button" onClick={() => deleteNote(note.id)} style={{
@@ -604,7 +605,7 @@ export default function CalendarPage() {
                       cursor: "pointer", fontSize: 12, color: "#64748b",
                     }}>×</button>
                     {note.ticker_tag && (
-                      <span style={{ fontSize: 8, fontWeight: 700, background: "#e2e8f0", color: "#475569", borderRadius: 3, padding: "1px 4px", marginBottom: 3, display: "inline-block" }}>
+                      <span style={{ fontSize: 8, fontWeight: 700, background: THEME.surfaceHover, color: THEME.textMuted, borderRadius: 3, padding: "1px 4px", marginBottom: 3, display: "inline-block" }}>
                         {note.ticker_tag}
                       </span>
                     )}

@@ -1,10 +1,10 @@
 import React from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import AtheriumBottomNav from './AtheriumBottomNav'
 
 const NAV = [
   { section: 'Main', items: [
     { id: 'dashboard', path: '/dashboard', icon: 'ti-layout-dashboard', label: 'Dashboard' },
-    { id: 'calendar', path: '/calendar', emoji: '📅', label: 'Calendar' },
     { id: 'customers', path: '/customers', icon: 'ti-users', label: 'Customer Management' },
     { id: 'reports', path: '/reports', icon: 'ti-chart-bar', label: 'Reports' },
   ]},
@@ -80,6 +80,9 @@ export default function Sidebar({ activePage, userEmail = 'Admin', onSignOut }) 
       </nav>
 
       <div style={s.footer}>
+        <div style={{ marginBottom: 8 }}>
+          <AtheriumBottomNav compact />
+        </div>
         <div style={s.userChip}>
           <div style={s.avatar}>{(userEmail[0] || 'A').toUpperCase()}</div>
           <div style={{ minWidth: 0, flex: 1 }}>

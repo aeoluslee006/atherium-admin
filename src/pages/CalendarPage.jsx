@@ -1,10 +1,13 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
+import { useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import AtheriumNavRail from "../components/AtheriumNavRail";
+import StickersPanel from "../components/StickersPanel";
+import { usePharmaNotes } from "../hooks/usePharmaNotes";
 
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-const NOTE_COLORS = ["#fef9c3","#dcfce7","#dbeafe","#fce7f3","#ede9fe","#fee2e2"];
 const ALL = "All";
+const EVENT_TYPES = ["FDA", "TRIAL", "IR", "OTHER"];
 
 // Atherium palette — slightly lifted from pure night, matches admin shell
 const THEME = {
@@ -54,34 +57,14 @@ const FILTER_LABELS = { All: "All", FDA: "💊 FDA", EARN: "📊 Earnings", TRIA
 const fmtDate = (d) => new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 const diffDays = (d) => Math.ceil((new Date(d) - new Date()) / 86400000);
 
-function PriorityBadge({ level }) {
-  const styles = {
-    P1: { bg: "rgba(232,148,58,0.18)", color: "#E8943A", label: "P1" },
-    P2: { bg: "rgba(79,143,232,0.18)", color: "#4F8FE8", label: "P2" },
-    bonus: { bg: "rgba(123,92,240,0.18)", color: "#7B5CF0", label: "Bonus" },
-  };
-  const s = styles[level];
-  return (
-    <span style={{
-      fontSize: 8, fontWeight: 700, padding: "1px 5px", borderRadius: 3,
-      background: s.bg, color: s.color, letterSpacing: 0.3,
-    }}>{s.label}</span>
-  );
-}
-
-function SectionCard({ title, priority, children, apiLabel }) {
+function SectionCard({ title, children, muted }) {
   return (
     <div style={{
       background: THEME.surface, border: `1px solid ${THEME.border}`,
       borderRadius: 8, padding: "10px 12px", marginBottom: 8,
     }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-        {priority && <PriorityBadge level={priority} />}
-        <span style={{ fontWeight: 700, fontSize: 11, color: THEME.text }}>{title}</span>
-        {apiLabel && (
-          <span style={{ marginLeft: "auto", fontSize: 8, color: THEME.textFaint, fontFamily: "monospace" }}>{apiLabel}</span>
-        )}
-      </div>
+      <div style={{ fontWeight: 700, fontSize: 11, color: THEME.text, marginBottom: muted ? 4 : 8 }}>{title}</div>
+      {muted && <div style={{ fontSize: 9, color: THEME.textFaint, marginBottom: 8 }}>{muted}</div>}
       {children}
     </div>
   );
@@ -96,62 +79,11 @@ function PlaceholderField({ label, hint }) {
   );
 }
 
-const NAV_TABS = [
-  { id: "admin", label: "Admin", path: "/dashboard", emoji: "⚙️" },
-  { id: "calendar", label: "Calendar", path: "/calendar", emoji: "📅" },
-  { id: "stickers", label: "Stickers", path: "/stickers", emoji: "📌" },
-];
-
-function CalendarNavRail({ activeView, lastSync, onSync }) {
-  const navigate = useNavigate();
+function RailSection({ title, children }) {
   return (
-    <div style={{
-      width: 148, background: THEME.surface, borderRight: `1px solid ${THEME.border}`,
-      display: "flex", flexDirection: "column", flexShrink: 0,
-    }}>
-      <div style={{ padding: "14px 12px 10px", borderBottom: `1px solid ${THEME.border}` }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-          <div style={{
-            width: 28, height: 28, flexShrink: 0,
-            background: "linear-gradient(135deg, #8B6914, #C9A84C)",
-            clipPath: "polygon(50% 0%,0% 100%,15% 100%,50% 20%,85% 100%,100% 100%)",
-          }} />
-          <div>
-            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 11, fontWeight: 600, color: THEME.accent, letterSpacing: 1.5 }}>ATHERIUM</div>
-            <div style={{ fontSize: 8, color: THEME.textFaint, letterSpacing: 1, textTransform: "uppercase" }}>Holdings</div>
-          </div>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-          {NAV_TABS.map(tab => {
-            const active = activeView === tab.id;
-            return (
-              <button key={tab.id} type="button" onClick={() => navigate(tab.path)} style={{
-                display: "flex", alignItems: "center", gap: 6,
-                padding: "6px 8px", borderRadius: 6, cursor: "pointer", textAlign: "left",
-                background: active ? THEME.accentSoft : "transparent",
-                border: `1px solid ${active ? THEME.borderStrong : "transparent"}`,
-                color: active ? THEME.accentText : THEME.textMuted,
-                fontSize: 10, fontWeight: active ? 600 : 500,
-              }}>
-                <span style={{ fontSize: 11 }}>{tab.emoji}</span>
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-      <div style={{ flex: 1 }} />
-      <div style={{ padding: "10px 12px", borderTop: `1px solid ${THEME.border}` }}>
-        {lastSync && (
-          <div style={{ fontSize: 8, color: THEME.textFaint, marginBottom: 8, lineHeight: 1.3 }}>
-            Last sync<br />{new Date(lastSync).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
-          </div>
-        )}
-        <button type="button" onClick={onSync} style={{
-          width: "100%", padding: "5px 0", background: THEME.accentSoft, border: `1px solid ${THEME.accent}`,
-          color: THEME.accentText, borderRadius: 6, fontSize: 9, fontWeight: 600, cursor: "pointer",
-        }}>🔄 Sync data</button>
-      </div>
+    <div style={{ padding: "10px 12px", borderBottom: `1px solid ${THEME.border}` }}>
+      <div style={{ fontSize: 9, fontWeight: 700, color: THEME.textFaint, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>{title}</div>
+      {children}
     </div>
   );
 }
@@ -164,6 +96,12 @@ function CompanyDetailPanel({ ticker, events, earnings, onClose }) {
   const companyName = companyEarnings[0]?.company_name || companyEvents[0]?.company_name || ticker;
   const upcomingEarn = companyEarnings.filter(e => new Date(e.report_date) >= new Date());
   const pastEarn = companyEarnings.filter(e => new Date(e.report_date) < new Date());
+
+  const allUpcoming = [
+    ...companyEvents.filter(e => new Date(e.event_date) >= new Date()).map(e => ({ ...e, date: e.event_date, kind: "event" })),
+    ...upcomingEarn.map(e => ({ ...e, date: e.report_date, kind: "earning", label: `${e.fiscal_quarter} Earnings` })),
+  ].sort((a, b) => new Date(a.date) - new Date(b.date));
+  const nextCatalyst = allUpcoming[0];
 
   return (
     <div style={{
@@ -178,6 +116,21 @@ function CompanyDetailPanel({ ticker, events, earnings, onClose }) {
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 800, fontSize: 18, color: THEME.accentText, letterSpacing: 0.5 }}>{ticker}</div>
           <div style={{ fontSize: 11, color: THEME.textMuted, marginTop: 2 }}>{companyName}</div>
+          {nextCatalyst && (
+            <div style={{
+              marginTop: 8, padding: "6px 8px", borderRadius: 6,
+              background: THEME.accentSoft, border: `1px solid ${THEME.borderStrong}`,
+            }}>
+              <div style={{ fontSize: 8, color: THEME.textFaint, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 }}>Next catalyst</div>
+              <div style={{ fontSize: 10, fontWeight: 600, color: THEME.text }}>{nextCatalyst.label || nextCatalyst.fiscal_quarter}</div>
+              <div style={{ fontSize: 9, color: THEME.textMuted, marginTop: 2 }}>
+                {fmtDate(nextCatalyst.date)}
+                {dDayLabel(nextCatalyst.date) && (
+                  <span style={{ marginLeft: 6, fontWeight: 700, color: dDayColor(nextCatalyst.date) }}>{dDayLabel(nextCatalyst.date)}</span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
         <button type="button" onClick={onClose} style={{
           background: THEME.surfaceAlt, border: `1px solid ${THEME.border}`,
@@ -188,17 +141,14 @@ function CompanyDetailPanel({ ticker, events, earnings, onClose }) {
 
       <div style={{ flex: 1, overflow: "auto", padding: "10px 12px" }}>
 
-        <SectionCard title="Live Quote" priority="P2" apiLabel="GLOBAL_QUOTE">
+        <SectionCard title="Live Quote" muted="Updates after market data sync">
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
             <PlaceholderField label="Price" hint="—" />
             <PlaceholderField label="Change %" hint="—" />
           </div>
-          <div style={{ fontSize: 9, color: THEME.textFaint, marginTop: 6 }}>
-            Shown next to ticker in calendar once synced.
-          </div>
         </SectionCard>
 
-        <SectionCard title="Company Overview" priority="bonus" apiLabel="OVERVIEW">
+        <SectionCard title="Company Overview">
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
             <PlaceholderField label="Market Cap" />
             <PlaceholderField label="P/E Ratio" />
@@ -207,7 +157,7 @@ function CompanyDetailPanel({ ticker, events, earnings, onClose }) {
           </div>
         </SectionCard>
 
-        <SectionCard title="Earnings Calendar" priority="P1" apiLabel="EARNINGS_CALENDAR">
+        <SectionCard title="Earnings Calendar">
           {upcomingEarn.length === 0 ? (
             <div style={{ fontSize: 10, color: THEME.textMuted }}>No upcoming earnings dates.</div>
           ) : (
@@ -231,7 +181,7 @@ function CompanyDetailPanel({ ticker, events, earnings, onClose }) {
           )}
         </SectionCard>
 
-        <SectionCard title="Earnings History" priority="P1" apiLabel="EARNINGS">
+        <SectionCard title="Earnings History">
           {[...upcomingEarn, ...pastEarn].length === 0 ? (
             <div style={{ fontSize: 10, color: THEME.textMuted }}>No earnings data yet.</div>
           ) : (
@@ -272,7 +222,7 @@ function CompanyDetailPanel({ ticker, events, earnings, onClose }) {
           )}
         </SectionCard>
 
-        <SectionCard title="News Sentiment" priority="P2" apiLabel="NEWS_SENTIMENT">
+        <SectionCard title="News Sentiment" muted="Pre-PDUFA and pre-earnings signal">
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{
               width: 48, height: 48, borderRadius: "50%",
@@ -280,12 +230,7 @@ function CompanyDetailPanel({ ticker, events, earnings, onClose }) {
               display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: 18, color: THEME.textFaint,
             }}>—</div>
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 600, color: THEME.textMuted }}>Sentiment score</div>
-              <div style={{ fontSize: 9, color: THEME.textFaint, marginTop: 2 }}>
-                Pre-PDUFA / pre-earnings signal
-              </div>
-            </div>
+            <div style={{ fontSize: 10, color: THEME.textMuted }}>Sentiment score — coming soon</div>
           </div>
         </SectionCard>
 
@@ -327,14 +272,13 @@ export default function CalendarPage() {
   const [selDay, setSelDay] = useState(null);
   const [selCompany, setSelCompany] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [stickersOpen, setStickersOpen] = useState(false);
   const [typeFilter, setTypeFilter] = useState(ALL);
   const [tickerFilter, setTickerFilter] = useState(ALL);
-  const [newNote, setNewNote] = useState("");
-  const [noteColor, setNoteColor] = useState(NOTE_COLORS[0]);
-  const [dragging, setDragging] = useState(null);
   const [lastSync, setLastSync] = useState(null);
-  const dragOffset = useRef({ x: 0, y: 0 });
-  const boardRef = useRef(null);
+  const [newEv, setNewEv] = useState({ ticker: "", date: "", event_type: "FDA", label: "" });
+
+  const sticker = usePharmaNotes();
 
   const openCompany = (ticker, e) => {
     e?.stopPropagation?.();
@@ -343,26 +287,37 @@ export default function CalendarPage() {
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    const [evRes, erRes, ntRes, lgRes] = await Promise.all([
+    const [evRes, erRes, lgRes] = await Promise.all([
       supabase.from("pharma_events").select("*").order("event_date"),
       supabase.from("pharma_earnings").select("*").order("report_date"),
-      supabase.from("pharma_notes").select("*").order("created_at"),
       supabase.from("pharma_sync_log").select("synced_at").order("synced_at", { ascending: false }).limit(1),
     ]);
     if (evRes.data) setEvents(evRes.data);
     if (erRes.data) setEarnings(erRes.data);
-    if (ntRes.data) setNotes(ntRes.data);
     if (lgRes.data?.[0]) setLastSync(lgRes.data[0].synced_at);
     setLoading(false);
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") setSelCompany(null); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
   const firstDay = new Date(viewYear, viewMonth, 1).getDay();
   const weekRows = Math.ceil((firstDay + daysInMonth) / 7);
   const prevMonth = () => { if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11); } else setViewMonth(m => m - 1); setSelDay(null); };
   const nextMonth = () => { if (viewMonth === 11) { setViewYear(y => y + 1); setViewMonth(0); } else setViewMonth(m => m + 1); setSelDay(null); };
+  const goToday = () => {
+    setViewYear(today.getFullYear());
+    setViewMonth(today.getMonth());
+    setSelDay(today.getDate());
+    setSelCompany(null);
+  };
+  const isCurrentMonth = viewYear === today.getFullYear() && viewMonth === today.getMonth();
 
   const allItems = [
     ...events.map(e => ({ ...e, _type: "event", date: e.event_date, status: e.status })),
@@ -389,44 +344,36 @@ export default function CalendarPage() {
   });
 
   const tickers = [ALL, ...new Set(allItems.map(e => e.ticker).sort())];
+  const monthEventCount = filtered.filter(e => {
+    const d = new Date(e.date);
+    return d.getFullYear() === viewYear && d.getMonth() === viewMonth;
+  }).length;
 
-  const addNote = async () => {
-    if (!newNote.trim()) return;
-    const { data } = await supabase.from("pharma_notes")
-      .insert({ content: newNote, color: noteColor, pos_x: 30, pos_y: 30 })
-      .select().single();
-    if (data) setNotes(n => [...n, data]);
-    setNewNote("");
+  const monthEvents = events.filter(e => {
+    const d = new Date(e.event_date);
+    return d.getFullYear() === viewYear && d.getMonth() === viewMonth;
+  }).sort((a, b) => new Date(a.event_date) - new Date(b.event_date));
+
+  const addEvent = async () => {
+    if (!newEv.ticker.trim() || !newEv.date || !newEv.label.trim()) return;
+    const { data, error } = await supabase.from("pharma_events").insert({
+      ticker: newEv.ticker.toUpperCase(),
+      company_name: newEv.ticker.toUpperCase(),
+      event_date: newEv.date,
+      event_type: newEv.event_type,
+      label: newEv.label,
+      status: newEv.event_type === "FDA" ? "pending" : "upcoming",
+      is_manual: true,
+    }).select().single();
+    if (error) { alert(error.message); return; }
+    if (data) setEvents(ev => [...ev, data]);
+    setNewEv({ ticker: "", date: "", event_type: "FDA", label: "" });
   };
 
-  const deleteNote = async (id) => {
-    await supabase.from("pharma_notes").delete().eq("id", id);
-    setNotes(n => n.filter(note => note.id !== id));
-  };
-
-  const saveNotePos = async (id, x, y) => {
-    await supabase.from("pharma_notes").update({ pos_x: x, pos_y: y }).eq("id", id);
-  };
-
-  const onMouseDown = (e, id) => {
-    const b = boardRef.current.getBoundingClientRect();
-    const note = notes.find(n => n.id === id);
-    dragOffset.current = { x: e.clientX - b.left - note.pos_x, y: e.clientY - b.top - note.pos_y };
-    setDragging(id);
-  };
-  const onMouseMove = (e) => {
-    if (!dragging) return;
-    const b = boardRef.current.getBoundingClientRect();
-    const x = Math.max(0, Math.min(e.clientX - b.left - dragOffset.current.x, b.width - 160));
-    const y = Math.max(0, Math.min(e.clientY - b.top - dragOffset.current.y, b.height - 64));
-    setNotes(n => n.map(note => note.id === dragging ? { ...note, pos_x: x, pos_y: y } : note));
-  };
-  const onMouseUp = () => {
-    if (dragging) {
-      const note = notes.find(n => n.id === dragging);
-      if (note) saveNotePos(dragging, note.pos_x, note.pos_y);
-    }
-    setDragging(null);
+  const deleteEvent = async (id) => {
+    if (!window.confirm("Remove this event?")) return;
+    await supabase.from("pharma_events").delete().eq("id", id);
+    setEvents(ev => ev.filter(e => e.id !== id));
   };
 
   const triggerSync = async () => {
@@ -470,57 +417,107 @@ export default function CalendarPage() {
     );
   };
 
-  const NotesBoard = ({ fullScreen }) => (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
-      <div style={{ padding: fullScreen ? "10px 14px" : "10px", borderBottom: `1px solid ${THEME.border}`, flexShrink: 0, background: THEME.surface }}>
-        <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 6, color: THEME.accentText }}>📌 Stickers</div>
-        <div style={{ display: "flex", gap: 3, marginBottom: 6 }}>
-          {NOTE_COLORS.map(c => (
-            <div key={c} onClick={() => setNoteColor(c)} style={{
-              width: 16, height: 16, borderRadius: "50%", background: c, cursor: "pointer",
-              border: noteColor === c ? `2px solid ${THEME.accent}` : "2px solid transparent", flexShrink: 0,
-            }} />
-          ))}
-        </div>
-        <div style={{ display: "flex", gap: 4, maxWidth: fullScreen ? 360 : undefined }}>
-          <input value={newNote} onChange={e => setNewNote(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && addNote()}
-            placeholder="Add sticker, press Enter"
-            style={{ flex: 1, background: THEME.surfaceAlt, border: `1px solid ${THEME.border}`, color: THEME.text, borderRadius: 5, padding: "4px 6px", fontSize: 10 }} />
-          <button type="button" onClick={addNote} style={{ background: THEME.accent, color: "#0A0C14", border: "none", borderRadius: 5, padding: "4px 8px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>+</button>
-        </div>
-      </div>
-      <div ref={boardRef} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
-        style={{ flex: 1, position: "relative", background: THEME.surfaceAlt, overflow: "hidden", minHeight: 0 }}>
-        {notes.length === 0 && (
-          <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", color: THEME.textFaint, fontSize: 11, textAlign: "center" }}>
-            Drag stickers anywhere on the board
+  const inputStyle = {
+    width: "100%", background: THEME.surfaceAlt, border: `1px solid ${THEME.border}`,
+    color: THEME.text, borderRadius: 5, padding: "4px 6px", fontSize: 9, marginBottom: 4,
+  };
+
+  const calendarRailTools = (
+    <>
+      <RailSection title="Sync">
+        {lastSync && (
+          <div style={{ fontSize: 8, color: THEME.textFaint, marginBottom: 6, lineHeight: 1.3 }}>
+            {new Date(lastSync).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
           </div>
         )}
-        {notes.map(note => (
-          <div key={note.id} onMouseDown={e => onMouseDown(e, note.id)} style={{
-            position: "absolute", left: note.pos_x, top: note.pos_y,
-            background: note.color, color: "#1e293b", borderRadius: 6,
-            padding: "6px 22px 6px 8px", width: 150,
-            fontSize: 10, fontWeight: 500, cursor: "grab", lineHeight: 1.4,
-            boxShadow: "0 2px 12px rgba(0,0,0,0.35)", userSelect: "none",
-            zIndex: dragging === note.id ? 100 : 1,
-          }}>
-            <button type="button" onClick={() => deleteNote(note.id)} style={{
-              position: "absolute", top: 3, right: 5, background: "none", border: "none",
-              cursor: "pointer", fontSize: 12, color: "#64748b",
-            }}>×</button>
-            {note.ticker_tag && (
-              <span style={{ fontSize: 8, fontWeight: 700, background: THEME.surfaceHover, color: THEME.textMuted, borderRadius: 3, padding: "1px 4px", marginBottom: 3, display: "inline-block" }}>
-                {note.ticker_tag}
-              </span>
-            )}
-            <div>{note.content}</div>
-          </div>
+        <button type="button" onClick={triggerSync} style={{
+          width: "100%", padding: "5px 0", background: THEME.accentSoft, border: `1px solid ${THEME.accent}`,
+          color: THEME.accentText, borderRadius: 6, fontSize: 9, fontWeight: 600, cursor: "pointer",
+        }}>🔄 Sync data</button>
+      </RailSection>
+      <RailSection title="Add event">
+        <input placeholder="Ticker" value={newEv.ticker} onChange={e => setNewEv(v => ({ ...v, ticker: e.target.value }))} style={inputStyle} />
+        <input type="date" value={newEv.date} onChange={e => setNewEv(v => ({ ...v, date: e.target.value }))} style={inputStyle} />
+        <select value={newEv.event_type} onChange={e => setNewEv(v => ({ ...v, event_type: e.target.value }))} style={inputStyle}>
+          {EVENT_TYPES.map(t => <option key={t}>{t}</option>)}
+        </select>
+        <input placeholder="Label" value={newEv.label} onChange={e => setNewEv(v => ({ ...v, label: e.target.value }))} style={inputStyle} />
+        <button type="button" onClick={addEvent} style={{
+          width: "100%", padding: "5px 0", background: THEME.accent, color: "#0A0C14",
+          border: "none", borderRadius: 6, fontSize: 9, fontWeight: 600, cursor: "pointer",
+        }}>+ Add</button>
+      </RailSection>
+      <RailSection title={`This month (${monthEvents.length})`}>
+        {monthEvents.length === 0 && <div style={{ fontSize: 9, color: THEME.textFaint }}>No events</div>}
+        {monthEvents.map(ev => {
+          const sm = STATUS_META[ev.status] ?? STATUS_META.upcoming;
+          return (
+            <div key={ev.id} style={{
+              display: "flex", alignItems: "center", gap: 4, padding: "4px 0",
+              borderBottom: `1px solid ${THEME.border}`, fontSize: 9,
+            }}>
+              <span style={{ fontWeight: 700, color: sm.dot, flexShrink: 0 }}>{ev.ticker}</span>
+              <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: THEME.textMuted }}>{ev.label}</span>
+              <button type="button" onClick={() => deleteEvent(ev.id)} style={{
+                background: "none", border: "none", color: "#E84F4F", cursor: "pointer", fontSize: 11, padding: 0,
+              }}>×</button>
+            </div>
+          );
+        })}
+      </RailSection>
+    </>
+  );
+
+  const stickersRailTools = (
+    <RailSection title={`Stickers (${sticker.notes.length})`}>
+      <div style={{ display: "flex", gap: 3, marginBottom: 6 }}>
+        {["#fef9c3","#dcfce7","#dbeafe","#fce7f3","#ede9fe","#fee2e2"].map(c => (
+          <button key={c} type="button" onClick={() => sticker.setNoteColor(c)} style={{
+            width: 14, height: 14, borderRadius: "50%", background: c, cursor: "pointer", padding: 0,
+            border: sticker.noteColor === c ? `2px solid ${THEME.accent}` : "2px solid transparent",
+          }} />
         ))}
       </div>
-    </div>
+      <input
+        value={sticker.newNote}
+        onChange={e => sticker.setNewNote(e.target.value)}
+        onKeyDown={e => e.key === "Enter" && sticker.addNote()}
+        placeholder="New sticker…"
+        style={inputStyle}
+      />
+      <button type="button" onClick={sticker.addNote} style={{
+        width: "100%", padding: "5px 0", background: THEME.accent, color: "#0A0C14",
+        border: "none", borderRadius: 6, fontSize: 9, fontWeight: 600, cursor: "pointer", marginBottom: 6,
+      }}>+ Add sticker</button>
+      {sticker.notes.map(note => (
+        <div key={note.id} style={{
+          display: "flex", alignItems: "center", gap: 4, padding: "4px 0",
+          borderBottom: `1px solid ${THEME.border}`, fontSize: 9,
+        }}>
+          <span style={{ width: 8, height: 8, borderRadius: 2, background: note.color, flexShrink: 0 }} />
+          <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: THEME.textMuted }}>{note.content}</span>
+          <button type="button" onClick={() => sticker.deleteNote(note.id)} style={{
+            background: "none", border: "none", color: "#E84F4F", cursor: "pointer", fontSize: 11, padding: 0,
+          }}>×</button>
+        </div>
+      ))}
+    </RailSection>
   );
+
+  const stickerPanelProps = {
+    notes: sticker.notes,
+    newNote: sticker.newNote,
+    setNewNote: sticker.setNewNote,
+    noteColor: sticker.noteColor,
+    setNoteColor: sticker.setNoteColor,
+    onAdd: sticker.addNote,
+    onDelete: sticker.deleteNote,
+    boardRef: sticker.boardRef,
+    onMouseDown: sticker.onMouseDown,
+    onMouseMove: sticker.onMouseMove,
+    onMouseUp: sticker.onMouseUp,
+    dragging: sticker.dragging,
+  };
 
   if (loading) {
     return (
@@ -532,22 +529,28 @@ export default function CalendarPage() {
 
   return (
     <div style={{ display: "flex", height: "100vh", background: THEME.bg, color: THEME.text, fontFamily: "'Outfit', sans-serif", overflow: "hidden", fontSize: 12 }}>
-      <CalendarNavRail activeView={activeView} lastSync={lastSync} onSync={triggerSync} />
+      <AtheriumNavRail>
+        {activeView === "stickers" ? stickersRailTools : calendarRailTools}
+      </AtheriumNavRail>
 
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
 
         {activeView === "stickers" ? (
-          <NotesBoard fullScreen />
+          <StickersPanel {...stickerPanelProps} fullWidth hideControls title="📌 Sticker Board — drag to arrange" />
         ) : (
           <>
-            {/* Toolbar */}
             <div style={{ background: THEME.surface, borderBottom: `1px solid ${THEME.border}`, padding: "6px 12px", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", flexShrink: 0 }}>
               <button type="button" onClick={prevMonth} style={{ background: THEME.surfaceAlt, border: `1px solid ${THEME.border}`, color: THEME.textMuted, borderRadius: 5, width: 24, height: 24, cursor: "pointer", fontSize: 12 }}>‹</button>
               <span style={{ fontWeight: 700, fontSize: 12, minWidth: 110, textAlign: "center" }}>{MONTH_NAMES[viewMonth]} {viewYear}</span>
               <button type="button" onClick={nextMonth} style={{ background: THEME.surfaceAlt, border: `1px solid ${THEME.border}`, color: THEME.textMuted, borderRadius: 5, width: 24, height: 24, cursor: "pointer", fontSize: 12 }}>›</button>
-
+              {!isCurrentMonth && (
+                <button type="button" onClick={goToday} style={{
+                  padding: "2px 8px", borderRadius: 5, fontSize: 9, fontWeight: 600, cursor: "pointer",
+                  background: THEME.accentSoft, border: `1px solid ${THEME.accent}`, color: THEME.accentText,
+                }}>Today</button>
+              )}
+              <span style={{ fontSize: 9, color: THEME.textFaint }}>{monthEventCount} events</span>
               <div style={{ width: 1, height: 16, background: THEME.border, margin: "0 2px" }} />
-
               {["All", "FDA", "EARN", "TRIAL", "IR"].map(t => (
                 <button key={t} type="button" onClick={() => setTypeFilter(t)} style={{
                   padding: "2px 7px", borderRadius: 5, fontSize: 10, fontWeight: 600, cursor: "pointer",
@@ -556,23 +559,25 @@ export default function CalendarPage() {
                   color: typeFilter === t ? THEME.accentText : THEME.textMuted,
                 }}>{FILTER_LABELS[t]}</button>
               ))}
-
               <select value={tickerFilter} onChange={e => { setTickerFilter(e.target.value); setSelDay(null); }}
                 style={{ background: THEME.surfaceAlt, border: `1px solid ${THEME.border}`, color: THEME.text, borderRadius: 5, padding: "2px 6px", fontSize: 10, marginLeft: "auto" }}>
                 {tickers.map(t => <option key={t}>{t}</option>)}
               </select>
+              <button type="button" onClick={() => setStickersOpen(o => !o)} style={{
+                padding: "2px 8px", borderRadius: 5, fontSize: 10, fontWeight: 600, cursor: "pointer",
+                background: stickersOpen ? "rgba(123,92,240,0.15)" : "transparent",
+                border: `1px solid ${stickersOpen ? "rgba(123,92,240,0.4)" : THEME.border}`,
+                color: stickersOpen ? "#c4b5fd" : THEME.textMuted,
+              }}>📌 Stickers</button>
             </div>
 
             <div style={{ flex: 1, display: "flex", overflow: "hidden", minHeight: 0 }}>
-
-              {/* Calendar grid — fills viewport, no scroll */}
               <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0 }}>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", background: THEME.surface, borderBottom: `1px solid ${THEME.border}`, flexShrink: 0 }}>
                   {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
                     <div key={d} style={{ textAlign: "center", padding: "5px 0", fontSize: 10, fontWeight: 600, color: i === 0 ? "#E84F4F" : i === 6 ? "#4F8FE8" : THEME.textMuted }}>{d}</div>
                   ))}
                 </div>
-
                 <div style={{
                   flex: 1, minHeight: 0,
                   display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gridTemplateRows: `repeat(${weekRows}, 1fr)`,
@@ -590,8 +595,7 @@ export default function CalendarPage() {
                       <div key={day} onClick={() => setSelDay(isSel ? null : day)} style={{
                         padding: "4px 4px 2px", borderRight: `1px solid ${THEME.border}`, borderBottom: `1px solid ${THEME.border}`,
                         background: isSel ? THEME.selDay : isToday ? "rgba(201,168,76,0.06)" : THEME.surface,
-                        cursor: "pointer", overflow: "hidden", minHeight: 0,
-                        display: "flex", flexDirection: "column",
+                        cursor: "pointer", overflow: "hidden", minHeight: 0, display: "flex", flexDirection: "column",
                       }}>
                         <div style={{ marginBottom: 3, flexShrink: 0 }}>
                           {isToday
@@ -611,12 +615,11 @@ export default function CalendarPage() {
               </div>
 
               {selCompany && (
-                <CompanyDetailPanel
-                  ticker={selCompany}
-                  events={events}
-                  earnings={earnings}
-                  onClose={() => setSelCompany(null)}
-                />
+                <CompanyDetailPanel ticker={selCompany} events={events} earnings={earnings} onClose={() => setSelCompany(null)} />
+              )}
+
+              {stickersOpen && (
+                <StickersPanel {...stickerPanelProps} width={280} title="📌 Quick Stickers" />
               )}
             </div>
           </>

@@ -8,11 +8,26 @@ const PAGE_TITLES = {
   ttkc: 'TTKC Admin',
 }
 
-export default function Topbar({ activePage, userEmail, onSignOut, onNavigate }) {
+export default function Topbar({ activePage, userEmail, onSignOut, onNavigate, stickersOpen, onToggleStickers }) {
   return (
     <div style={s.topbar}>
       <div style={s.title}>ATHERIUM HOLDINGS{PAGE_TITLES[activePage] ? ` · ${PAGE_TITLES[activePage]}` : ''}</div>
       <div style={s.actions}>
+        {onToggleStickers && (
+          <button
+            type="button"
+            onClick={onToggleStickers}
+            style={{
+              ...s.iconBtn, width: 'auto', padding: '0 10px', gap: 6, fontSize: 11,
+              background: stickersOpen ? 'rgba(123,92,240,0.15)' : 'var(--night3)',
+              borderColor: stickersOpen ? 'rgba(123,92,240,0.4)' : 'var(--border)',
+              color: stickersOpen ? '#c4b5fd' : 'var(--muted)',
+            }}
+            title="Toggle stickers panel"
+          >
+            📌 Stickers
+          </button>
+        )}
         <div style={{ ...s.badge, ...s.badgeCosmo }}>
           <div style={{ ...s.dot, background: 'var(--cosmo)' }} />
           Cosmonova

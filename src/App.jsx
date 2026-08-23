@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react'
 import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
 import Topbar from './components/Topbar'
+import StickersPanel from './components/StickersPanel'
+import { usePharmaNotes } from './hooks/usePharmaNotes'
 import Dashboard from './pages/Dashboard'
 import Customers from './pages/Customers'
 import Reports from './pages/Reports'
@@ -16,10 +18,27 @@ import { supabase } from './lib/supabase'
 function AdminLayout({ userEmail, onSignOut }) {
   const location = useLocation()
   const navigate = useNavigate()
+  const [stickersOpen, setStickersOpen] = useState(false)
+  const sticker = usePharmaNotes()
   const pathPage = location.pathname.replace(/^\//, '') || 'dashboard'
   const activePage = ['dashboard', 'customers', 'reports', 'community', 'ttkc'].includes(pathPage)
     ? pathPage
     : 'dashboard'
+
+  const stickerPanelProps = {
+    notes: sticker.notes,
+    newNote: sticker.newNote,
+    setNewNote: sticker.setNewNote,
+    noteColor: sticker.noteColor,
+    setNoteColor: sticker.setNoteColor,
+    onAdd: sticker.addNote,
+    onDelete: sticker.deleteNote,
+    boardRef: sticker.boardRef,
+    onMouseDown: sticker.onMouseDown,
+    onMouseMove: sticker.onMouseMove,
+    onMouseUp: sticker.onMouseUp,
+    dragging: sticker.dragging,
+  }
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
@@ -30,10 +49,17 @@ function AdminLayout({ userEmail, onSignOut }) {
           userEmail={userEmail}
           onSignOut={onSignOut}
           onNavigate={(page) => navigate(`/${page}`)}
+          stickersOpen={stickersOpen}
+          onToggleStickers={() => setStickersOpen(o => !o)}
         />
-        <main style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
-          <Outlet />
-        </main>
+        <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
+          <main style={{ flex: 1, overflowY: 'auto', padding: 24, minWidth: 0 }}>
+            <Outlet />
+          </main>
+          {stickersOpen && (
+            <StickersPanel {...stickerPanelProps} width={320} title="📌 Stickers" />
+          )}
+        </div>
       </div>
     </div>
   )

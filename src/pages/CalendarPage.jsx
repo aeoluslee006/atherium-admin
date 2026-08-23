@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -21,6 +22,20 @@ const THEME = {
   accentText: "#E8D08A",   // --gold-light
   today: "#C9A84C",
   selDay: "rgba(201,168,76,0.08)",
+};
+
+const dDayLabel = (date) => {
+  const d = diffDays(date);
+  if (d < 0) return null;
+  if (d === 0) return "D-Day";
+  return `D-${d}`;
+};
+
+const dDayColor = (date) => {
+  const d = diffDays(date);
+  if (d <= 7) return "#E84F4F";
+  if (d <= 30) return "#E8943A";
+  return THEME.textFaint;
 };
 
 const STATUS_META = {
@@ -77,6 +92,66 @@ function PlaceholderField({ label, hint }) {
     <div style={{ background: THEME.surfaceAlt, borderRadius: 5, padding: "6px 8px" }}>
       <div style={{ fontSize: 9, color: THEME.textFaint, marginBottom: 2 }}>{label}</div>
       <div style={{ fontSize: 11, color: THEME.textMuted, fontStyle: "italic" }}>{hint ?? "Coming soon"}</div>
+    </div>
+  );
+}
+
+const NAV_TABS = [
+  { id: "admin", label: "Admin", path: "/dashboard", emoji: "⚙️" },
+  { id: "calendar", label: "Calendar", path: "/calendar", emoji: "📅" },
+  { id: "stickers", label: "Stickers", path: "/stickers", emoji: "📌" },
+];
+
+function CalendarNavRail({ activeView, lastSync, onSync }) {
+  const navigate = useNavigate();
+  return (
+    <div style={{
+      width: 148, background: THEME.surface, borderRight: `1px solid ${THEME.border}`,
+      display: "flex", flexDirection: "column", flexShrink: 0,
+    }}>
+      <div style={{ padding: "14px 12px 10px", borderBottom: `1px solid ${THEME.border}` }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <div style={{
+            width: 28, height: 28, flexShrink: 0,
+            background: "linear-gradient(135deg, #8B6914, #C9A84C)",
+            clipPath: "polygon(50% 0%,0% 100%,15% 100%,50% 20%,85% 100%,100% 100%)",
+          }} />
+          <div>
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 11, fontWeight: 600, color: THEME.accent, letterSpacing: 1.5 }}>ATHERIUM</div>
+            <div style={{ fontSize: 8, color: THEME.textFaint, letterSpacing: 1, textTransform: "uppercase" }}>Holdings</div>
+          </div>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          {NAV_TABS.map(tab => {
+            const active = activeView === tab.id;
+            return (
+              <button key={tab.id} type="button" onClick={() => navigate(tab.path)} style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "6px 8px", borderRadius: 6, cursor: "pointer", textAlign: "left",
+                background: active ? THEME.accentSoft : "transparent",
+                border: `1px solid ${active ? THEME.borderStrong : "transparent"}`,
+                color: active ? THEME.accentText : THEME.textMuted,
+                fontSize: 10, fontWeight: active ? 600 : 500,
+              }}>
+                <span style={{ fontSize: 11 }}>{tab.emoji}</span>
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div style={{ flex: 1 }} />
+      <div style={{ padding: "10px 12px", borderTop: `1px solid ${THEME.border}` }}>
+        {lastSync && (
+          <div style={{ fontSize: 8, color: THEME.textFaint, marginBottom: 8, lineHeight: 1.3 }}>
+            Last sync<br />{new Date(lastSync).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+          </div>
+        )}
+        <button type="button" onClick={onSync} style={{
+          width: "100%", padding: "5px 0", background: THEME.accentSoft, border: `1px solid ${THEME.accent}`,
+          color: THEME.accentText, borderRadius: 6, fontSize: 9, fontWeight: 600, cursor: "pointer",
+        }}>🔄 Sync data</button>
+      </div>
     </div>
   );
 }
@@ -240,6 +315,9 @@ function CompanyDetailPanel({ ticker, events, earnings, onClose }) {
 }
 
 export default function CalendarPage() {
+  const location = useLocation();
+  const activeView = location.pathname === "/stickers" ? "stickers" : "calendar";
+
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
@@ -249,7 +327,6 @@ export default function CalendarPage() {
   const [selDay, setSelDay] = useState(null);
   const [selCompany, setSelCompany] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [notesOpen, setNotesOpen] = useState(false);
   const [typeFilter, setTypeFilter] = useState(ALL);
   const [tickerFilter, setTickerFilter] = useState(ALL);
   const [newNote, setNewNote] = useState("");
@@ -283,6 +360,7 @@ export default function CalendarPage() {
 
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
   const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+  const weekRows = Math.ceil((firstDay + daysInMonth) / 7);
   const prevMonth = () => { if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11); } else setViewMonth(m => m - 1); setSelDay(null); };
   const nextMonth = () => { if (viewMonth === 11) { setViewYear(y => y + 1); setViewMonth(0); } else setViewMonth(m => m + 1); setSelDay(null); };
 
@@ -310,7 +388,6 @@ export default function CalendarPage() {
     return d.getFullYear() === viewYear && d.getMonth() === viewMonth && d.getDate() === day;
   });
 
-  const upcoming = filtered.filter(e => new Date(e.date) >= today).sort((a, b) => new Date(a.date) - new Date(b.date)).slice(0, 10);
   const tickers = [ALL, ...new Set(allItems.map(e => e.ticker).sort())];
 
   const addNote = async () => {
@@ -358,8 +435,9 @@ export default function CalendarPage() {
     else alert("Sync failed: " + error.message);
   };
 
-  const EventChip = ({ ev, compact }) => {
+  const EventChip = ({ ev }) => {
     const sm = STATUS_META[ev.status] ?? STATUS_META.upcoming;
+    const dd = dDayLabel(ev.date);
     return (
       <div
         role="button"
@@ -367,21 +445,24 @@ export default function CalendarPage() {
         onClick={(e) => openCompany(ev.ticker, e)}
         onKeyDown={(e) => e.key === "Enter" && openCompany(ev.ticker, e)}
         style={{
-          display: "flex", alignItems: "center", gap: compact ? 2 : 4,
+          display: "flex", alignItems: "center", gap: 3,
           background: sm.bg, border: `1px solid ${sm.border}`,
-          borderRadius: compact ? 3 : 5, padding: compact ? "1px 3px" : "4px 6px",
+          borderRadius: 3, padding: "2px 4px",
           overflow: "hidden", cursor: "pointer",
           transition: "box-shadow 0.15s",
         }}
         onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 0 0 1px rgba(201,168,76,0.25)"; }}
         onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; }}
       >
-        <span style={{ fontSize: compact ? 8 : 10, flexShrink: 0 }}>{TYPE_ICON[ev.event_type] ?? TYPE_ICON.OTHER}</span>
+        <span style={{ fontSize: 8, flexShrink: 0 }}>{TYPE_ICON[ev.event_type] ?? TYPE_ICON.OTHER}</span>
         <div style={{ overflow: "hidden", minWidth: 0, flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <span style={{ fontSize: compact ? 8 : 10, fontWeight: 700, color: sm.text }}>{ev.ticker}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+            <span style={{ fontSize: 8, fontWeight: 700, color: sm.text }}>{ev.ticker}</span>
+            {dd && (
+              <span style={{ fontSize: 7, fontWeight: 700, color: dDayColor(ev.date), flexShrink: 0 }}>{dd}</span>
+            )}
           </div>
-          <div style={{ fontSize: compact ? 7 : 9, color: sm.text, opacity: 0.85, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          <div style={{ fontSize: 7, color: sm.text, opacity: 0.85, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {ev._type === "earning" ? `EPS $${ev.eps_estimate ?? "TBD"}` : ev.label}
           </div>
         </div>
@@ -389,214 +470,157 @@ export default function CalendarPage() {
     );
   };
 
+  const NotesBoard = ({ fullScreen }) => (
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
+      <div style={{ padding: fullScreen ? "10px 14px" : "10px", borderBottom: `1px solid ${THEME.border}`, flexShrink: 0, background: THEME.surface }}>
+        <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 6, color: THEME.accentText }}>📌 Stickers</div>
+        <div style={{ display: "flex", gap: 3, marginBottom: 6 }}>
+          {NOTE_COLORS.map(c => (
+            <div key={c} onClick={() => setNoteColor(c)} style={{
+              width: 16, height: 16, borderRadius: "50%", background: c, cursor: "pointer",
+              border: noteColor === c ? `2px solid ${THEME.accent}` : "2px solid transparent", flexShrink: 0,
+            }} />
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 4, maxWidth: fullScreen ? 360 : undefined }}>
+          <input value={newNote} onChange={e => setNewNote(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && addNote()}
+            placeholder="Add sticker, press Enter"
+            style={{ flex: 1, background: THEME.surfaceAlt, border: `1px solid ${THEME.border}`, color: THEME.text, borderRadius: 5, padding: "4px 6px", fontSize: 10 }} />
+          <button type="button" onClick={addNote} style={{ background: THEME.accent, color: "#0A0C14", border: "none", borderRadius: 5, padding: "4px 8px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>+</button>
+        </div>
+      </div>
+      <div ref={boardRef} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
+        style={{ flex: 1, position: "relative", background: THEME.surfaceAlt, overflow: "hidden", minHeight: 0 }}>
+        {notes.length === 0 && (
+          <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", color: THEME.textFaint, fontSize: 11, textAlign: "center" }}>
+            Drag stickers anywhere on the board
+          </div>
+        )}
+        {notes.map(note => (
+          <div key={note.id} onMouseDown={e => onMouseDown(e, note.id)} style={{
+            position: "absolute", left: note.pos_x, top: note.pos_y,
+            background: note.color, color: "#1e293b", borderRadius: 6,
+            padding: "6px 22px 6px 8px", width: 150,
+            fontSize: 10, fontWeight: 500, cursor: "grab", lineHeight: 1.4,
+            boxShadow: "0 2px 12px rgba(0,0,0,0.35)", userSelect: "none",
+            zIndex: dragging === note.id ? 100 : 1,
+          }}>
+            <button type="button" onClick={() => deleteNote(note.id)} style={{
+              position: "absolute", top: 3, right: 5, background: "none", border: "none",
+              cursor: "pointer", fontSize: 12, color: "#64748b",
+            }}>×</button>
+            {note.ticker_tag && (
+              <span style={{ fontSize: 8, fontWeight: 700, background: THEME.surfaceHover, color: THEME.textMuted, borderRadius: 3, padding: "1px 4px", marginBottom: 3, display: "inline-block" }}>
+                {note.ticker_tag}
+              </span>
+            )}
+            <div>{note.content}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
   if (loading) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: THEME.bg, color: THEME.textMuted, fontSize: 13 }}>
-        Loading calendar…
+        Loading…
       </div>
     );
   }
 
   return (
     <div style={{ display: "flex", height: "100vh", background: THEME.bg, color: THEME.text, fontFamily: "'Outfit', sans-serif", overflow: "hidden", fontSize: 12 }}>
+      <CalendarNavRail activeView={activeView} lastSync={lastSync} onSync={triggerSync} />
 
-      {/* Left sidebar */}
-      <div style={{ width: 200, background: THEME.surface, borderRight: `1px solid ${THEME.border}`, display: "flex", flexDirection: "column", flexShrink: 0 }}>
-        <div style={{ padding: "10px 10px 8px", borderBottom: `1px solid ${THEME.border}` }}>
-          <div style={{ fontWeight: 700, fontSize: 12, color: THEME.accentText, letterSpacing: 0.5 }}>📅 Calendar</div>
-          {lastSync && (
-            <div style={{ fontSize: 9, color: THEME.textFaint, marginTop: 2 }}>
-              Last sync: {new Date(lastSync).toLocaleString("en-US")}
-            </div>
-          )}
-        </div>
-
-        <div style={{ flex: 1, overflow: "auto", padding: "8px" }}>
-          <div style={{ fontSize: 9, fontWeight: 700, color: THEME.textFaint, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Upcoming</div>
-          {upcoming.map(ev => {
-            const sm = STATUS_META[ev.status] ?? STATUS_META.upcoming;
-            const diff = diffDays(ev.date);
-            return (
-              <div
-                key={`${ev._type}-${ev.id}`}
-                role="button"
-                tabIndex={0}
-                onClick={() => setSelCompany(ev.ticker)}
-                onKeyDown={(e) => e.key === "Enter" && setSelCompany(ev.ticker)}
-                style={{
-                  marginBottom: 5, padding: "6px 7px", borderRadius: 6,
-                  background: THEME.surfaceAlt, border: `1px solid ${THEME.border}`,
-                  cursor: "pointer",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 2 }}>
-                  <span style={{ fontSize: 10 }}>{TYPE_ICON[ev.event_type] ?? TYPE_ICON.OTHER}</span>
-                  <span style={{ fontWeight: 700, color: sm.dot, fontSize: 10 }}>{ev.ticker}</span>
-                  <span style={{
-                    marginLeft: "auto", fontSize: 9, fontWeight: 700,
-                    color: diff <= 7 ? "#E84F4F" : diff <= 30 ? "#E8943A" : THEME.textFaint,
-                    padding: "0 4px", borderRadius: 3,
-                  }}>D-{diff}</span>
-                </div>
-                <div style={{ fontSize: 9, fontWeight: 500, lineHeight: 1.25, color: THEME.textMuted, marginBottom: 1 }}>{ev.label}</div>
-                <div style={{ fontSize: 8, color: THEME.textFaint }}>{fmtDate(ev.date)}</div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div style={{ padding: "8px", borderTop: `1px solid ${THEME.border}` }}>
-          <button type="button" onClick={triggerSync} style={{
-            width: "100%", padding: "5px 0", background: THEME.accentSoft, border: `1px solid ${THEME.accent}`,
-            color: THEME.accentText, borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer",
-          }}>🔄 Sync data</button>
-        </div>
-      </div>
-
-      {/* Main */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
 
-        {/* Toolbar */}
-        <div style={{ background: THEME.surface, borderBottom: `1px solid ${THEME.border}`, padding: "6px 12px", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-          <button type="button" onClick={prevMonth} style={{ background: THEME.surfaceAlt, border: `1px solid ${THEME.border}`, color: THEME.textMuted, borderRadius: 5, width: 24, height: 24, cursor: "pointer", fontSize: 12 }}>‹</button>
-          <span style={{ fontWeight: 700, fontSize: 12, minWidth: 110, textAlign: "center" }}>{MONTH_NAMES[viewMonth]} {viewYear}</span>
-          <button type="button" onClick={nextMonth} style={{ background: THEME.surfaceAlt, border: `1px solid ${THEME.border}`, color: THEME.textMuted, borderRadius: 5, width: 24, height: 24, cursor: "pointer", fontSize: 12 }}>›</button>
+        {activeView === "stickers" ? (
+          <NotesBoard fullScreen />
+        ) : (
+          <>
+            {/* Toolbar */}
+            <div style={{ background: THEME.surface, borderBottom: `1px solid ${THEME.border}`, padding: "6px 12px", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", flexShrink: 0 }}>
+              <button type="button" onClick={prevMonth} style={{ background: THEME.surfaceAlt, border: `1px solid ${THEME.border}`, color: THEME.textMuted, borderRadius: 5, width: 24, height: 24, cursor: "pointer", fontSize: 12 }}>‹</button>
+              <span style={{ fontWeight: 700, fontSize: 12, minWidth: 110, textAlign: "center" }}>{MONTH_NAMES[viewMonth]} {viewYear}</span>
+              <button type="button" onClick={nextMonth} style={{ background: THEME.surfaceAlt, border: `1px solid ${THEME.border}`, color: THEME.textMuted, borderRadius: 5, width: 24, height: 24, cursor: "pointer", fontSize: 12 }}>›</button>
 
-          <div style={{ width: 1, height: 16, background: THEME.border, margin: "0 2px" }} />
+              <div style={{ width: 1, height: 16, background: THEME.border, margin: "0 2px" }} />
 
-          {["All", "FDA", "EARN", "TRIAL", "IR"].map(t => (
-            <button key={t} type="button" onClick={() => setTypeFilter(t)} style={{
-              padding: "2px 7px", borderRadius: 5, fontSize: 10, fontWeight: 600, cursor: "pointer",
-              background: typeFilter === t ? THEME.accentSoft : "transparent",
-              border: `1px solid ${typeFilter === t ? THEME.accent : THEME.border}`,
-              color: typeFilter === t ? THEME.accentText : THEME.textMuted,
-            }}>{FILTER_LABELS[t]}</button>
-          ))}
-
-          <select value={tickerFilter} onChange={e => { setTickerFilter(e.target.value); setSelDay(null); }}
-            style={{ background: THEME.surfaceAlt, border: `1px solid ${THEME.border}`, color: THEME.text, borderRadius: 5, padding: "2px 6px", fontSize: 10, marginLeft: "auto" }}>
-            {tickers.map(t => <option key={t}>{t}</option>)}
-          </select>
-
-          <button type="button" onClick={() => setNotesOpen(o => !o)} style={{
-            padding: "2px 8px", borderRadius: 5, fontSize: 10, fontWeight: 600, cursor: "pointer",
-            background: notesOpen ? "rgba(123,92,240,0.15)" : "transparent",
-            border: `1px solid ${notesOpen ? "rgba(123,92,240,0.4)" : THEME.border}`,
-            color: notesOpen ? "#c4b5fd" : THEME.textMuted,
-          }}>📌 Notes</button>
-        </div>
-
-        <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
-
-          {/* Calendar grid */}
-          <div style={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column", minWidth: 0 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", background: THEME.surface, borderBottom: `1px solid ${THEME.border}`, flexShrink: 0 }}>
-              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
-                <div key={d} style={{ textAlign: "center", padding: "4px 0", fontSize: 10, fontWeight: 600, color: i === 0 ? "#E84F4F" : i === 6 ? "#4F8FE8" : THEME.textMuted }}>{d}</div>
+              {["All", "FDA", "EARN", "TRIAL", "IR"].map(t => (
+                <button key={t} type="button" onClick={() => setTypeFilter(t)} style={{
+                  padding: "2px 7px", borderRadius: 5, fontSize: 10, fontWeight: 600, cursor: "pointer",
+                  background: typeFilter === t ? THEME.accentSoft : "transparent",
+                  border: `1px solid ${typeFilter === t ? THEME.accent : THEME.border}`,
+                  color: typeFilter === t ? THEME.accentText : THEME.textMuted,
+                }}>{FILTER_LABELS[t]}</button>
               ))}
+
+              <select value={tickerFilter} onChange={e => { setTickerFilter(e.target.value); setSelDay(null); }}
+                style={{ background: THEME.surfaceAlt, border: `1px solid ${THEME.border}`, color: THEME.text, borderRadius: 5, padding: "2px 6px", fontSize: 10, marginLeft: "auto" }}>
+                {tickers.map(t => <option key={t}>{t}</option>)}
+              </select>
             </div>
 
-            <div style={{ flex: 1, display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gridAutoRows: "minmax(72px, 1fr)", background: THEME.surface }}>
-              {Array.from({ length: firstDay }).map((_, i) => (
-                <div key={`e${i}`} style={{ background: THEME.surfaceAlt, borderRight: `1px solid ${THEME.border}`, borderBottom: `1px solid ${THEME.border}` }} />
-              ))}
-              {Array.from({ length: daysInMonth }).map((_, i) => {
-                const day = i + 1;
-                const items = getDayItems(day);
-                const isToday = today.getFullYear() === viewYear && today.getMonth() === viewMonth && today.getDate() === day;
-                const isSel = selDay === day;
-                return (
-                  <div key={day} onClick={() => setSelDay(isSel ? null : day)} style={{
-                    padding: "3px 3px 2px", borderRight: `1px solid ${THEME.border}`, borderBottom: `1px solid ${THEME.border}`,
-                    background: isSel ? THEME.selDay : isToday ? "rgba(201,168,76,0.06)" : THEME.surface,
-                    cursor: "pointer", overflow: "hidden",
-                  }}>
-                    <div style={{ marginBottom: 2 }}>
-                      {isToday
-                        ? <span style={{ background: THEME.today, color: "#0A0C14", borderRadius: 99, width: 18, height: 18, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700 }}>{day}</span>
-                        : <span style={{ fontSize: 10, color: THEME.textMuted }}>{day}</span>}
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                      {items.slice(0, 3).map(ev => (
-                        <EventChip key={`${ev._type}-${ev.id}`} ev={ev} compact />
-                      ))}
-                      {items.length > 3 && <div style={{ fontSize: 7, color: THEME.textFaint, paddingLeft: 2 }}>+{items.length - 3} more</div>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+            <div style={{ flex: 1, display: "flex", overflow: "hidden", minHeight: 0 }}>
 
-          {/* Company detail panel */}
-          {selCompany && (
-            <CompanyDetailPanel
-              ticker={selCompany}
-              events={events}
-              earnings={earnings}
-              onClose={() => setSelCompany(null)}
-            />
-          )}
-
-          {/* Notes panel */}
-          <div style={{
-            width: notesOpen ? 260 : 0,
-            transition: "width 0.2s ease",
-            overflow: "hidden", flexShrink: 0,
-            background: THEME.surface, borderLeft: `1px solid ${THEME.border}`,
-            display: "flex", flexDirection: "column",
-          }}>
-            <div style={{ width: 260, height: "100%", display: "flex", flexDirection: "column" }}>
-              <div style={{ padding: "10px", borderBottom: `1px solid ${THEME.border}`, flexShrink: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 6 }}>📌 Notes</div>
-                <div style={{ display: "flex", gap: 3, marginBottom: 6 }}>
-                  {NOTE_COLORS.map(c => (
-                    <div key={c} onClick={() => setNoteColor(c)} style={{
-                      width: 16, height: 16, borderRadius: "50%", background: c, cursor: "pointer",
-                      border: noteColor === c ? `2px solid ${THEME.accent}` : "2px solid transparent", flexShrink: 0,
-                    }} />
+              {/* Calendar grid — fills viewport, no scroll */}
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", background: THEME.surface, borderBottom: `1px solid ${THEME.border}`, flexShrink: 0 }}>
+                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
+                    <div key={d} style={{ textAlign: "center", padding: "5px 0", fontSize: 10, fontWeight: 600, color: i === 0 ? "#E84F4F" : i === 6 ? "#4F8FE8" : THEME.textMuted }}>{d}</div>
                   ))}
                 </div>
-                <div style={{ display: "flex", gap: 4 }}>
-                  <input value={newNote} onChange={e => setNewNote(e.target.value)}
-                    onKeyDown={e => e.key === "Enter" && addNote()}
-                    placeholder="Add note, press Enter"
-                    style={{ flex: 1, background: THEME.surfaceAlt, border: `1px solid ${THEME.border}`, color: THEME.text, borderRadius: 5, padding: "4px 6px", fontSize: 10 }} />
-                  <button type="button" onClick={addNote} style={{ background: THEME.accent, color: "#0A0C14", border: "none", borderRadius: 5, padding: "4px 8px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>+</button>
+
+                <div style={{
+                  flex: 1, minHeight: 0,
+                  display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gridTemplateRows: `repeat(${weekRows}, 1fr)`,
+                  background: THEME.surface,
+                }}>
+                  {Array.from({ length: firstDay }).map((_, i) => (
+                    <div key={`e${i}`} style={{ background: THEME.surfaceAlt, borderRight: `1px solid ${THEME.border}`, borderBottom: `1px solid ${THEME.border}` }} />
+                  ))}
+                  {Array.from({ length: daysInMonth }).map((_, i) => {
+                    const day = i + 1;
+                    const items = getDayItems(day);
+                    const isToday = today.getFullYear() === viewYear && today.getMonth() === viewMonth && today.getDate() === day;
+                    const isSel = selDay === day;
+                    return (
+                      <div key={day} onClick={() => setSelDay(isSel ? null : day)} style={{
+                        padding: "4px 4px 2px", borderRight: `1px solid ${THEME.border}`, borderBottom: `1px solid ${THEME.border}`,
+                        background: isSel ? THEME.selDay : isToday ? "rgba(201,168,76,0.06)" : THEME.surface,
+                        cursor: "pointer", overflow: "hidden", minHeight: 0,
+                        display: "flex", flexDirection: "column",
+                      }}>
+                        <div style={{ marginBottom: 3, flexShrink: 0 }}>
+                          {isToday
+                            ? <span style={{ background: THEME.today, color: "#0A0C14", borderRadius: 99, width: 20, height: 20, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700 }}>{day}</span>
+                            : <span style={{ fontSize: 10, color: THEME.textMuted }}>{day}</span>}
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 2, overflow: "hidden", flex: 1 }}>
+                          {items.slice(0, 4).map(ev => (
+                            <EventChip key={`${ev._type}-${ev.id}`} ev={ev} />
+                          ))}
+                          {items.length > 4 && <div style={{ fontSize: 7, color: THEME.textFaint, paddingLeft: 2 }}>+{items.length - 4}</div>}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
-              <div ref={boardRef} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
-                style={{ flex: 1, position: "relative", background: THEME.surfaceAlt, overflow: "hidden" }}>
-                {notes.length === 0 && (
-                  <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", color: THEME.textFaint, fontSize: 10, textAlign: "center" }}>Add a note</div>
-                )}
-                {notes.map(note => (
-                  <div key={note.id} onMouseDown={e => onMouseDown(e, note.id)} style={{
-                    position: "absolute", left: note.pos_x, top: note.pos_y,
-                    background: note.color, color: "#1e293b", borderRadius: 6,
-                    padding: "6px 22px 6px 8px", width: 150,
-                    fontSize: 10, fontWeight: 500, cursor: "grab", lineHeight: 1.4,
-                    boxShadow: "0 2px 12px rgba(0,0,0,0.35)", userSelect: "none",
-                    zIndex: dragging === note.id ? 100 : 1,
-                  }}>
-                    <button type="button" onClick={() => deleteNote(note.id)} style={{
-                      position: "absolute", top: 3, right: 5, background: "none", border: "none",
-                      cursor: "pointer", fontSize: 12, color: "#64748b",
-                    }}>×</button>
-                    {note.ticker_tag && (
-                      <span style={{ fontSize: 8, fontWeight: 700, background: THEME.surfaceHover, color: THEME.textMuted, borderRadius: 3, padding: "1px 4px", marginBottom: 3, display: "inline-block" }}>
-                        {note.ticker_tag}
-                      </span>
-                    )}
-                    <div>{note.content}</div>
-                  </div>
-                ))}
-              </div>
+              {selCompany && (
+                <CompanyDetailPanel
+                  ticker={selCompany}
+                  events={events}
+                  earnings={earnings}
+                  onClose={() => setSelCompany(null)}
+                />
+              )}
             </div>
-          </div>
-
-        </div>
+          </>
+        )}
       </div>
     </div>
   );

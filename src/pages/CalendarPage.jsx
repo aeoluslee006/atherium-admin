@@ -307,7 +307,7 @@ export default function CalendarPage() {
   }, []);
 
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-  const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+  const firstDay = (new Date(viewYear, viewMonth, 1).getDay() + 6) % 7;
   const weekRows = Math.ceil((firstDay + daysInMonth) / 7);
   const prevMonth = () => { if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11); } else setViewMonth(m => m - 1); setSelDay(null); };
   const nextMonth = () => { if (viewMonth === 11) { setViewYear(y => y + 1); setViewMonth(0); } else setViewMonth(m => m + 1); setSelDay(null); };
@@ -574,8 +574,8 @@ export default function CalendarPage() {
             <div style={{ flex: 1, display: "flex", overflow: "hidden", minHeight: 0 }}>
               <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0 }}>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", background: THEME.surface, borderBottom: `1px solid ${THEME.border}`, flexShrink: 0 }}>
-                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
-                    <div key={d} style={{ textAlign: "center", padding: "5px 0", fontSize: 10, fontWeight: 600, color: i === 0 ? "#E84F4F" : i === 6 ? "#4F8FE8" : THEME.textMuted }}>{d}</div>
+                  {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d, i) => (
+                    <div key={d} style={{ textAlign: "center", padding: "5px 0", fontSize: 10, fontWeight: 600, color: i === 6 ? "#E84F4F" : i === 5 ? "#4F8FE8" : THEME.textMuted }}>{d}</div>
                   ))}
                 </div>
                 <div style={{

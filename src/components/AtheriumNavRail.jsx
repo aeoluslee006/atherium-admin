@@ -1,7 +1,8 @@
 import AtheriumBottomNav from './AtheriumBottomNav'
+import { SIDEBAR_WIDTH } from '../constants/layout'
 
 const RAIL = {
-  width: 168,
+  width: SIDEBAR_WIDTH,
   bg: '#151929',
   border: 'rgba(201,168,76,0.15)',
   accent: '#C9A84C',

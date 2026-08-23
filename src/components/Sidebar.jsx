@@ -1,6 +1,7 @@
 import React from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import AtheriumBottomNav from './AtheriumBottomNav'
+import { SIDEBAR_WIDTH } from '../constants/layout'
 
 const NAV = [
   { section: 'Main', items: [
@@ -67,9 +68,9 @@ export default function Sidebar({ activePage, userEmail = 'Admin', onSignOut }) 
                   title={item.href ? 'Open in new tab' : undefined}
                 >
                   {item.emoji ? (
-                    <span style={{ fontSize: 16, width: 18, textAlign: 'center' }}>{item.emoji}</span>
+                    <span style={{ fontSize: 14, width: 16, textAlign: 'center', flexShrink: 0 }}>{item.emoji}</span>
                   ) : (
-                    <i className={`ti ${item.icon}`} style={{ fontSize: 16, width: 18 }} aria-hidden="true" />
+                    <i className={`ti ${item.icon}`} style={{ fontSize: 14, width: 16, flexShrink: 0 }} aria-hidden="true" />
                   )}
                   {item.label}
                 </div>
@@ -103,29 +104,29 @@ export default function Sidebar({ activePage, userEmail = 'Admin', onSignOut }) 
 
 const s = {
   sidebar: {
-    width: 220, background: 'var(--night2)', borderRight: '1px solid var(--border)',
+    width: SIDEBAR_WIDTH, background: 'var(--night2)', borderRight: '1px solid var(--border)',
     display: 'flex', flexDirection: 'column', flexShrink: 0, height: '100vh',
     position: 'sticky', top: 0,
   },
-  logoWrap: { padding: '24px 20px 20px', borderBottom: '1px solid var(--border)' },
-  logoMark: { display: 'flex', alignItems: 'center', gap: 10 },
+  logoWrap: { padding: '18px 14px 14px', borderBottom: '1px solid var(--border)' },
+  logoMark: { display: 'flex', alignItems: 'center', gap: 8 },
   logoA: {
-    width: 32, height: 32, flexShrink: 0,
+    width: 28, height: 28, flexShrink: 0,
     background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))',
     clipPath: 'polygon(50% 0%,0% 100%,15% 100%,50% 20%,85% 100%,100% 100%)',
   },
-  logoText: { fontFamily: "'Cinzel', serif", fontSize: 15, fontWeight: 600, color: 'var(--gold)', letterSpacing: 2 },
-  logoSub: { fontSize: 9, color: 'var(--muted)', letterSpacing: 1.5, textTransform: 'uppercase', marginTop: 2 },
-  nav: { flex: 1, padding: '16px 0', overflowY: 'auto' },
-  navSection: { marginBottom: 4 },
-  navLabel: { fontSize: 9, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--muted)', padding: '8px 20px 4px', opacity: 0.6 },
+  logoText: { fontFamily: "'Cinzel', serif", fontSize: 13, fontWeight: 600, color: 'var(--gold)', letterSpacing: 1.5 },
+  logoSub: { fontSize: 8, color: 'var(--muted)', letterSpacing: 1.2, textTransform: 'uppercase', marginTop: 2 },
+  nav: { flex: 1, padding: '12px 0', overflowY: 'auto' },
+  navSection: { marginBottom: 2 },
+  navLabel: { fontSize: 8, letterSpacing: 1.2, textTransform: 'uppercase', color: 'var(--muted)', padding: '6px 14px 3px', opacity: 0.6 },
   navItem: {
-    display: 'flex', alignItems: 'center', gap: 10, padding: '10px 20px',
-    cursor: 'pointer', borderLeft: '2px solid transparent', fontSize: 13,
-    color: 'var(--muted)', transition: 'all 0.2s',
+    display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px',
+    cursor: 'pointer', borderLeft: '2px solid transparent', fontSize: 12,
+    color: 'var(--muted)', transition: 'all 0.2s', lineHeight: 1.25,
   },
   navItemActive: { color: 'var(--gold)', borderLeftColor: 'var(--gold)', background: 'rgba(201,168,76,0.05)' },
-  footer: { padding: '16px 20px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 10, flexShrink: 0 },
+  footer: { padding: '12px 14px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 },
   userChip: { display: 'flex', alignItems: 'center', gap: 8 },
   signOutBtn: {
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,

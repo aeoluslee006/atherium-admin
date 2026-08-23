@@ -34,12 +34,17 @@ export default function StickersPanel({
   showBoard = true,
   listOnly = false,
 }) {
+  const boardContentH = notes.length
+    ? Math.max(360, ...notes.map(n => (n.pos_y || 0) + 80))
+    : 360
+
   return (
     <div style={{
-      ...(fullWidth ? { flex: 1, minWidth: 0 } : { width }),
-      height: '100%', display: 'flex', flexDirection: 'column',
+      ...(fullWidth ? { flex: 1, minWidth: 0 } : { width, flexShrink: 0 }),
+      alignSelf: 'stretch',
+      display: 'flex', flexDirection: 'column',
+      minHeight: 0,
       background: THEME.surface, borderLeft: fullWidth ? 'none' : `1px solid ${THEME.border}`,
-      flexShrink: fullWidth ? 1 : 0,
     }}>
       {!hideControls && (
       <div style={{ padding: '10px 12px', borderBottom: `1px solid ${THEME.border}`, flexShrink: 0 }}>
@@ -84,7 +89,7 @@ export default function StickersPanel({
       )}
 
       {!hideControls && !listOnly && notes.length > 0 && (
-        <div style={{ maxHeight: 120, overflow: 'auto', borderBottom: `1px solid ${THEME.border}`, flexShrink: 0 }}>
+        <div style={{ maxHeight: 72, overflow: 'auto', borderBottom: `1px solid ${THEME.border}`, flexShrink: 0 }}>
           {notes.map(note => (
             <div key={note.id} style={{
               display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px',
@@ -109,12 +114,13 @@ export default function StickersPanel({
           onMouseUp={onMouseUp}
           onMouseLeave={onMouseUp}
           style={{
-            flex: 1, position: 'relative', overflow: 'hidden', minHeight: 0,
+            flex: 1, position: 'relative', overflow: 'auto', minHeight: 120,
             background: THEME.surfaceAlt,
             backgroundImage: 'radial-gradient(circle, rgba(201,168,76,0.12) 1px, transparent 1px)',
             backgroundSize: '24px 24px',
           }}
         >
+          <div style={{ position: 'relative', minHeight: boardContentH, width: '100%' }}>
           {notes.length === 0 && (
             <div style={{
               position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
@@ -130,10 +136,11 @@ export default function StickersPanel({
               style={{
                 position: 'absolute', left: note.pos_x, top: note.pos_y,
                 background: note.color, color: '#1e293b', borderRadius: 6,
-                padding: '6px 22px 6px 8px', width: 150,
+                padding: '6px 22px 6px 8px', maxWidth: 136, width: 'max-content',
                 fontSize: 10, fontWeight: 500, cursor: 'grab', lineHeight: 1.4,
                 boxShadow: '0 2px 12px rgba(0,0,0,0.35)', userSelect: 'none',
                 zIndex: dragging === note.id ? 100 : 1,
+                wordBreak: 'break-word',
               }}
             >
               <button type="button" onClick={() => onDelete(note.id)} style={{
@@ -150,6 +157,7 @@ export default function StickersPanel({
               <div>{note.content}</div>
             </div>
           ))}
+          </div>
         </div>
       )}
 

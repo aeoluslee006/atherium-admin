@@ -47,8 +47,8 @@ export function usePharmaNotes() {
   const onMouseMove = (e) => {
     if (!dragging || !boardRef.current) return
     const b = boardRef.current.getBoundingClientRect()
-    const x = Math.max(0, Math.min(e.clientX - b.left - dragOffset.current.x, b.width - 160))
-    const y = Math.max(0, Math.min(e.clientY - b.top - dragOffset.current.y, b.height - 64))
+    const x = Math.max(0, Math.min(e.clientX - b.left - dragOffset.current.x, b.width - 140))
+    const y = Math.max(0, Math.min(e.clientY - b.top - dragOffset.current.y, Math.max(b.height, boardRef.current.scrollHeight) - 72))
     setNotes(n => n.map(note => note.id === dragging ? { ...note, pos_x: x, pos_y: y } : note))
   }
 

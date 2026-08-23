@@ -310,7 +310,6 @@ export default function CalendarPage() {
     return d.getFullYear() === viewYear && d.getMonth() === viewMonth && d.getDate() === day;
   });
 
-  const selDayItems = selDay ? getDayItems(selDay) : [];
   const upcoming = filtered.filter(e => new Date(e.date) >= today).sort((a, b) => new Date(a.date) - new Date(b.date)).slice(0, 10);
   const tickers = [ALL, ...new Set(allItems.map(e => e.ticker).sort())];
 
@@ -381,9 +380,6 @@ export default function CalendarPage() {
         <div style={{ overflow: "hidden", minWidth: 0, flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
             <span style={{ fontSize: compact ? 8 : 10, fontWeight: 700, color: sm.text }}>{ev.ticker}</span>
-            {!compact && (
-              <span style={{ fontSize: 8, color: THEME.textFaint }}>$— <span style={{ color: THEME.textMuted }}>(—%)</span></span>
-            )}
           </div>
           <div style={{ fontSize: compact ? 7 : 9, color: sm.text, opacity: 0.85, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {ev._type === "earning" ? `EPS $${ev.eps_estimate ?? "TBD"}` : ev.label}
@@ -530,22 +526,6 @@ export default function CalendarPage() {
                 );
               })}
             </div>
-
-            {selDay && selDayItems.length > 0 && (
-              <div style={{ background: THEME.surface, borderTop: `1px solid ${THEME.border}`, padding: "8px 12px", flexShrink: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 11, color: THEME.textMuted, marginBottom: 8 }}>
-                  {MONTH_NAMES[viewMonth]} {selDay} — {selDayItems.length} event{selDayItems.length !== 1 ? "s" : ""}
-                  <span style={{ fontWeight: 400, fontSize: 9, marginLeft: 8, color: THEME.textFaint }}>Click a company for details</span>
-                </div>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {selDayItems.map(ev => (
-                    <div key={`${ev._type}-${ev.id}`} style={{ minWidth: 160, maxWidth: 240, flex: "1 1 160px" }}>
-                      <EventChip ev={ev} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Company detail panel */}

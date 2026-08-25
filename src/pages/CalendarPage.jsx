@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase";
 import AtheriumNavRail from "../components/AtheriumNavRail";
 import StickersPanel from "../components/StickersPanel";
 import { usePharmaNotes } from "../hooks/usePharmaNotes";
+import { usePharmaPortfolio } from "../hooks/usePharmaPortfolio";
 
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const ALL = "All";
@@ -88,7 +89,39 @@ function RailSection({ title, children }) {
   );
 }
 
+function BeatMissStrip({ earnings }) {
+  const quarters = earnings
+    .filter(e => e.eps_beat != null || e.status === "reported")
+    .sort((a, b) => new Date(a.report_date) - new Date(b.report_date))
+    .slice(-4);
+
+  if (quarters.length === 0) return null;
+
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 8, marginBottom: 10,
+      padding: "6px 8px", background: THEME.surfaceAlt, borderRadius: 6,
+    }}>
+      <span style={{ fontSize: 8, color: THEME.textFaint, fontWeight: 600, textTransform: "uppercase" }}>Beat track</span>
+      <div style={{ display: "flex", gap: 4 }}>
+        {quarters.map(e => (
+          <span
+            key={e.id}
+            title={`${e.fiscal_quarter}: ${e.eps_beat ? `Beat ${e.eps_surprise_pct != null ? `${Math.abs(e.eps_surprise_pct).toFixed(1)}%` : ""}` : "Miss"}`}
+            style={{ fontSize: 12, lineHeight: 1 }}
+          >
+            {e.eps_beat === true ? "✅" : e.eps_beat === false ? "❌" : "○"}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function CompanyDetailPanel({ ticker, events, earnings, onClose, onDeleteEvent }) {
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiText, setAiText] = useState("");
+  const [aiError, setAiError] = useState("");
   const companyEvents = events.filter(e => e.ticker === ticker)
     .sort((a, b) => new Date(a.event_date) - new Date(b.event_date));
   const companyEarnings = earnings.filter(e => e.ticker === ticker)
@@ -102,6 +135,18 @@ function CompanyDetailPanel({ ticker, events, earnings, onClose, onDeleteEvent }
     ...upcomingEarn.map(e => ({ ...e, date: e.report_date, kind: "earning", label: `${e.fiscal_quarter} Earnings` })),
   ].sort((a, b) => new Date(a.date) - new Date(b.date));
   const nextCatalyst = allUpcoming[0];
+
+  const runAiAnalysis = async () => {
+    setAiLoading(true);
+    setAiError("");
+    const { data, error } = await supabase.functions.invoke("pharma-ai-analysis", {
+      body: { ticker, events: companyEvents, earnings: companyEarnings },
+    });
+    setAiLoading(false);
+    if (error) { setAiError(error.message); return; }
+    if (data?.error) { setAiError(data.error); return; }
+    setAiText(data?.analysis ?? "");
+  };
 
   return (
     <div style={{
@@ -182,6 +227,7 @@ function CompanyDetailPanel({ ticker, events, earnings, onClose, onDeleteEvent }
         </SectionCard>
 
         <SectionCard title="Earnings History">
+          <BeatMissStrip earnings={companyEarnings} />
           {[...upcomingEarn, ...pastEarn].length === 0 ? (
             <div style={{ fontSize: 10, color: THEME.textMuted }}>No earnings data yet.</div>
           ) : (
@@ -260,6 +306,29 @@ function CompanyDetailPanel({ ticker, events, earnings, onClose, onDeleteEvent }
             })}
           </SectionCard>
         )}
+
+        {aiText && (
+          <SectionCard title="AI Analysis">
+            <div style={{ fontSize: 10, color: THEME.text, lineHeight: 1.55, whiteSpace: "pre-wrap" }}>{aiText}</div>
+          </SectionCard>
+        )}
+        {aiError && (
+          <div style={{ fontSize: 9, color: "#E84F4F", marginBottom: 8, lineHeight: 1.4 }}>{aiError}</div>
+        )}
+      </div>
+
+      <div style={{
+        padding: "10px 12px", borderTop: `1px solid ${THEME.border}`,
+        background: THEME.surface, flexShrink: 0,
+      }}>
+        <button type="button" onClick={runAiAnalysis} disabled={aiLoading} style={{
+          width: "100%", padding: "8px 0", borderRadius: 6, cursor: aiLoading ? "wait" : "pointer",
+          background: "rgba(123,92,240,0.15)", border: "1px solid rgba(123,92,240,0.45)",
+          color: "#c4b5fd", fontSize: 11, fontWeight: 600,
+          opacity: aiLoading ? 0.7 : 1,
+        }}>
+          {aiLoading ? "Analyzing…" : "🤖 AI Analysis"}
+        </button>
       </div>
     </div>
   );
@@ -283,8 +352,10 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
   const [tickerFilter, setTickerFilter] = useState(ALL);
   const [lastSync, setLastSync] = useState(null);
   const [newEv, setNewEv] = useState({ ticker: "", date: "", event_type: "FDA", label: "" });
+  const [portfolioHighlight, setPortfolioHighlight] = useState(false);
 
   const sticker = usePharmaNotes();
+  const { portfolio, isInPortfolio, toggleTicker } = usePharmaPortfolio(userEmail);
 
   const openCompany = (ticker, e) => {
     e?.stopPropagation?.();
@@ -388,7 +459,7 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
     else alert("Sync failed: " + error.message);
   };
 
-  const EventChip = ({ ev }) => {
+  const EventChip = ({ ev, dimmed, highlighted }) => {
     const sm = STATUS_META[ev.status] ?? STATUS_META.upcoming;
     const dd = dDayLabel(ev.date);
     return (
@@ -399,13 +470,15 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
         onKeyDown={(e) => e.key === "Enter" && openCompany(ev.ticker, e)}
         style={{
           display: "flex", alignItems: "center", gap: 3,
-          background: sm.bg, border: `1px solid ${sm.border}`,
+          background: sm.bg, border: `1px solid ${highlighted ? THEME.accent : sm.border}`,
           borderRadius: 3, padding: "2px 4px",
           overflow: "hidden", cursor: "pointer",
-          transition: "box-shadow 0.15s",
+          transition: "box-shadow 0.15s, opacity 0.15s",
+          opacity: dimmed ? 0.32 : 1,
+          boxShadow: highlighted ? "0 0 0 1px rgba(201,168,76,0.45)" : "none",
         }}
-        onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 0 0 1px rgba(201,168,76,0.25)"; }}
-        onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; }}
+        onMouseEnter={e => { if (!dimmed) e.currentTarget.style.boxShadow = highlighted ? "0 0 0 1px rgba(201,168,76,0.55)" : "0 0 0 1px rgba(201,168,76,0.25)"; }}
+        onMouseLeave={e => { e.currentTarget.style.boxShadow = highlighted ? "0 0 0 1px rgba(201,168,76,0.45)" : "none"; }}
       >
         <span style={{ fontSize: 8, flexShrink: 0 }}>{TYPE_ICON[ev.event_type] ?? TYPE_ICON.OTHER}</span>
         <div style={{ overflow: "hidden", minWidth: 0, flex: 1 }}>
@@ -467,6 +540,21 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
             </div>
           );
         })}
+      </RailSection>
+      <RailSection title={`My Portfolio (${portfolio.length})`}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+          {tickers.filter(t => t !== ALL).map(t => {
+            const active = isInPortfolio(t);
+            return (
+              <button key={t} type="button" onClick={() => toggleTicker(t)} style={{
+                padding: "3px 6px", borderRadius: 4, fontSize: 8, fontWeight: 600, cursor: "pointer",
+                background: active ? THEME.accentSoft : THEME.surfaceAlt,
+                border: `1px solid ${active ? THEME.accent : THEME.border}`,
+                color: active ? THEME.accentText : THEME.textMuted,
+              }}>{active ? "★" : "☆"} {t}</button>
+            );
+          })}
+        </div>
       </RailSection>
     </>
   );
@@ -562,6 +650,12 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
                   color: typeFilter === t ? THEME.accentText : THEME.textMuted,
                 }}>{FILTER_LABELS[t]}</button>
               ))}
+              <button type="button" onClick={() => setPortfolioHighlight(h => !h)} style={{
+                padding: "2px 8px", borderRadius: 5, fontSize: 10, fontWeight: 600, cursor: "pointer",
+                background: portfolioHighlight ? "rgba(201,168,76,0.18)" : "transparent",
+                border: `1px solid ${portfolioHighlight ? THEME.accent : THEME.border}`,
+                color: portfolioHighlight ? THEME.accentText : THEME.textMuted,
+              }}>⭐ My Portfolio</button>
               <select value={tickerFilter} onChange={e => { setTickerFilter(e.target.value); setSelDay(null); }}
                 style={{ background: THEME.surfaceAlt, border: `1px solid ${THEME.border}`, color: THEME.text, borderRadius: 5, padding: "2px 6px", fontSize: 10, marginLeft: "auto" }}>
                 {tickers.map(t => <option key={t}>{t}</option>)}
@@ -607,7 +701,12 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 2, overflow: "hidden", flex: 1 }}>
                           {items.slice(0, 4).map(ev => (
-                            <EventChip key={`${ev._type}-${ev.id}`} ev={ev} />
+                            <EventChip
+                              key={`${ev._type}-${ev.id}`}
+                              ev={ev}
+                              dimmed={portfolioHighlight && !isInPortfolio(ev.ticker)}
+                              highlighted={portfolioHighlight && isInPortfolio(ev.ticker)}
+                            />
                           ))}
                           {items.length > 4 && <div style={{ fontSize: 7, color: THEME.textFaint, paddingLeft: 2 }}>+{items.length - 4}</div>}
                         </div>

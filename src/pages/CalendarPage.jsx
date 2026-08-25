@@ -265,7 +265,7 @@ function CompanyDetailPanel({ ticker, events, earnings, onClose, onDeleteEvent }
   );
 }
 
-export default function CalendarPage() {
+export default function CalendarPage({ userEmail = 'Admin' }) {
   const location = useLocation();
   const activeView = location.pathname === "/stickers" ? "stickers" : "calendar";
 
@@ -532,7 +532,7 @@ export default function CalendarPage() {
 
   return (
     <div style={{ display: "flex", height: "100vh", background: THEME.bg, color: THEME.text, fontFamily: "'Outfit', sans-serif", overflow: "hidden", fontSize: 12 }}>
-      <AtheriumNavRail>
+      <AtheriumNavRail userEmail={userEmail}>
         {activeView === "stickers" ? stickersRailTools : calendarRailTools}
       </AtheriumNavRail>
 

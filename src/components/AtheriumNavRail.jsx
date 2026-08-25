@@ -1,4 +1,5 @@
 import AtheriumBottomNav from './AtheriumBottomNav'
+import SidebarUserChip from './SidebarUserChip'
 import {
   SIDEBAR_WIDTH,
   SIDEBAR_BODY_MIN_HEIGHT,
@@ -15,7 +16,7 @@ const RAIL = {
   textFaint: '#5A6478',
 }
 
-export default function AtheriumNavRail({ children }) {
+export default function AtheriumNavRail({ children, userEmail = 'Admin' }) {
   return (
     <div style={{
       width: RAIL.width, background: RAIL.bg, borderRight: `1px solid ${RAIL.border}`,
@@ -40,8 +41,15 @@ export default function AtheriumNavRail({ children }) {
           {children}
         </div>
 
-        <div style={{ ...SIDEBAR_FOOTER_STYLE, marginTop: SIDEBAR_BOTTOM_OFFSET }}>
+        <div style={{
+          ...SIDEBAR_FOOTER_STYLE,
+          marginTop: SIDEBAR_BOTTOM_OFFSET,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 10,
+        }}>
           <AtheriumBottomNav compact />
+          <SidebarUserChip userEmail={userEmail} />
         </div>
       </div>
     </div>

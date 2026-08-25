@@ -1,6 +1,7 @@
 import React from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import AtheriumBottomNav from './AtheriumBottomNav'
+import SidebarUserChip from './SidebarUserChip'
 import {
   SIDEBAR_WIDTH,
   SIDEBAR_BODY_MIN_HEIGHT,
@@ -96,13 +97,7 @@ export default function Sidebar({ activePage, userEmail = 'Admin' }) {
           gap: 10,
         }}>
           <AtheriumBottomNav compact />
-          <div style={s.userChip}>
-            <div style={s.avatar}>{(userEmail[0] || 'A').toUpperCase()}</div>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ fontSize: 12, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userEmail}</div>
-              <div style={{ fontSize: 10, color: 'var(--muted)' }}>Super Owner</div>
-            </div>
-          </div>
+          <SidebarUserChip userEmail={userEmail} />
         </div>
       </div>
     </aside>
@@ -134,11 +129,4 @@ const s = {
     color: 'var(--muted)', transition: 'all 0.2s', lineHeight: 1.25,
   },
   navItemActive: { color: 'var(--gold)', borderLeftColor: 'var(--gold)', background: 'rgba(201,168,76,0.05)' },
-  userChip: { display: 'flex', alignItems: 'center', gap: 8 },
-  avatar: {
-    width: 28, height: 28, borderRadius: '50%',
-    background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: 12, fontWeight: 600, color: 'var(--night)',
-  },
 }

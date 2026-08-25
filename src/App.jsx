@@ -68,8 +68,8 @@ function AuthenticatedRoutes({ userEmail, onSignOut }) {
 
   return (
     <Routes>
-      <Route path="/calendar" element={<CalendarPage />} />
-      <Route path="/stickers" element={<CalendarPage />} />
+      <Route path="/calendar" element={<CalendarPage userEmail={userEmail} />} />
+      <Route path="/stickers" element={<CalendarPage userEmail={userEmail} />} />
       <Route element={<AdminLayout userEmail={userEmail} onSignOut={onSignOut} />}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/customers" element={<Customers />} />

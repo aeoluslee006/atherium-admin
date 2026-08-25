@@ -1,7 +1,7 @@
 import React from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import AtheriumBottomNav from './AtheriumBottomNav'
-import { SIDEBAR_WIDTH } from '../constants/layout'
+import { SIDEBAR_WIDTH, SIDEBAR_BOTTOM_OFFSET } from '../constants/layout'
 
 const NAV = [
   { section: 'Main', items: [
@@ -122,7 +122,7 @@ const s = {
   },
   navItemActive: { color: 'var(--gold)', borderLeftColor: 'var(--gold)', background: 'rgba(201,168,76,0.05)' },
   bottomBlock: {
-    padding: '10px 14px 14px', marginTop: 76,
+    padding: '10px 14px 14px', marginTop: SIDEBAR_BOTTOM_OFFSET,
     borderTop: '1px solid var(--border)',
     display: 'flex', flexDirection: 'column', gap: 10,
   },

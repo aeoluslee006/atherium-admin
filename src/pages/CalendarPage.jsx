@@ -88,7 +88,7 @@ function RailSection({ title, children }) {
   );
 }
 
-function CompanyDetailPanel({ ticker, events, earnings, onClose }) {
+function CompanyDetailPanel({ ticker, events, earnings, onClose, onDeleteEvent }) {
   const companyEvents = events.filter(e => e.ticker === ticker)
     .sort((a, b) => new Date(a.event_date) - new Date(b.event_date));
   const companyEarnings = earnings.filter(e => e.ticker === ticker)
@@ -249,6 +249,12 @@ function CompanyDetailPanel({ ticker, events, earnings, onClose }) {
                     <div style={{ fontSize: 9, color: THEME.textMuted }}>{fmtDate(ev.event_date)} · {sm.label}</div>
                     {ev.drug_name && <div style={{ fontSize: 9, color: THEME.textFaint }}>💊 {ev.drug_name}</div>}
                   </div>
+                  {ev.is_manual && onDeleteEvent && (
+                    <button type="button" onClick={() => onDeleteEvent(ev.id)} title="Remove event" style={{
+                      background: "none", border: "none", color: "#E84F4F", cursor: "pointer",
+                      fontSize: 14, padding: 0, flexShrink: 0,
+                    }}>×</button>
+                  )}
                 </div>
               );
             })}
@@ -458,9 +464,6 @@ export default function CalendarPage() {
             }}>
               <span style={{ fontWeight: 700, color: sm.dot, flexShrink: 0 }}>{ev.ticker}</span>
               <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: THEME.textMuted }}>{ev.label}</span>
-              <button type="button" onClick={() => deleteEvent(ev.id)} style={{
-                background: "none", border: "none", color: "#E84F4F", cursor: "pointer", fontSize: 11, padding: 0,
-              }}>×</button>
             </div>
           );
         })}
@@ -615,7 +618,13 @@ export default function CalendarPage() {
               </div>
 
               {selCompany && (
-                <CompanyDetailPanel ticker={selCompany} events={events} earnings={earnings} onClose={() => setSelCompany(null)} />
+                <CompanyDetailPanel
+                  ticker={selCompany}
+                  events={events}
+                  earnings={earnings}
+                  onClose={() => setSelCompany(null)}
+                  onDeleteEvent={deleteEvent}
+                />
               )}
 
               {stickersOpen && (

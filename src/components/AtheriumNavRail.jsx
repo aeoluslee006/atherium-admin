@@ -1,5 +1,5 @@
 import AtheriumBottomNav from './AtheriumBottomNav'
-import { SIDEBAR_WIDTH, SIDEBAR_BOTTOM_OFFSET } from '../constants/layout'
+import { SIDEBAR_WIDTH, SIDEBAR_FOOTER_STYLE } from '../constants/layout'
 
 const RAIL = {
   width: SIDEBAR_WIDTH,
@@ -32,12 +32,10 @@ export default function AtheriumNavRail({ children }) {
 
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
         {children}
-        <div style={{
-          padding: '10px 14px 14px', marginTop: SIDEBAR_BOTTOM_OFFSET,
-          borderTop: `1px solid ${RAIL.border}`,
-        }}>
-          <AtheriumBottomNav compact />
-        </div>
+      </div>
+
+      <div style={SIDEBAR_FOOTER_STYLE}>
+        <AtheriumBottomNav compact />
       </div>
     </div>
   )

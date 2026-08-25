@@ -1,7 +1,7 @@
 import React from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import AtheriumBottomNav from './AtheriumBottomNav'
-import { SIDEBAR_WIDTH, SIDEBAR_BOTTOM_OFFSET } from '../constants/layout'
+import { SIDEBAR_WIDTH, SIDEBAR_FOOTER_STYLE } from '../constants/layout'
 
 const NAV = [
   { section: 'Main', items: [
@@ -80,15 +80,15 @@ export default function Sidebar({ activePage, userEmail = 'Admin' }) {
             </div>
           ))}
         </nav>
+      </div>
 
-        <div style={s.bottomBlock}>
-          <AtheriumBottomNav compact />
-          <div style={s.userChip}>
-            <div style={s.avatar}>{(userEmail[0] || 'A').toUpperCase()}</div>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ fontSize: 12, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userEmail}</div>
-              <div style={{ fontSize: 10, color: 'var(--muted)' }}>Super Owner</div>
-            </div>
+      <div style={{ ...SIDEBAR_FOOTER_STYLE, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <AtheriumBottomNav compact />
+        <div style={s.userChip}>
+          <div style={s.avatar}>{(userEmail[0] || 'A').toUpperCase()}</div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: 12, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userEmail}</div>
+            <div style={{ fontSize: 10, color: 'var(--muted)' }}>Super Owner</div>
           </div>
         </div>
       </div>
@@ -102,7 +102,7 @@ const s = {
     display: 'flex', flexDirection: 'column', flexShrink: 0, height: '100vh',
     position: 'sticky', top: 0,
   },
-  logoWrap: { padding: '18px 14px 14px', borderBottom: '1px solid var(--border)' },
+  logoWrap: { padding: '18px 14px 14px', borderBottom: '1px solid var(--border)', flexShrink: 0 },
   logoMark: { display: 'flex', alignItems: 'center', gap: 8 },
   logoA: {
     width: 28, height: 28, flexShrink: 0,
@@ -112,7 +112,7 @@ const s = {
   logoText: { fontFamily: "'Cinzel', serif", fontSize: 13, fontWeight: 600, color: 'var(--gold)', letterSpacing: 1.5 },
   logoSub: { fontSize: 8, color: 'var(--muted)', letterSpacing: 1.2, textTransform: 'uppercase', marginTop: 2 },
   scroll: { flex: 1, overflowY: 'auto', minHeight: 0 },
-  nav: { padding: '12px 0 0' },
+  nav: { padding: '12px 0' },
   navSection: { marginBottom: 2 },
   navLabel: { fontSize: 8, letterSpacing: 1.2, textTransform: 'uppercase', color: 'var(--muted)', padding: '6px 14px 3px', opacity: 0.6 },
   navItem: {
@@ -121,11 +121,6 @@ const s = {
     color: 'var(--muted)', transition: 'all 0.2s', lineHeight: 1.25,
   },
   navItemActive: { color: 'var(--gold)', borderLeftColor: 'var(--gold)', background: 'rgba(201,168,76,0.05)' },
-  bottomBlock: {
-    padding: '10px 14px 14px', marginTop: SIDEBAR_BOTTOM_OFFSET,
-    borderTop: '1px solid var(--border)',
-    display: 'flex', flexDirection: 'column', gap: 10,
-  },
   userChip: { display: 'flex', alignItems: 'center', gap: 8 },
   avatar: {
     width: 28, height: 28, borderRadius: '50%',

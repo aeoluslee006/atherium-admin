@@ -17,7 +17,6 @@ import { supabase } from './lib/supabase'
 
 function AdminLayout({ userEmail, onSignOut }) {
   const location = useLocation()
-  const navigate = useNavigate()
   const [stickersOpen, setStickersOpen] = useState(false)
   const sticker = usePharmaNotes()
   const pathPage = location.pathname.replace(/^\//, '') || 'dashboard'
@@ -48,7 +47,6 @@ function AdminLayout({ userEmail, onSignOut }) {
           activePage={activePage}
           userEmail={userEmail}
           onSignOut={onSignOut}
-          onNavigate={(page) => navigate(`/${page}`)}
           stickersOpen={stickersOpen}
           onToggleStickers={() => setStickersOpen(o => !o)}
         />

@@ -1,3 +1,5 @@
+import { useState, useRef, useEffect } from 'react'
+
 const NOTE_COLORS = ['#fef9c3', '#dcfce7', '#dbeafe', '#fce7f3', '#ede9fe', '#fee2e2']
 
 const THEME = {
@@ -22,6 +24,7 @@ export default function StickersPanel({
   setNoteColor,
   onAdd,
   onDelete,
+  onUpdateContent,
   boardRef,
   onMouseMove,
   onMouseUp,
@@ -34,9 +37,55 @@ export default function StickersPanel({
   showBoard = true,
   listOnly = false,
 }) {
+  const [editingId, setEditingId] = useState(null)
+  const [editDraft, setEditDraft] = useState('')
+  const editRef = useRef(null)
+
+  useEffect(() => {
+    if (editingId && editRef.current) {
+      editRef.current.focus()
+      editRef.current.select()
+    }
+  }, [editingId])
+
   const boardContentH = notes.length
     ? Math.max(360, ...notes.map(n => (n.pos_y || 0) + 80))
     : 360
+
+  const startEdit = (note) => {
+    setEditingId(note.id)
+    setEditDraft(note.content)
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setEditDraft('')
+  }
+
+  const saveEdit = () => {
+    if (!editingId) return
+    const original = notes.find(n => n.id === editingId)?.content ?? ''
+    const trimmed = editDraft.trim()
+    if (!trimmed) {
+      cancelEdit()
+      return
+    }
+    if (trimmed !== original && onUpdateContent) onUpdateContent(editingId, trimmed)
+    cancelEdit()
+  }
+
+  const handleDelete = (id, e) => {
+    e.stopPropagation()
+    e.preventDefault()
+    if (window.confirm('Delete this sticker?')) onDelete(id)
+  }
+
+  const handleNoteMouseDown = (e, id) => {
+    if (editingId === id) return
+    if (e.detail >= 2) return
+    if (e.target.closest('button') || e.target.closest('textarea')) return
+    onMouseDown(e, id)
+  }
 
   return (
     <div style={{
@@ -88,31 +137,13 @@ export default function StickersPanel({
         </div>
       )}
 
-      {!hideControls && !listOnly && notes.length > 0 && (
-        <div style={{ maxHeight: 72, overflow: 'auto', borderBottom: `1px solid ${THEME.border}`, flexShrink: 0 }}>
-          {notes.map(note => (
-            <div key={note.id} style={{
-              display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px',
-              borderBottom: `1px solid ${THEME.border}`, fontSize: 9,
-            }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: note.color, flexShrink: 0 }} />
-              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: THEME.textMuted }}>
-                {note.content}
-              </span>
-              <button type="button" onClick={() => onDelete(note.id)} style={{
-                background: 'none', border: 'none', color: '#E84F4F', cursor: 'pointer', fontSize: 12, padding: 0,
-              }}>×</button>
-            </div>
-          ))}
-        </div>
-      )}
-
       {showBoard && (
         <div
           ref={boardRef}
           onMouseMove={onMouseMove}
           onMouseUp={onMouseUp}
           onMouseLeave={onMouseUp}
+          onClick={() => { if (editingId) saveEdit() }}
           style={{
             flex: 1, position: 'relative', overflow: 'auto', minHeight: 120,
             background: THEME.surfaceAlt,
@@ -126,37 +157,67 @@ export default function StickersPanel({
               position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
               color: THEME.textFaint, fontSize: 10, textAlign: 'center', padding: '0 12px',
             }}>
-              Add stickers — drag to arrange
+              Add stickers — drag to arrange, double-click to edit
             </div>
           )}
-          {notes.map(note => (
-            <div
-              key={note.id}
-              onMouseDown={e => onMouseDown(e, note.id)}
-              style={{
-                position: 'absolute', left: note.pos_x, top: note.pos_y,
-                background: note.color, color: '#1e293b', borderRadius: 6,
-                padding: '6px 22px 6px 8px', maxWidth: 136, width: 'max-content',
-                fontSize: 10, fontWeight: 500, cursor: 'grab', lineHeight: 1.4,
-                boxShadow: '0 2px 12px rgba(0,0,0,0.35)', userSelect: 'none',
-                zIndex: dragging === note.id ? 100 : 1,
-                wordBreak: 'break-word',
-              }}
-            >
-              <button type="button" onClick={() => onDelete(note.id)} style={{
-                position: 'absolute', top: 3, right: 5, background: 'none', border: 'none',
-                cursor: 'pointer', fontSize: 12, color: '#64748b',
-              }}>×</button>
-              {note.ticker_tag && (
-                <span style={{
-                  fontSize: 8, fontWeight: 700, background: THEME.surfaceHover,
-                  color: THEME.textMuted, borderRadius: 3, padding: '1px 4px',
-                  marginBottom: 3, display: 'inline-block',
-                }}>{note.ticker_tag}</span>
-              )}
-              <div>{note.content}</div>
-            </div>
-          ))}
+          {notes.map(note => {
+            const isEditing = editingId === note.id
+            return (
+              <div
+                key={note.id}
+                onMouseDown={e => handleNoteMouseDown(e, note.id)}
+                onDoubleClick={e => { e.stopPropagation(); startEdit(note) }}
+                onClick={e => e.stopPropagation()}
+                style={{
+                  position: 'absolute', left: note.pos_x, top: note.pos_y,
+                  background: note.color, color: '#1e293b', borderRadius: 6,
+                  padding: '6px 22px 6px 8px', maxWidth: 136, minWidth: 80,
+                  width: isEditing ? 136 : 'max-content',
+                  fontSize: 10, fontWeight: 500,
+                  cursor: isEditing ? 'text' : 'grab',
+                  lineHeight: 1.4,
+                  boxShadow: '0 2px 12px rgba(0,0,0,0.35)',
+                  userSelect: isEditing ? 'text' : 'none',
+                  zIndex: isEditing || dragging === note.id ? 100 : 1,
+                  wordBreak: 'break-word',
+                }}
+              >
+                <button type="button" onMouseDown={e => e.stopPropagation()} onClick={e => handleDelete(note.id, e)} style={{
+                  position: 'absolute', top: 3, right: 5, background: 'none', border: 'none',
+                  cursor: 'pointer', fontSize: 12, color: '#64748b',
+                }}>×</button>
+                {note.ticker_tag && !isEditing && (
+                  <span style={{
+                    fontSize: 8, fontWeight: 700, background: THEME.surfaceHover,
+                    color: THEME.textMuted, borderRadius: 3, padding: '1px 4px',
+                    marginBottom: 3, display: 'inline-block',
+                  }}>{note.ticker_tag}</span>
+                )}
+                {isEditing ? (
+                  <textarea
+                    ref={editRef}
+                    value={editDraft}
+                    onChange={e => setEditDraft(e.target.value)}
+                    onBlur={saveEdit}
+                    onKeyDown={e => {
+                      if (e.key === 'Escape') cancelEdit()
+                      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveEdit() }
+                    }}
+                    onMouseDown={e => e.stopPropagation()}
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                      width: '100%', minHeight: 48, resize: 'none',
+                      background: 'transparent', border: 'none', outline: 'none',
+                      color: '#1e293b', fontSize: 10, fontWeight: 500,
+                      fontFamily: 'inherit', lineHeight: 1.4, padding: 0,
+                    }}
+                  />
+                ) : (
+                  <div>{note.content}</div>
+                )}
+              </div>
+            )
+          })}
           </div>
         </div>
       )}
@@ -181,7 +242,7 @@ export default function StickersPanel({
                   <div style={{ fontSize: 8, color: THEME.textFaint, marginTop: 2 }}>{note.ticker_tag}</div>
                 )}
               </div>
-              <button type="button" onClick={() => onDelete(note.id)} style={{
+              <button type="button" onClick={e => handleDelete(note.id, e)} style={{
                 background: 'none', border: 'none', color: '#E84F4F', cursor: 'pointer', fontSize: 14, padding: 0,
               }}>×</button>
             </div>

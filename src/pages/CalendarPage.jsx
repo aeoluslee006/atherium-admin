@@ -931,18 +931,6 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
         width: "100%", padding: "5px 0", background: THEME.accent, color: "#0A0C14",
         border: "none", borderRadius: 6, fontSize: 9, fontWeight: 600, cursor: "pointer", marginBottom: 6,
       }}>+ Add sticker</button>
-      {sticker.notes.map(note => (
-        <div key={note.id} style={{
-          display: "flex", alignItems: "center", gap: 4, padding: "4px 0",
-          borderBottom: `1px solid ${THEME.border}`, fontSize: 9,
-        }}>
-          <span style={{ width: 8, height: 8, borderRadius: 2, background: note.color, flexShrink: 0 }} />
-          <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: THEME.textMuted }}>{note.content}</span>
-          <button type="button" onClick={() => sticker.deleteNote(note.id)} style={{
-            background: "none", border: "none", color: "#E84F4F", cursor: "pointer", fontSize: 11, padding: 0,
-          }}>×</button>
-        </div>
-      ))}
     </RailSection>
   );
 
@@ -954,6 +942,7 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
     setNoteColor: sticker.setNoteColor,
     onAdd: sticker.addNote,
     onDelete: sticker.deleteNote,
+    onUpdateContent: sticker.updateNoteContent,
     boardRef: sticker.boardRef,
     onMouseDown: sticker.onMouseDown,
     onMouseMove: sticker.onMouseMove,

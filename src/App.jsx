@@ -32,6 +32,7 @@ function AdminLayout({ userEmail, onSignOut }) {
     setNoteColor: sticker.setNoteColor,
     onAdd: sticker.addNote,
     onDelete: sticker.deleteNote,
+    onUpdateContent: sticker.updateNoteContent,
     boardRef: sticker.boardRef,
     onMouseDown: sticker.onMouseDown,
     onMouseMove: sticker.onMouseMove,

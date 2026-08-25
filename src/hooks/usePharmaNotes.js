@@ -26,6 +26,11 @@ export function usePharmaNotes() {
     setNewNote('')
   }
 
+  const updateNoteContent = async (id, content) => {
+    await supabase.from('pharma_notes').update({ content }).eq('id', id)
+    setNotes(n => n.map(note => note.id === id ? { ...note, content } : note))
+  }
+
   const deleteNote = async (id) => {
     await supabase.from('pharma_notes').delete().eq('id', id)
     setNotes(n => n.filter(note => note.id !== id))
@@ -62,6 +67,6 @@ export function usePharmaNotes() {
 
   return {
     notes, newNote, setNewNote, noteColor, setNoteColor, dragging, boardRef,
-    addNote, deleteNote, onMouseDown, onMouseMove, onMouseUp, loadNotes,
+    addNote, deleteNote, updateNoteContent, onMouseDown, onMouseMove, onMouseUp, loadNotes,
   }
 }

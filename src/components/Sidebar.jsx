@@ -122,7 +122,7 @@ const s = {
   },
   navItemActive: { color: 'var(--gold)', borderLeftColor: 'var(--gold)', background: 'rgba(201,168,76,0.05)' },
   bottomBlock: {
-    padding: '10px 14px 14px', marginTop: 38,
+    padding: '10px 14px 14px', marginTop: 76,
     borderTop: '1px solid var(--border)',
     display: 'flex', flexDirection: 'column', gap: 10,
   },

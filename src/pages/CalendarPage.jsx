@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import AtheriumNavRail from "../components/AtheriumNavRail";
 import StickersPanel from "../components/StickersPanel";
 import { usePharmaNotes } from "../hooks/usePharmaNotes";
-import { usePharmaPortfolio } from "../hooks/usePharmaPortfolio";
+import { exportMonthToIcs, downloadIcs, parseIcsFile } from "../lib/icsCalendar";
 
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const ALL = "All";
@@ -54,6 +54,15 @@ const STATUS_META = {
 
 const TYPE_ICON = { FDA:"💊", TRIAL:"🧪", IR:"📢", EARN:"📊", OTHER:"📌" };
 const FILTER_LABELS = { All: "All", FDA: "💊 FDA", EARN: "📊 Earnings", TRIAL: "🧪 Trial", IR: "📢 IR" };
+const OFFICE_CATEGORIES = ["MEETING", "DEADLINE", "REMINDER", "OUT_OF_OFFICE", "OTHER"];
+const OFFICE_META = {
+  MEETING: { icon: "📅", label: "Meeting", bg: "rgba(79,143,232,0.16)", border: "rgba(79,143,232,0.4)", text: "#93c5fd" },
+  DEADLINE: { icon: "⏰", label: "Deadline", bg: "rgba(232,148,58,0.16)", border: "rgba(232,148,58,0.4)", text: "#fcd34d" },
+  REMINDER: { icon: "🔔", label: "Reminder", bg: "rgba(123,92,240,0.16)", border: "rgba(123,92,240,0.4)", text: "#c4b5fd" },
+  OUT_OF_OFFICE: { icon: "🚫", label: "Out of office", bg: "rgba(136,146,170,0.14)", border: "rgba(136,146,170,0.35)", text: "#8892AA" },
+  OTHER: { icon: "📌", label: "Other", bg: "rgba(201,168,76,0.12)", border: "rgba(201,168,76,0.35)", text: "#E8D08A" },
+};
+const fmtTime = (t) => (t ? String(t).slice(0, 5) : "");
 
 const fmtDate = (d) => new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 const diffDays = (d) => Math.ceil((new Date(d) - new Date()) / 86400000);
@@ -334,6 +343,64 @@ function CompanyDetailPanel({ ticker, events, earnings, onClose, onDeleteEvent }
   );
 }
 
+function OfficeEventPanel({ event, onClose, onDelete }) {
+  const om = OFFICE_META[event.category] ?? OFFICE_META.OTHER;
+  return (
+    <div style={{
+      width: 320, height: "100%", display: "flex", flexDirection: "column",
+      background: THEME.surfaceAlt, borderLeft: `1px solid ${THEME.border}`, flexShrink: 0,
+    }}>
+      <div style={{
+        padding: "12px 14px", borderBottom: `1px solid ${THEME.border}`,
+        background: THEME.surface, display: "flex", alignItems: "flex-start", gap: 8,
+      }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 9, color: om.text, fontWeight: 700, marginBottom: 4 }}>{om.icon} {om.label}</div>
+          <div style={{ fontWeight: 800, fontSize: 16, color: THEME.text, lineHeight: 1.3 }}>{event.title}</div>
+          <div style={{ fontSize: 10, color: THEME.textMuted, marginTop: 6 }}>
+            {fmtDate(event.event_date)}
+            {!event.all_day && event.start_time && (
+              <span> · {fmtTime(event.start_time)}{event.end_time ? ` – ${fmtTime(event.end_time)}` : ""}</span>
+            )}
+            {event.all_day && <span> · All day</span>}
+          </div>
+        </div>
+        <button type="button" onClick={onClose} style={{
+          background: THEME.surfaceAlt, border: `1px solid ${THEME.border}`,
+          borderRadius: 5, width: 26, height: 26, cursor: "pointer", color: THEME.textMuted, fontSize: 16,
+        }}>×</button>
+      </div>
+      <div style={{ flex: 1, overflow: "auto", padding: "10px 12px" }}>
+        {event.location && (
+          <SectionCard title="Location">
+            <div style={{ fontSize: 11, color: THEME.text }}>{event.location}</div>
+          </SectionCard>
+        )}
+        {event.attendees && (
+          <SectionCard title="Attendees">
+            <div style={{ fontSize: 10, color: THEME.textMuted, lineHeight: 1.5 }}>{event.attendees}</div>
+          </SectionCard>
+        )}
+        {event.description && (
+          <SectionCard title="Notes">
+            <div style={{ fontSize: 10, color: THEME.text, lineHeight: 1.55, whiteSpace: "pre-wrap" }}>{event.description}</div>
+          </SectionCard>
+        )}
+        {event.created_by && (
+          <div style={{ fontSize: 9, color: THEME.textFaint, marginTop: 8 }}>Created by {event.created_by}</div>
+        )}
+      </div>
+      <div style={{ padding: "10px 12px", borderTop: `1px solid ${THEME.border}`, background: THEME.surface }}>
+        <button type="button" onClick={() => onDelete(event.id)} style={{
+          width: "100%", padding: "8px 0", borderRadius: 6, cursor: "pointer",
+          background: "rgba(232,79,79,0.12)", border: "1px solid rgba(232,79,79,0.35)",
+          color: "#fca5a5", fontSize: 11, fontWeight: 600,
+        }}>Delete event</button>
+      </div>
+    </div>
+  );
+}
+
 export default function CalendarPage({ userEmail = 'Admin' }) {
   const location = useLocation();
   const activeView = location.pathname === "/stickers" ? "stickers" : "calendar";
@@ -346,31 +413,46 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
   const [notes, setNotes] = useState([]);
   const [selDay, setSelDay] = useState(null);
   const [selCompany, setSelCompany] = useState(null);
+  const [selOffice, setSelOffice] = useState(null);
+  const [officeEvents, setOfficeEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stickersOpen, setStickersOpen] = useState(false);
   const [typeFilter, setTypeFilter] = useState(ALL);
+  const [calendarView, setCalendarView] = useState("ALL");
   const [tickerFilter, setTickerFilter] = useState(ALL);
   const [lastSync, setLastSync] = useState(null);
   const [newEv, setNewEv] = useState({ ticker: "", date: "", event_type: "FDA", label: "" });
-  const [portfolioHighlight, setPortfolioHighlight] = useState(false);
+  const [newOffice, setNewOffice] = useState({
+    title: "", date: "", start_time: "09:00", end_time: "10:00",
+    all_day: false, location: "", attendees: "", description: "", category: "MEETING",
+  });
+  const icsInputRef = useRef(null);
 
   const sticker = usePharmaNotes();
-  const { portfolio, isInPortfolio, toggleTicker } = usePharmaPortfolio(userEmail);
 
   const openCompany = (ticker, e) => {
     e?.stopPropagation?.();
+    setSelOffice(null);
     setSelCompany(ticker);
+  };
+
+  const openOffice = (event, e) => {
+    e?.stopPropagation?.();
+    setSelCompany(null);
+    setSelOffice(event);
   };
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    const [evRes, erRes, lgRes] = await Promise.all([
+    const [evRes, erRes, offRes, lgRes] = await Promise.all([
       supabase.from("pharma_events").select("*").order("event_date"),
       supabase.from("pharma_earnings").select("*").order("report_date"),
+      supabase.from("company_calendar_events").select("*").order("event_date"),
       supabase.from("pharma_sync_log").select("synced_at").order("synced_at", { ascending: false }).limit(1),
     ]);
     if (evRes.data) setEvents(evRes.data);
     if (erRes.data) setEarnings(erRes.data);
+    if (offRes.data) setOfficeEvents(offRes.data);
     if (lgRes.data?.[0]) setLastSync(lgRes.data[0].synced_at);
     setLoading(false);
   }, []);
@@ -378,7 +460,9 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
   useEffect(() => { loadData(); }, [loadData]);
 
   useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape") setSelCompany(null); };
+    const onKey = (e) => {
+      if (e.key === "Escape") { setSelCompany(null); setSelOffice(null); }
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
@@ -393,10 +477,11 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
     setViewMonth(today.getMonth());
     setSelDay(today.getDate());
     setSelCompany(null);
+    setSelOffice(null);
   };
   const isCurrentMonth = viewYear === today.getFullYear() && viewMonth === today.getMonth();
 
-  const allItems = [
+  const pharmaItems = [
     ...events.map(e => ({ ...e, _type: "event", date: e.event_date, status: e.status })),
     ...earnings.map(e => ({
       ...e, _type: "earning", date: e.report_date, status: "earnings",
@@ -406,7 +491,12 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
     })),
   ];
 
-  const filtered = allItems.filter(e =>
+  const officeItems = officeEvents.map(e => ({
+    ...e, _type: "office", date: e.event_date, status: "office", event_type: "OFFICE",
+    label: e.title, ticker: null,
+  }));
+
+  const filteredPharma = pharmaItems.filter(e =>
     (tickerFilter === ALL || e.ticker === tickerFilter) &&
     (typeFilter === ALL
       || (typeFilter === "EARN" && e.event_type === "EARN")
@@ -415,12 +505,16 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
       || (typeFilter === "IR" && e.event_type === "IR"))
   );
 
+  const filtered = calendarView === "PHARMA" ? filteredPharma
+    : calendarView === "OFFICE" ? officeItems
+      : [...filteredPharma, ...officeItems];
+
   const getDayItems = (day) => filtered.filter(e => {
     const d = new Date(e.date);
     return d.getFullYear() === viewYear && d.getMonth() === viewMonth && d.getDate() === day;
   });
 
-  const tickers = [ALL, ...new Set(allItems.map(e => e.ticker).sort())];
+  const tickers = [ALL, ...new Set(pharmaItems.map(e => e.ticker).sort())];
   const monthEventCount = filtered.filter(e => {
     const d = new Date(e.date);
     return d.getFullYear() === viewYear && d.getMonth() === viewMonth;
@@ -453,43 +547,110 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
     setEvents(ev => ev.filter(e => e.id !== id));
   };
 
+  const monthOfficeEvents = officeEvents.filter(e => {
+    const d = new Date(e.event_date);
+    return d.getFullYear() === viewYear && d.getMonth() === viewMonth;
+  }).sort((a, b) => {
+    const da = `${a.event_date} ${a.start_time ?? ""}`;
+    const db = `${b.event_date} ${b.start_time ?? ""}`;
+    return da.localeCompare(db);
+  });
+
+  const addOfficeEvent = async () => {
+    if (!newOffice.title.trim() || !newOffice.date) return;
+    const payload = {
+      title: newOffice.title.trim(),
+      description: newOffice.description.trim() || null,
+      event_date: newOffice.date,
+      start_time: newOffice.all_day ? null : newOffice.start_time || null,
+      end_time: newOffice.all_day ? null : newOffice.end_time || null,
+      all_day: newOffice.all_day,
+      location: newOffice.location.trim() || null,
+      attendees: newOffice.attendees.trim() || null,
+      category: newOffice.category,
+      created_by: userEmail,
+    };
+    const { data, error } = await supabase.from("company_calendar_events").insert(payload).select().single();
+    if (error) { alert(error.message.includes("company_calendar") ? "Office calendar table not ready — run Supabase migration." : error.message); return; }
+    if (data) setOfficeEvents(prev => [...prev, data]);
+    setNewOffice({
+      title: "", date: "", start_time: "09:00", end_time: "10:00",
+      all_day: false, location: "", attendees: "", description: "", category: "MEETING",
+    });
+  };
+
+  const deleteOfficeEvent = async (id) => {
+    if (!window.confirm("Delete this office event?")) return;
+    await supabase.from("company_calendar_events").delete().eq("id", id);
+    setOfficeEvents(prev => prev.filter(e => e.id !== id));
+    if (selOffice?.id === id) setSelOffice(null);
+  };
+
+  const handleExportIcs = () => {
+    const ics = exportMonthToIcs({ year: viewYear, month: viewMonth, officeEvents, pharmaEvents: events });
+    downloadIcs(ics, `atherium-${viewYear}-${pad(viewMonth + 1)}.ics`);
+  };
+
+  const handleImportIcs = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+    const parsed = parseIcsFile(text);
+    if (parsed.length === 0) { alert("No events found in file."); return; }
+    const rows = parsed.map(row => ({ ...row, created_by: userEmail }));
+    const { data, error } = await supabase.from("company_calendar_events").insert(rows).select();
+    if (error) { alert(error.message); return; }
+    if (data) setOfficeEvents(prev => [...prev, ...data]);
+    e.target.value = "";
+    alert(`Imported ${data.length} event(s).`);
+  };
+
+  function pad(n) { return String(n).padStart(2, "0"); }
+
   const triggerSync = async () => {
     const { error } = await supabase.functions.invoke("pharma-data-sync");
     if (!error) await loadData();
     else alert("Sync failed: " + error.message);
   };
 
-  const EventChip = ({ ev, dimmed, highlighted }) => {
-    const sm = STATUS_META[ev.status] ?? STATUS_META.upcoming;
-    const dd = dDayLabel(ev.date);
+  const EventChip = ({ ev }) => {
+    const isOffice = ev._type === "office";
+    const sm = isOffice
+      ? { ...(OFFICE_META[ev.category] ?? OFFICE_META.OTHER), text: (OFFICE_META[ev.category] ?? OFFICE_META.OTHER).text }
+      : (STATUS_META[ev.status] ?? STATUS_META.upcoming);
+    const dd = !isOffice ? dDayLabel(ev.date) : null;
+    const om = isOffice ? (OFFICE_META[ev.category] ?? OFFICE_META.OTHER) : null;
+
     return (
       <div
         role="button"
         tabIndex={0}
-        onClick={(e) => openCompany(ev.ticker, e)}
-        onKeyDown={(e) => e.key === "Enter" && openCompany(ev.ticker, e)}
+        onClick={(e) => isOffice ? openOffice(ev, e) : openCompany(ev.ticker, e)}
+        onKeyDown={(e) => e.key === "Enter" && (isOffice ? openOffice(ev, e) : openCompany(ev.ticker, e))}
         style={{
           display: "flex", alignItems: "center", gap: 3,
-          background: sm.bg, border: `1px solid ${highlighted ? THEME.accent : sm.border}`,
+          background: isOffice ? om.bg : sm.bg,
+          border: `1px solid ${isOffice ? om.border : sm.border}`,
           borderRadius: 3, padding: "2px 4px",
           overflow: "hidden", cursor: "pointer",
-          transition: "box-shadow 0.15s, opacity 0.15s",
-          opacity: dimmed ? 0.32 : 1,
-          boxShadow: highlighted ? "0 0 0 1px rgba(201,168,76,0.45)" : "none",
+          transition: "box-shadow 0.15s",
         }}
-        onMouseEnter={e => { if (!dimmed) e.currentTarget.style.boxShadow = highlighted ? "0 0 0 1px rgba(201,168,76,0.55)" : "0 0 0 1px rgba(201,168,76,0.25)"; }}
-        onMouseLeave={e => { e.currentTarget.style.boxShadow = highlighted ? "0 0 0 1px rgba(201,168,76,0.45)" : "none"; }}
+        onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 0 0 1px rgba(201,168,76,0.25)"; }}
+        onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; }}
       >
-        <span style={{ fontSize: 8, flexShrink: 0 }}>{TYPE_ICON[ev.event_type] ?? TYPE_ICON.OTHER}</span>
+        <span style={{ fontSize: 8, flexShrink: 0 }}>{isOffice ? om.icon : (TYPE_ICON[ev.event_type] ?? TYPE_ICON.OTHER)}</span>
         <div style={{ overflow: "hidden", minWidth: 0, flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-            <span style={{ fontSize: 8, fontWeight: 700, color: sm.text }}>{ev.ticker}</span>
+            {!isOffice && <span style={{ fontSize: 8, fontWeight: 700, color: sm.text }}>{ev.ticker}</span>}
+            {isOffice && ev.start_time && !ev.all_day && (
+              <span style={{ fontSize: 7, fontWeight: 600, color: om.text, flexShrink: 0 }}>{fmtTime(ev.start_time)}</span>
+            )}
             {dd && (
               <span style={{ fontSize: 7, fontWeight: 700, color: dDayColor(ev.date), flexShrink: 0 }}>{dd}</span>
             )}
           </div>
-          <div style={{ fontSize: 7, color: sm.text, opacity: 0.85, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {ev._type === "earning" ? `EPS $${ev.eps_estimate ?? "TBD"}` : ev.label}
+          <div style={{ fontSize: 7, color: isOffice ? om.text : sm.text, opacity: 0.9, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {isOffice ? ev.title : (ev._type === "earning" ? `EPS $${ev.eps_estimate ?? "TBD"}` : ev.label)}
           </div>
         </div>
       </div>
@@ -514,7 +675,40 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
           color: THEME.accentText, borderRadius: 6, fontSize: 9, fontWeight: 600, cursor: "pointer",
         }}>🔄 Sync data</button>
       </RailSection>
-      <RailSection title="Add event">
+      <RailSection title="Office calendar">
+        <input placeholder="Meeting title *" value={newOffice.title} onChange={e => setNewOffice(v => ({ ...v, title: e.target.value }))} style={inputStyle} />
+        <input type="date" value={newOffice.date} onChange={e => setNewOffice(v => ({ ...v, date: e.target.value }))} style={inputStyle} />
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 9, color: THEME.textMuted, marginBottom: 6 }}>
+          <input type="checkbox" checked={newOffice.all_day} onChange={e => setNewOffice(v => ({ ...v, all_day: e.target.checked }))} />
+          All day
+        </label>
+        {!newOffice.all_day && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, marginBottom: 4 }}>
+            <input type="time" value={newOffice.start_time} onChange={e => setNewOffice(v => ({ ...v, start_time: e.target.value }))} style={{ ...inputStyle, marginBottom: 0 }} />
+            <input type="time" value={newOffice.end_time} onChange={e => setNewOffice(v => ({ ...v, end_time: e.target.value }))} style={{ ...inputStyle, marginBottom: 0 }} />
+          </div>
+        )}
+        <select value={newOffice.category} onChange={e => setNewOffice(v => ({ ...v, category: e.target.value }))} style={inputStyle}>
+          {OFFICE_CATEGORIES.map(c => <option key={c} value={c}>{OFFICE_META[c].label}</option>)}
+        </select>
+        <input placeholder="Location" value={newOffice.location} onChange={e => setNewOffice(v => ({ ...v, location: e.target.value }))} style={inputStyle} />
+        <input placeholder="Attendees (emails)" value={newOffice.attendees} onChange={e => setNewOffice(v => ({ ...v, attendees: e.target.value }))} style={inputStyle} />
+        <input placeholder="Notes" value={newOffice.description} onChange={e => setNewOffice(v => ({ ...v, description: e.target.value }))} style={inputStyle} />
+        <button type="button" onClick={addOfficeEvent} style={{
+          width: "100%", padding: "5px 0", background: "rgba(79,143,232,0.2)", color: "#93c5fd",
+          border: "1px solid rgba(79,143,232,0.45)", borderRadius: 6, fontSize: 9, fontWeight: 600, cursor: "pointer", marginBottom: 6,
+        }}>+ Add meeting</button>
+        <button type="button" onClick={handleExportIcs} style={{
+          width: "100%", padding: "5px 0", background: THEME.surfaceAlt, color: THEME.textMuted,
+          border: `1px solid ${THEME.border}`, borderRadius: 6, fontSize: 9, fontWeight: 600, cursor: "pointer", marginBottom: 4,
+        }}>↓ Export .ics (Outlook)</button>
+        <button type="button" onClick={() => icsInputRef.current?.click()} style={{
+          width: "100%", padding: "5px 0", background: THEME.surfaceAlt, color: THEME.textMuted,
+          border: `1px solid ${THEME.border}`, borderRadius: 6, fontSize: 9, fontWeight: 600, cursor: "pointer",
+        }}>↑ Import .ics</button>
+        <input ref={icsInputRef} type="file" accept=".ics,text/calendar" style={{ display: "none" }} onChange={handleImportIcs} />
+      </RailSection>
+      <RailSection title="Pharma catalyst">
         <input placeholder="Ticker" value={newEv.ticker} onChange={e => setNewEv(v => ({ ...v, ticker: e.target.value }))} style={inputStyle} />
         <input type="date" value={newEv.date} onChange={e => setNewEv(v => ({ ...v, date: e.target.value }))} style={inputStyle} />
         <select value={newEv.event_type} onChange={e => setNewEv(v => ({ ...v, event_type: e.target.value }))} style={inputStyle}>
@@ -526,7 +720,24 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
           border: "none", borderRadius: 6, fontSize: 9, fontWeight: 600, cursor: "pointer",
         }}>+ Add</button>
       </RailSection>
-      <RailSection title={`This month (${monthEvents.length})`}>
+      <RailSection title={`Office this month (${monthOfficeEvents.length})`}>
+        {monthOfficeEvents.length === 0 && <div style={{ fontSize: 9, color: THEME.textFaint }}>No meetings</div>}
+        {monthOfficeEvents.map(ev => {
+          const om = OFFICE_META[ev.category] ?? OFFICE_META.OTHER;
+          return (
+            <div key={ev.id} style={{
+              display: "flex", alignItems: "center", gap: 4, padding: "4px 0",
+              borderBottom: `1px solid ${THEME.border}`, fontSize: 9, cursor: "pointer",
+            }} onClick={() => openOffice(ev)}>
+              <span style={{ color: om.text, flexShrink: 0 }}>{om.icon}</span>
+              <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: THEME.textMuted }}>
+                {!ev.all_day && ev.start_time ? `${fmtTime(ev.start_time)} ` : ""}{ev.title}
+              </span>
+            </div>
+          );
+        })}
+      </RailSection>
+      <RailSection title={`Pharma this month (${monthEvents.length})`}>
         {monthEvents.length === 0 && <div style={{ fontSize: 9, color: THEME.textFaint }}>No events</div>}
         {monthEvents.map(ev => {
           const sm = STATUS_META[ev.status] ?? STATUS_META.upcoming;
@@ -540,21 +751,6 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
             </div>
           );
         })}
-      </RailSection>
-      <RailSection title={`My Portfolio (${portfolio.length})`}>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-          {tickers.filter(t => t !== ALL).map(t => {
-            const active = isInPortfolio(t);
-            return (
-              <button key={t} type="button" onClick={() => toggleTicker(t)} style={{
-                padding: "3px 6px", borderRadius: 4, fontSize: 8, fontWeight: 600, cursor: "pointer",
-                background: active ? THEME.accentSoft : THEME.surfaceAlt,
-                border: `1px solid ${active ? THEME.accent : THEME.border}`,
-                color: active ? THEME.accentText : THEME.textMuted,
-              }}>{active ? "★" : "☆"} {t}</button>
-            );
-          })}
-        </div>
       </RailSection>
     </>
   );
@@ -642,7 +838,19 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
               )}
               <span style={{ fontSize: 9, color: THEME.textFaint }}>{monthEventCount} events</span>
               <div style={{ width: 1, height: 16, background: THEME.border, margin: "0 2px" }} />
-              {["All", "FDA", "EARN", "TRIAL", "IR"].map(t => (
+              {[
+                { id: "ALL", label: "All" },
+                { id: "PHARMA", label: "💊 Pharma" },
+                { id: "OFFICE", label: "📅 Office" },
+              ].map(v => (
+                <button key={v.id} type="button" onClick={() => setCalendarView(v.id)} style={{
+                  padding: "2px 7px", borderRadius: 5, fontSize: 10, fontWeight: 600, cursor: "pointer",
+                  background: calendarView === v.id ? THEME.accentSoft : "transparent",
+                  border: `1px solid ${calendarView === v.id ? THEME.accent : THEME.border}`,
+                  color: calendarView === v.id ? THEME.accentText : THEME.textMuted,
+                }}>{v.label}</button>
+              ))}
+              {calendarView !== "OFFICE" && ["All", "FDA", "EARN", "TRIAL", "IR"].map(t => (
                 <button key={t} type="button" onClick={() => setTypeFilter(t)} style={{
                   padding: "2px 7px", borderRadius: 5, fontSize: 10, fontWeight: 600, cursor: "pointer",
                   background: typeFilter === t ? THEME.accentSoft : "transparent",
@@ -650,16 +858,13 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
                   color: typeFilter === t ? THEME.accentText : THEME.textMuted,
                 }}>{FILTER_LABELS[t]}</button>
               ))}
-              <button type="button" onClick={() => setPortfolioHighlight(h => !h)} style={{
-                padding: "2px 8px", borderRadius: 5, fontSize: 10, fontWeight: 600, cursor: "pointer",
-                background: portfolioHighlight ? "rgba(201,168,76,0.18)" : "transparent",
-                border: `1px solid ${portfolioHighlight ? THEME.accent : THEME.border}`,
-                color: portfolioHighlight ? THEME.accentText : THEME.textMuted,
-              }}>⭐ My Portfolio</button>
+              {calendarView !== "OFFICE" && (
               <select value={tickerFilter} onChange={e => { setTickerFilter(e.target.value); setSelDay(null); }}
-                style={{ background: THEME.surfaceAlt, border: `1px solid ${THEME.border}`, color: THEME.text, borderRadius: 5, padding: "2px 6px", fontSize: 10, marginLeft: "auto" }}>
+                style={{ background: THEME.surfaceAlt, border: `1px solid ${THEME.border}`, color: THEME.text, borderRadius: 5, padding: "2px 6px", fontSize: 10 }}>
                 {tickers.map(t => <option key={t}>{t}</option>)}
               </select>
+              )}
+              <div style={{ marginLeft: "auto" }} />
               <button type="button" onClick={() => setStickersOpen(o => !o)} style={{
                 padding: "2px 8px", borderRadius: 5, fontSize: 10, fontWeight: 600, cursor: "pointer",
                 background: stickersOpen ? "rgba(123,92,240,0.15)" : "transparent",
@@ -701,12 +906,7 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 2, overflow: "hidden", flex: 1 }}>
                           {items.slice(0, 4).map(ev => (
-                            <EventChip
-                              key={`${ev._type}-${ev.id}`}
-                              ev={ev}
-                              dimmed={portfolioHighlight && !isInPortfolio(ev.ticker)}
-                              highlighted={portfolioHighlight && isInPortfolio(ev.ticker)}
-                            />
+                            <EventChip key={`${ev._type}-${ev.id}`} ev={ev} />
                           ))}
                           {items.length > 4 && <div style={{ fontSize: 7, color: THEME.textFaint, paddingLeft: 2 }}>+{items.length - 4}</div>}
                         </div>
@@ -723,6 +923,14 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
                   earnings={earnings}
                   onClose={() => setSelCompany(null)}
                   onDeleteEvent={deleteEvent}
+                />
+              )}
+
+              {selOffice && (
+                <OfficeEventPanel
+                  event={selOffice}
+                  onClose={() => setSelOffice(null)}
+                  onDelete={deleteOfficeEvent}
                 />
               )}
 

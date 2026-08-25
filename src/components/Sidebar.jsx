@@ -111,8 +111,8 @@ const s = {
   },
   logoText: { fontFamily: "'Cinzel', serif", fontSize: 13, fontWeight: 600, color: 'var(--gold)', letterSpacing: 1.5 },
   logoSub: { fontSize: 8, color: 'var(--muted)', letterSpacing: 1.2, textTransform: 'uppercase', marginTop: 2 },
-  scroll: { flex: 1, overflowY: 'auto', minHeight: 0 },
-  nav: { padding: '12px 0 0' },
+  scroll: { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflowY: 'auto' },
+  nav: { padding: '12px 0 0', flexShrink: 0 },
   navSection: { marginBottom: 2 },
   navLabel: { fontSize: 8, letterSpacing: 1.2, textTransform: 'uppercase', color: 'var(--muted)', padding: '6px 14px 3px', opacity: 0.6 },
   navItem: {
@@ -122,7 +122,8 @@ const s = {
   },
   navItemActive: { color: 'var(--gold)', borderLeftColor: 'var(--gold)', background: 'rgba(201,168,76,0.05)' },
   bottomBlock: {
-    padding: '10px 14px 14px', marginTop: 6,
+    marginTop: 'auto', flexShrink: 0,
+    padding: '10px 14px 16px',
     borderTop: '1px solid var(--border)',
     display: 'flex', flexDirection: 'column', gap: 10,
   },

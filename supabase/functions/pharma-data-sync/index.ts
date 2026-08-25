@@ -2,42 +2,198 @@
 // Supabase Edge Function: pharma-data-sync
 // Atherium Holdings — atherium.cosmonova.io
 //
-// 배포: Supabase Dashboard → Edge Functions → Deploy
-// 스케줄: cron "0 6 * * 1-5" (평일 오전 6시 ET)
-//
-// 환경변수 (Supabase Dashboard → Edge Functions → Secrets):
-//   SUPABASE_URL          ← 자동 주입
-//   SUPABASE_SERVICE_KEY  ← 자동 주입 (service_role)
+// Secrets: ALPHA_VANTAGE_API_KEY (Alpha Vantage market data)
+// Phases: calendar | actual | overview | quotes | news | trials | earnings | market-data | all
 // ============================================================
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
-// ── 트래킹 종목 목록 ──────────────────────────────────────
-const TICKERS = [
-  "VRTX","GILD","AMGN","REGN","MRNA","BNTX",
-  "EXEL","AXSM","IONS","MDGL","SMMT","LLY","PFE"
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+const QUOTE_TICKERS = [
+  "AAPL", "MSFT", "NVDA", "AMZN", "META", "GOOGL", "TSLA", "AVGO", "NFLX", "AMGN",
+  "GILD", "VRTX", "REGN", "MRNA", "LLY", "PFE", "SMMT", "CRWD", "COST", "ADBE",
 ];
 
-// ── Yahoo Finance: 어닝콜 날짜 + EPS 데이터 ──────────────
-async function syncEarningsFromYahoo() {
+const OVERVIEW_TICKERS = [
+  "LLY", "PFE", "AMGN", "GILD", "VRTX", "REGN", "MRNA", "SMMT",
+  "AAPL", "MSFT", "NVDA", "AMZN", "META", "GOOGL", "TSLA",
+];
+
+const EARNINGS_TICKERS = [
+  "VRTX", "GILD", "AMGN", "REGN", "MRNA", "BNTX",
+  "EXEL", "AXSM", "IONS", "MDGL", "SMMT", "LLY", "PFE",
+  ...QUOTE_TICKERS.filter((t) => !["VRTX", "GILD", "AMGN", "REGN", "MRNA", "SMMT", "LLY", "PFE"].includes(t)),
+];
+
+const NEWS_TICKERS = [...new Set([...OVERVIEW_TICKERS, ...QUOTE_TICKERS.slice(0, 10)])];
+
+function parseAvPublished(raw: string | undefined): string | null {
+  if (!raw || raw.length < 15) return null;
+  return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}T${raw.slice(9, 11)}:${raw.slice(11, 13)}:${raw.slice(13, 15)}Z`;
+}
+
+async function avFetch(params: Record<string, string>) {
+  const apiKey = Deno.env.get("ALPHA_VANTAGE_API_KEY");
+  if (!apiKey) throw new Error("ALPHA_VANTAGE_API_KEY is not configured");
+
+  const url = new URL("https://www.alphavantage.co/query");
+  url.searchParams.set("apikey", apiKey);
+  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error(`Alpha Vantage HTTP ${res.status}`);
+  const data = await res.json();
+  if (data.Note || data.Information) {
+    throw new Error(String(data.Note || data.Information));
+  }
+  return data;
+}
+
+async function syncQuotes() {
   let upserted = 0;
   const errors: string[] = [];
 
-  for (const ticker of TICKERS) {
+  for (const ticker of QUOTE_TICKERS) {
     try {
-      // Yahoo Finance v11 (비공식이지만 가장 안정적)
+      const data = await avFetch({ function: "GLOBAL_QUOTE", symbol: ticker });
+      const quote = data["Global Quote"];
+      if (!quote?.["05. price"]) {
+        errors.push(`${ticker}: empty quote`);
+        await sleep(13000);
+        continue;
+      }
+
+      const changePctRaw = String(quote["10. change percent"] ?? "0").replace("%", "");
+      const { error } = await supabase.from("pharma_quotes").upsert({
+        ticker,
+        price: parseFloat(quote["05. price"]),
+        change_amt: parseFloat(quote["09. change"]),
+        change_pct: parseFloat(changePctRaw),
+        volume: parseInt(quote["06. volume"], 10),
+        prev_close: parseFloat(quote["08. previous close"]),
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "ticker" });
+
+      if (error) errors.push(`${ticker}: ${error.message}`);
+      else upserted++;
+
+      await sleep(13000);
+    } catch (e) {
+      errors.push(`${ticker}: ${(e as Error).message}`);
+      await sleep(13000);
+    }
+  }
+
+  return { upserted, errors };
+}
+
+async function syncOverview() {
+  let upserted = 0;
+  const errors: string[] = [];
+
+  for (const ticker of OVERVIEW_TICKERS) {
+    try {
+      const data = await avFetch({ function: "OVERVIEW", symbol: ticker });
+      if (!data?.Symbol) {
+        errors.push(`${ticker}: empty overview`);
+        await sleep(13000);
+        continue;
+      }
+
+      const { error } = await supabase.from("pharma_overview").upsert({
+        ticker,
+        company_name: data.Name ?? null,
+        sector: data.Sector ?? null,
+        industry: data.Industry ?? null,
+        market_cap: parseInt(data.MarketCapitalization, 10) || null,
+        pe_ratio: parseFloat(data.PERatio) || null,
+        beta: parseFloat(data.Beta) || null,
+        analyst_target: parseFloat(data.AnalystTargetPrice) || null,
+        week52_high: parseFloat(data["52WeekHigh"]) || null,
+        week52_low: parseFloat(data["52WeekLow"]) || null,
+        dividend_yield: parseFloat(data.DividendYield) || null,
+        pct_insiders: parseFloat(data.PercentInsiders) || null,
+        pct_institutions: parseFloat(data.PercentInstitutions) || null,
+        description: data.Description?.substring(0, 500) ?? null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "ticker" });
+
+      if (error) errors.push(`${ticker}: ${error.message}`);
+      else upserted++;
+
+      await sleep(13000);
+    } catch (e) {
+      errors.push(`${ticker}: ${(e as Error).message}`);
+      await sleep(13000);
+    }
+  }
+
+  return { upserted, errors };
+}
+
+async function syncNewsSentiment() {
+  let upserted = 0;
+  const errors: string[] = [];
+
+  for (const ticker of NEWS_TICKERS) {
+    try {
+      const data = await avFetch({
+        function: "NEWS_SENTIMENT",
+        tickers: ticker,
+        limit: "20",
+      });
+      const feed = data?.feed ?? [];
+
+      for (const item of feed) {
+        const tickerHit = item.ticker_sentiment?.find(
+          (t: { ticker: string }) => t.ticker === ticker,
+        );
+
+        const { error } = await supabase.from("pharma_news").upsert({
+          ticker,
+          title: item.title ?? null,
+          url: item.url ?? null,
+          published_at: parseAvPublished(item.time_published),
+          overall_score: item.overall_sentiment_score ?? null,
+          overall_label: item.overall_sentiment_label ?? null,
+          ticker_score: tickerHit?.ticker_sentiment_score ?? null,
+          ticker_label: tickerHit?.ticker_sentiment_label ?? null,
+        }, { onConflict: "ticker,url", ignoreDuplicates: true });
+
+        if (!error) upserted++;
+        else errors.push(`${ticker} news: ${error.message}`);
+      }
+
+      await sleep(13000);
+    } catch (e) {
+      errors.push(`${ticker}: ${(e as Error).message}`);
+      await sleep(13000);
+    }
+  }
+
+  return { upserted, errors };
+}
+
+async function syncEarningsFromYahoo() {
+  let upserted = 0;
+  const errors: string[] = [];
+  const tickers = [...new Set(EARNINGS_TICKERS)];
+
+  for (const ticker of tickers) {
+    try {
       const url = `https://query1.finance.yahoo.com/v11/finance/quoteSummary/${ticker}` +
         `?modules=calendarEvents,earningsTrend,defaultKeyStatistics`;
 
       const res = await fetch(url, {
         headers: {
-          "User-Agent": "Mozilla/5.0 (compatible; AthedriumBot/1.0)",
-          "Accept": "application/json",
+          "User-Agent": "Mozilla/5.0 (compatible; AtheriumBot/1.0)",
+          Accept: "application/json",
         },
       });
 
@@ -50,130 +206,108 @@ async function syncEarningsFromYahoo() {
       const result = data?.quoteSummary?.result?.[0];
       if (!result) continue;
 
-      // 다음 어닝콜 날짜
       const nextEarnings = result?.calendarEvents?.earnings?.earningsDate?.[0]?.raw;
-      // EPS 예상치 (현재 분기)
       const epsTrend = result?.earningsTrend?.trend?.[0];
       const epsEstimate = epsTrend?.earningsEstimate?.avg?.raw ?? null;
       const revEstimate = epsTrend?.revenueEstimate?.avg?.raw ?? null;
-      const period = epsTrend?.period ?? null; // e.g. "0q" = current quarter
 
       if (!nextEarnings) continue;
 
-      const reportDate = new Date(nextEarnings * 1000).toISOString().split("T")[0];
-
-      // 분기 라벨 계산
       const d = new Date(nextEarnings * 1000);
+      const reportDate = d.toISOString().split("T")[0];
       const q = Math.ceil((d.getMonth() + 1) / 3);
       const fiscalQuarter = `Q${q} ${d.getFullYear()}`;
 
-      const { error } = await supabase
-        .from("pharma_earnings")
-        .upsert({
-          ticker,
-          company_name: ticker, // 이름은 별도 매핑 테이블로 추후 개선
-          report_date: reportDate,
-          fiscal_quarter: fiscalQuarter,
-          report_time: "tbd",
-          eps_estimate: epsEstimate,
-          rev_estimate: revEstimate ? revEstimate / 1e9 : null, // → 십억달러
-          status: "upcoming",
-          is_manual: false,
-          updated_at: new Date().toISOString(),
-        }, {
-          onConflict: "ticker,fiscal_quarter",
-          ignoreDuplicates: false, // 예상치 업데이트 허용
-        });
+      const { error } = await supabase.from("pharma_earnings").upsert({
+        ticker,
+        company_name: ticker,
+        report_date: reportDate,
+        fiscal_quarter: fiscalQuarter,
+        report_time: "tbd",
+        eps_estimate: epsEstimate,
+        rev_estimate: revEstimate ? revEstimate / 1e9 : null,
+        status: "upcoming",
+        is_manual: false,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "ticker,fiscal_quarter", ignoreDuplicates: false });
 
       if (error) errors.push(`${ticker} upsert: ${error.message}`);
       else upserted++;
 
-      // Rate limit 방지
-      await new Promise(r => setTimeout(r, 300));
-
+      await sleep(300);
     } catch (e) {
-      errors.push(`${ticker}: ${e.message}`);
+      errors.push(`${ticker}: ${(e as Error).message}`);
     }
   }
 
   return { upserted, errors };
 }
 
-// ── Yahoo Finance: 실제 EPS 결과 업데이트 ────────────────
 async function syncActualEarnings() {
   let updated = 0;
   const errors: string[] = [];
+  const tickers = [...new Set(EARNINGS_TICKERS)];
 
-  for (const ticker of TICKERS) {
+  for (const ticker of tickers) {
     try {
-      const url = `https://query1.finance.yahoo.com/v11/finance/quoteSummary/${ticker}` +
-        `?modules=earningsHistory`;
-
-      const res = await fetch(url, {
-        headers: { "User-Agent": "Mozilla/5.0" },
-      });
+      const url = `https://query1.finance.yahoo.com/v11/finance/quoteSummary/${ticker}?modules=earningsHistory`;
+      const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
       if (!res.ok) continue;
 
       const data = await res.json();
       const history = data?.quoteSummary?.result?.[0]?.earningsHistory?.history ?? [];
 
       for (const h of history) {
-        const epsActual   = h?.epsActual?.raw ?? null;
+        const epsActual = h?.epsActual?.raw ?? null;
         const epsEstimate = h?.epsEstimate?.raw ?? null;
-        const epsDiff     = h?.epsDifference?.raw ?? null;
+        const epsDiff = h?.epsDifference?.raw ?? null;
         const surprisePct = h?.surprisePercent?.raw ?? null;
-        const dateRaw     = h?.quarter?.raw ?? null;
+        const dateRaw = h?.quarter?.raw ?? null;
         if (!dateRaw || epsActual === null) continue;
 
         const d = new Date(dateRaw * 1000);
         const q = Math.ceil((d.getMonth() + 1) / 3);
         const fiscalQuarter = `Q${q} ${d.getFullYear()}`;
 
-        const { error } = await supabase
-          .from("pharma_earnings")
-          .update({
-            eps_actual: epsActual,
-            eps_estimate: epsEstimate,
-            eps_beat: epsDiff !== null ? epsDiff >= 0 : null,
-            eps_surprise_pct: surprisePct,
-            status: "reported",
-            updated_at: new Date().toISOString(),
-          })
-          .eq("ticker", ticker)
-          .eq("fiscal_quarter", fiscalQuarter);
+        const { error } = await supabase.from("pharma_earnings").update({
+          eps_actual: epsActual,
+          eps_estimate: epsEstimate,
+          eps_beat: epsDiff !== null ? epsDiff >= 0 : null,
+          eps_surprise_pct: surprisePct,
+          status: "reported",
+          updated_at: new Date().toISOString(),
+        }).eq("ticker", ticker).eq("fiscal_quarter", fiscalQuarter);
 
         if (!error) updated++;
       }
 
-      await new Promise(r => setTimeout(r, 300));
+      await sleep(300);
     } catch (e) {
-      errors.push(`${ticker} actual: ${e.message}`);
+      errors.push(`${ticker} actual: ${(e as Error).message}`);
     }
   }
 
   return { updated, errors };
 }
 
-// ── ClinicalTrials.gov API: 임상 완료 예정일 ─────────────
 async function syncClinicalTrials() {
   let upserted = 0;
   const errors: string[] = [];
 
   const companies = [
     { name: "Vertex Pharmaceuticals", ticker: "VRTX" },
-    { name: "Moderna",                ticker: "MRNA" },
-    { name: "Gilead Sciences",        ticker: "GILD" },
-    { name: "Amgen",                  ticker: "AMGN" },
-    { name: "Regeneron",              ticker: "REGN" },
-    { name: "Eli Lilly",              ticker: "LLY"  },
-    { name: "Pfizer",                 ticker: "PFE"  },
-    { name: "Summit Therapeutics",    ticker: "SMMT" },
-    { name: "Exelixis",               ticker: "EXEL" },
+    { name: "Moderna", ticker: "MRNA" },
+    { name: "Gilead Sciences", ticker: "GILD" },
+    { name: "Amgen", ticker: "AMGN" },
+    { name: "Regeneron", ticker: "REGN" },
+    { name: "Eli Lilly", ticker: "LLY" },
+    { name: "Pfizer", ticker: "PFE" },
+    { name: "Summit Therapeutics", ticker: "SMMT" },
+    { name: "Exelixis", ticker: "EXEL" },
   ];
 
   for (const co of companies) {
     try {
-      // Phase 3 완료 예정 임상만 가져오기
       const url = `https://clinicaltrials.gov/api/v2/studies?` +
         `query.term=${encodeURIComponent(co.name)}` +
         `&filter.advanced=AREA[Phase]PHASE3` +
@@ -185,93 +319,113 @@ async function syncClinicalTrials() {
       if (!res.ok) continue;
 
       const data = await res.json();
-      const studies = data?.studies ?? [];
-
-      for (const s of studies) {
+      for (const s of data?.studies ?? []) {
         const proto = s?.protocolSection;
         const nctId = proto?.identificationModule?.nctId;
         const title = proto?.identificationModule?.briefTitle;
         const completionDate = proto?.statusModule?.primaryCompletionDateStruct?.date;
-
         if (!nctId || !completionDate) continue;
 
-        // 완료 예정이 6개월 이내인 것만 이벤트로 등록
         const targetDate = new Date(completionDate);
         const monthsAway = (targetDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24 * 30);
         if (monthsAway < 0 || monthsAway > 18) continue;
 
-        const { error } = await supabase
-          .from("pharma_events")
-          .upsert({
-            ticker: co.ticker,
-            company_name: co.name,
-            event_date: completionDate,
-            event_type: "TRIAL",
-            label: `Phase 3 완료 예정: ${title?.substring(0, 60)}...`,
-            indication: title,
-            status: "trial",
-            source_url: `https://clinicaltrials.gov/study/${nctId}`,
-            is_manual: false,
-            updated_at: new Date().toISOString(),
-          }, {
-            onConflict: "ticker,event_date,label",
-            ignoreDuplicates: true,
-          });
+        const { error } = await supabase.from("pharma_events").upsert({
+          ticker: co.ticker,
+          company_name: co.name,
+          event_date: completionDate,
+          event_type: "TRIAL",
+          label: `Phase 3 completion: ${title?.substring(0, 60)}...`,
+          indication: title,
+          status: "trial",
+          source_url: `https://clinicaltrials.gov/study/${nctId}`,
+          is_manual: false,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "ticker,event_date,label", ignoreDuplicates: true });
 
         if (!error) upserted++;
       }
 
-      await new Promise(r => setTimeout(r, 500));
+      await sleep(500);
     } catch (e) {
-      errors.push(`${co.ticker} trials: ${e.message}`);
+      errors.push(`${co.ticker} trials: ${(e as Error).message}`);
     }
   }
 
   return { upserted, errors };
 }
 
-// ── 메인 핸들러 ───────────────────────────────────────────
+function resolvePhases(phase: string): string[] {
+  switch (phase) {
+    case "calendar":
+      return ["calendar", "actual"];
+    case "overview":
+      return ["overview", "quotes"];
+    case "earnings":
+      return ["calendar", "actual"];
+    case "market-data":
+      return ["overview", "quotes"];
+    case "all":
+      return ["calendar", "actual", "overview", "quotes", "news", "trials"];
+    default:
+      return [phase];
+  }
+}
+
+async function logSync(source: string, records: number, errors: string[]) {
+  await supabase.from("pharma_sync_log").insert({
+    source,
+    records_upserted: records,
+    status: errors.length === 0 ? "ok" : "partial",
+    error_msg: errors.join("; ") || null,
+  });
+}
+
 Deno.serve(async (req) => {
-  // cron 또는 수동 호출 모두 허용
-  const results = {
-    earnings_upcoming: { upserted: 0, errors: [] as string[] },
-    earnings_actual:   { updated: 0,  errors: [] as string[] },
-    clinical_trials:   { upserted: 0, errors: [] as string[] },
-  };
+  const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
+  const phase = body.phase ?? "all";
+  const phases = resolvePhases(phase);
 
-  console.log("[pharma-data-sync] 시작:", new Date().toISOString());
+  const results: Record<string, unknown> = { phase, phases };
+  console.log("[pharma-data-sync] start:", phase, new Date().toISOString());
 
-  // 1) 어닝콜 예상치
-  const earnRes = await syncEarningsFromYahoo();
-  results.earnings_upcoming = earnRes;
-  await supabase.from("pharma_sync_log").insert({
-    source: "yahoo_upcoming",
-    records_upserted: earnRes.upserted,
-    status: earnRes.errors.length === 0 ? "ok" : "partial",
-    error_msg: earnRes.errors.join("; ") || null,
-  });
+  if (phases.includes("calendar")) {
+    const res = await syncEarningsFromYahoo();
+    results.earnings_upcoming = res;
+    await logSync("yahoo_upcoming", res.upserted, res.errors);
+  }
 
-  // 2) 실제 EPS 결과
-  const actualRes = await syncActualEarnings();
-  results.earnings_actual = actualRes;
-  await supabase.from("pharma_sync_log").insert({
-    source: "yahoo_actual",
-    records_upserted: actualRes.updated,
-    status: actualRes.errors.length === 0 ? "ok" : "partial",
-    error_msg: actualRes.errors.join("; ") || null,
-  });
+  if (phases.includes("actual")) {
+    const res = await syncActualEarnings();
+    results.earnings_actual = res;
+    await logSync("yahoo_actual", res.updated, res.errors);
+  }
 
-  // 3) 임상 데이터
-  const trialRes = await syncClinicalTrials();
-  results.clinical_trials = trialRes;
-  await supabase.from("pharma_sync_log").insert({
-    source: "clinicaltrials",
-    records_upserted: trialRes.upserted,
-    status: trialRes.errors.length === 0 ? "ok" : "partial",
-    error_msg: trialRes.errors.join("; ") || null,
-  });
+  if (phases.includes("overview")) {
+    const res = await syncOverview();
+    results.overview = res;
+    await logSync("alpha_overview", res.upserted, res.errors);
+  }
 
-  console.log("[pharma-data-sync] 완료:", JSON.stringify(results));
+  if (phases.includes("quotes")) {
+    const res = await syncQuotes();
+    results.quotes = res;
+    await logSync("alpha_quotes", res.upserted, res.errors);
+  }
+
+  if (phases.includes("news")) {
+    const res = await syncNewsSentiment();
+    results.news = res;
+    await logSync("alpha_news", res.upserted, res.errors);
+  }
+
+  if (phases.includes("trials")) {
+    const res = await syncClinicalTrials();
+    results.clinical_trials = res;
+    await logSync("clinicaltrials", res.upserted, res.errors);
+  }
+
+  console.log("[pharma-data-sync] done:", JSON.stringify(results));
 
   return new Response(JSON.stringify({ ok: true, results }), {
     headers: { "Content-Type": "application/json" },

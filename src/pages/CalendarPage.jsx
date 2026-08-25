@@ -68,6 +68,48 @@ const fmtTime = (t) => (t ? String(t).slice(0, 5) : "");
 const fmtDate = (d) => new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 const diffDays = (d) => Math.ceil((new Date(d) - new Date()) / 86400000);
 
+const fmtMoney = (v) => (v != null && !Number.isNaN(Number(v)) ? `$${Number(v).toFixed(2)}` : "—");
+const fmtMarketCap = (v) => {
+  if (v == null || Number.isNaN(Number(v))) return "—";
+  const n = Number(v);
+  if (n >= 1e12) return `$${(n / 1e12).toFixed(1)}T`;
+  if (n >= 1e9) return `$${(n / 1e9).toFixed(1)}B`;
+  if (n >= 1e6) return `$${(n / 1e6).toFixed(1)}M`;
+  return `$${n.toLocaleString()}`;
+};
+const fmtVolume = (v) => {
+  if (v == null || Number.isNaN(Number(v))) return "—";
+  const n = Number(v);
+  if (n >= 1e9) return `${(n / 1e9).toFixed(1)}B`;
+  if (n >= 1e6) return `${(n / 1e6).toFixed(1)}M`;
+  if (n >= 1e3) return `${(n / 1e3).toFixed(1)}K`;
+  return String(n);
+};
+const fmtPct = (v, digits = 1) => (v != null && !Number.isNaN(Number(v))
+  ? `${Number(v) >= 0 ? "+" : ""}${Number(v).toFixed(digits)}%`
+  : "—");
+const sentimentTo100 = (score) => {
+  if (score == null || Number.isNaN(Number(score))) return null;
+  const n = Number(score);
+  if (n >= -1 && n <= 1) return Math.round((n + 1) * 50);
+  return Math.round(Math.min(100, Math.max(0, n)));
+};
+const sentimentStyle = (label) => {
+  const l = String(label || "").toLowerCase();
+  if (l.includes("bull")) return { color: "#2EC08A", bg: "rgba(46,192,138,0.14)" };
+  if (l.includes("bear")) return { color: "#E84F4F", bg: "rgba(232,79,79,0.14)" };
+  return { color: THEME.textMuted, bg: THEME.surfaceAlt };
+};
+const timeAgo = (d) => {
+  if (!d) return "";
+  const ms = Date.now() - new Date(d).getTime();
+  const h = Math.floor(ms / 3600000);
+  if (h < 1) return "just now";
+  if (h < 24) return `${h}h ago`;
+  const days = Math.floor(h / 24);
+  return days === 1 ? "1 day ago" : `${days} days ago`;
+};
+
 function SectionCard({ title, children, muted }) {
   return (
     <div style={{
@@ -129,16 +171,46 @@ function BeatMissStrip({ earnings }) {
 }
 
 function CompanyDetailPanel({ ticker, events, earnings, onClose, onDeleteEvent }) {
+  const [detailLoading, setDetailLoading] = useState(true);
+  const [quote, setQuote] = useState(null);
+  const [overview, setOverview] = useState(null);
+  const [news, setNews] = useState([]);
+  const [earningsHistory, setEarningsHistory] = useState([]);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiText, setAiText] = useState("");
   const [aiError, setAiError] = useState("");
+
   const companyEvents = events.filter(e => e.ticker === ticker)
     .sort((a, b) => new Date(a.event_date) - new Date(b.event_date));
   const companyEarnings = earnings.filter(e => e.ticker === ticker)
     .sort((a, b) => new Date(b.report_date) - new Date(a.report_date));
-  const companyName = companyEarnings[0]?.company_name || companyEvents[0]?.company_name || ticker;
-  const upcomingEarn = companyEarnings.filter(e => new Date(e.report_date) >= new Date());
-  const pastEarn = companyEarnings.filter(e => new Date(e.report_date) < new Date());
+  const companyName = overview?.company_name || companyEarnings[0]?.company_name || companyEvents[0]?.company_name || ticker;
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadTickerDetail = async () => {
+      setDetailLoading(true);
+      setAiText("");
+      setAiError("");
+      const [quoteRes, overviewRes, newsRes, earningsRes] = await Promise.all([
+        supabase.from("pharma_quotes").select("*").eq("ticker", ticker).maybeSingle(),
+        supabase.from("pharma_overview").select("*").eq("ticker", ticker).maybeSingle(),
+        supabase.from("pharma_news").select("*").eq("ticker", ticker).order("published_at", { ascending: false }).limit(5),
+        supabase.from("pharma_earnings").select("*").eq("ticker", ticker).order("report_date", { ascending: false }).limit(6),
+      ]);
+      if (cancelled) return;
+      setQuote(quoteRes.data);
+      setOverview(overviewRes.data);
+      setNews(newsRes.data || []);
+      setEarningsHistory(earningsRes.data?.length ? earningsRes.data : companyEarnings.slice(0, 6));
+      setDetailLoading(false);
+    };
+    loadTickerDetail();
+    return () => { cancelled = true; };
+  }, [ticker]);
+
+  const historyRows = earningsHistory.length ? earningsHistory : companyEarnings.slice(0, 6);
+  const upcomingEarn = historyRows.filter(e => new Date(e.report_date) >= new Date());
 
   const allUpcoming = [
     ...companyEvents.filter(e => new Date(e.event_date) >= new Date()).map(e => ({ ...e, date: e.event_date, kind: "event" })),
@@ -146,17 +218,56 @@ function CompanyDetailPanel({ ticker, events, earnings, onClose, onDeleteEvent }
   ].sort((a, b) => new Date(a.date) - new Date(b.date));
   const nextCatalyst = allUpcoming[0];
 
+  const week52Low = overview?.week52_low ?? quote?.week52_low;
+  const week52High = overview?.week52_high ?? quote?.week52_high;
+  const price = quote?.price;
+  const week52Pct = (week52Low != null && week52High != null && price != null && week52High > week52Low)
+    ? ((Number(price) - Number(week52Low)) / (Number(week52High) - Number(week52Low))) * 100
+    : null;
+  const changeUp = quote?.change_pct != null && Number(quote.change_pct) >= 0;
+  const targetUpside = (overview?.analyst_target != null && price != null && Number(price) > 0)
+    ? ((Number(overview.analyst_target) - Number(price)) / Number(price)) * 100
+    : null;
+
+  const topNews = news.slice(0, 3);
+  const avgSentiment = news.find(n => n.ticker_score != null)?.ticker_score
+    ?? news.find(n => n.overall_score != null)?.overall_score;
+  const sentimentScore = sentimentTo100(avgSentiment);
+  const sentimentLabel = news[0]?.ticker_label || news[0]?.overall_label || "Neutral";
+  const sentStyle = sentimentStyle(sentimentLabel);
+
   const runAiAnalysis = async () => {
     setAiLoading(true);
     setAiError("");
+    setAiText("");
+    const dDay = nextCatalyst ? diffDays(nextCatalyst.date) : null;
     const { data, error } = await supabase.functions.invoke("pharma-ai-analysis", {
-      body: { ticker, events: companyEvents, earnings: companyEarnings },
+      body: {
+        ticker,
+        events: companyEvents,
+        earnings: historyRows,
+        quote,
+        overview,
+        news: topNews,
+        nextCatalyst: nextCatalyst ? {
+          label: nextCatalyst.label || nextCatalyst.fiscal_quarter,
+          date: nextCatalyst.date,
+          dDay,
+        } : null,
+      },
     });
     setAiLoading(false);
     if (error) { setAiError(error.message); return; }
     if (data?.error) { setAiError(data.error); return; }
     setAiText(data?.analysis ?? "");
   };
+
+  const StatCell = ({ label, value, accent }) => (
+    <div style={{ background: THEME.surfaceAlt, borderRadius: 5, padding: "6px 8px" }}>
+      <div style={{ fontSize: 8, color: THEME.textFaint, marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: 11, fontWeight: 600, color: accent || THEME.text }}>{value}</div>
+    </div>
+  );
 
   return (
     <div style={{
@@ -195,135 +306,207 @@ function CompanyDetailPanel({ ticker, events, earnings, onClose, onDeleteEvent }
       </div>
 
       <div style={{ flex: 1, overflow: "auto", padding: "10px 12px" }}>
-
-        <SectionCard title="Live Quote" muted="Updates after market data sync">
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-            <PlaceholderField label="Price" hint="—" />
-            <PlaceholderField label="Change %" hint="—" />
-          </div>
-        </SectionCard>
-
-        <SectionCard title="Company Overview">
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-            <PlaceholderField label="Market Cap" />
-            <PlaceholderField label="P/E Ratio" />
-            <PlaceholderField label="Sector" />
-            <PlaceholderField label="Industry" />
-          </div>
-        </SectionCard>
-
-        <SectionCard title="Earnings Calendar">
-          {upcomingEarn.length === 0 ? (
-            <div style={{ fontSize: 10, color: THEME.textMuted }}>No upcoming earnings dates.</div>
-          ) : (
-            upcomingEarn.map(e => (
-              <div key={e.id} style={{
-                display: "flex", alignItems: "center", gap: 8,
-                padding: "6px 8px", borderRadius: 5, marginBottom: 4,
-                background: STATUS_META.earnings.bg, border: `1px solid ${STATUS_META.earnings.border}`,
-              }}>
-                <span style={{ fontSize: 12 }}>📊</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 10, fontWeight: 600, color: STATUS_META.earnings.text }}>{e.fiscal_quarter}</div>
-                  <div style={{ fontSize: 9, color: THEME.textMuted }}>{fmtDate(e.report_date)}</div>
-                </div>
-                <span style={{
-                  fontSize: 9, fontWeight: 700,
-                  color: diffDays(e.report_date) <= 7 ? "#E84F4F" : THEME.textMuted,
-                }}>D-{diffDays(e.report_date)}</span>
-              </div>
-            ))
-          )}
-        </SectionCard>
-
-        <SectionCard title="Earnings History">
-          <BeatMissStrip earnings={companyEarnings} />
-          {[...upcomingEarn, ...pastEarn].length === 0 ? (
-            <div style={{ fontSize: 10, color: THEME.textMuted }}>No earnings data yet.</div>
-          ) : (
-            [...upcomingEarn, ...pastEarn].map(e => (
-              <div key={`hist-${e.id}`} style={{
-                padding: "8px", borderRadius: 6, marginBottom: 6,
-                background: THEME.surface, border: `1px solid ${THEME.border}`,
-              }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: THEME.text }}>{e.fiscal_quarter}</span>
-                  <span style={{ fontSize: 9, color: THEME.textMuted }}>{fmtDate(e.report_date)}</span>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4 }}>
-                  {[
-                    ["Est.", e.eps_estimate != null ? `$${e.eps_estimate}` : "TBD"],
-                    ["Act.", e.eps_actual != null ? `$${e.eps_actual}` : "—"],
-                    ["Beat", e.eps_beat === true ? "✓ Yes" : e.eps_beat === false ? "✗ No" : "—"],
-                  ].map(([k, v]) => (
-                    <div key={k} style={{ background: THEME.surfaceAlt, borderRadius: 4, padding: "4px 6px", textAlign: "center" }}>
-                      <div style={{ fontSize: 8, color: THEME.textFaint }}>{k}</div>
-                      <div style={{
-                        fontSize: 10, fontWeight: 600,
-                        color: k === "Beat" && e.eps_beat === true ? "#2EC08A" : k === "Beat" && e.eps_beat === false ? "#E84F4F" : THEME.text,
-                      }}>{v}</div>
+        {detailLoading ? (
+          <div style={{ fontSize: 10, color: THEME.textMuted, padding: "20px 0", textAlign: "center" }}>Loading…</div>
+        ) : (
+          <>
+            <SectionCard title="Live Quote" muted={quote ? undefined : "Run Sync data to refresh quotes"}>
+              {quote ? (
+                <>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 18, fontWeight: 800, color: THEME.text }}>{fmtMoney(quote.price)}</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: changeUp ? "#2EC08A" : "#E84F4F" }}>
+                      {changeUp ? "▲" : "▼"} {fmtPct(quote.change_pct)} ({quote.change_amt >= 0 ? "+" : ""}{fmtMoney(Math.abs(quote.change_amt))})
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 9, color: THEME.textMuted, marginBottom: 8 }}>Volume: {fmtVolume(quote.volume)}</div>
+                  {week52Low != null && week52High != null && (
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 8, color: THEME.textFaint, marginBottom: 4 }}>
+                        <span>{fmtMoney(week52Low)}</span>
+                        <span>52-week range</span>
+                        <span>{fmtMoney(week52High)}</span>
+                      </div>
+                      <div style={{ position: "relative", height: 8, background: THEME.surfaceAlt, borderRadius: 99, overflow: "hidden", border: `1px solid ${THEME.border}` }}>
+                        <div style={{
+                          position: "absolute", left: 0, top: 0, bottom: 0,
+                          width: `${Math.min(100, Math.max(0, week52Pct ?? 0))}%`,
+                          background: changeUp ? "rgba(46,192,138,0.45)" : "rgba(232,79,79,0.45)",
+                          borderRadius: 99,
+                        }} />
+                        {week52Pct != null && (
+                          <div style={{
+                            position: "absolute", top: -2, left: `calc(${Math.min(100, Math.max(0, week52Pct))}% - 4px)`,
+                            width: 8, height: 8, borderRadius: "50%", background: THEME.accent,
+                            border: "1px solid #0A0C14",
+                          }} />
+                        )}
+                      </div>
                     </div>
-                  ))}
-                </div>
-                {e.eps_surprise_pct != null && (
-                  <div style={{
-                    marginTop: 4, fontSize: 9, fontWeight: 600, textAlign: "center",
-                    color: e.eps_surprise_pct >= 0 ? "#2EC08A" : "#E84F4F",
-                  }}>
-                    {e.eps_surprise_pct >= 0 ? "▲ Beat" : "▼ Miss"} {Math.abs(e.eps_surprise_pct).toFixed(1)}%
-                  </div>
-                )}
-              </div>
-            ))
-          )}
-        </SectionCard>
-
-        <SectionCard title="News Sentiment" muted="Pre-catalyst and pre-earnings signal">
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{
-              width: 48, height: 48, borderRadius: "50%",
-              background: THEME.surfaceAlt, border: `2px dashed ${THEME.borderStrong}`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 18, color: THEME.textFaint,
-            }}>—</div>
-            <div style={{ fontSize: 10, color: THEME.textMuted }}>Sentiment score — coming soon</div>
-          </div>
-        </SectionCard>
-
-        {companyEvents.length > 0 && (
-          <SectionCard title="Events & Catalysts">
-            {companyEvents.map(ev => {
-              const sm = STATUS_META[ev.status] ?? STATUS_META.upcoming;
-              return (
-                <div key={ev.id} style={{
-                  display: "flex", gap: 8, padding: "6px 8px", borderRadius: 5, marginBottom: 4,
-                  background: sm.bg, border: `1px solid ${sm.border}`,
-                }}>
-                  <span style={{ fontSize: 11 }}>{TYPE_ICON[ev.event_type] ?? TYPE_ICON.OTHER}</span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: sm.text }}>{ev.label}</div>
-                    <div style={{ fontSize: 9, color: THEME.textMuted }}>{fmtDate(ev.event_date)} · {sm.label}</div>
-                    {ev.drug_name && <div style={{ fontSize: 9, color: THEME.textFaint }}>{ev.drug_name}</div>}
-                  </div>
-                  {ev.is_manual && onDeleteEvent && (
-                    <button type="button" onClick={() => onDeleteEvent(ev.id)} title="Remove event" style={{
-                      background: "none", border: "none", color: "#E84F4F", cursor: "pointer",
-                      fontSize: 14, padding: 0, flexShrink: 0,
-                    }}>×</button>
                   )}
-                </div>
-              );
-            })}
-          </SectionCard>
-        )}
+                </>
+              ) : (
+                <div style={{ fontSize: 10, color: THEME.textMuted }}>No quote data yet.</div>
+              )}
+            </SectionCard>
 
-        {aiText && (
-          <SectionCard title="AI Analysis">
-            <div style={{ fontSize: 10, color: THEME.text, lineHeight: 1.55, whiteSpace: "pre-wrap" }}>{aiText}</div>
-          </SectionCard>
-        )}
-        {aiError && (
-          <div style={{ fontSize: 9, color: "#E84F4F", marginBottom: 8, lineHeight: 1.4 }}>{aiError}</div>
+            <SectionCard title="Company Overview">
+              {overview ? (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                  <StatCell label="Market Cap" value={fmtMarketCap(overview.market_cap)} />
+                  <StatCell label="P/E Ratio" value={overview.pe_ratio != null ? `${Number(overview.pe_ratio).toFixed(1)}x` : "—"} />
+                  <StatCell label="Sector" value={overview.sector || "—"} />
+                  <StatCell label="Industry" value={overview.industry || "—"} />
+                  <StatCell label="Beta" value={overview.beta != null ? Number(overview.beta).toFixed(2) : "—"} />
+                  <StatCell
+                    label="Analyst Target"
+                    value={overview.analyst_target != null ? `${fmtMoney(overview.analyst_target)}${targetUpside != null ? ` ${targetUpside >= 0 ? "↑" : "↓"}${Math.abs(targetUpside).toFixed(1)}%` : ""}` : "—"}
+                    accent={targetUpside != null ? (targetUpside >= 0 ? "#2EC08A" : "#E84F4F") : undefined}
+                  />
+                  <StatCell label="Institutions" value={overview.pct_institutions != null ? `${Number(overview.pct_institutions).toFixed(1)}%` : "—"} />
+                  <StatCell label="Insiders" value={overview.pct_insiders != null ? `${Number(overview.pct_insiders).toFixed(1)}%` : "—"} />
+                </div>
+              ) : (
+                <div style={{ fontSize: 10, color: THEME.textMuted }}>No overview data yet.</div>
+              )}
+            </SectionCard>
+
+            <SectionCard title="Earnings History">
+              <BeatMissStrip earnings={historyRows} />
+              {historyRows.length === 0 ? (
+                <div style={{ fontSize: 10, color: THEME.textMuted }}>No earnings data yet.</div>
+              ) : (
+                historyRows.map(e => {
+                  const isUpcoming = new Date(e.report_date) >= new Date();
+                  const dd = diffDays(e.report_date);
+                  return (
+                    <div key={`hist-${e.id}`} style={{
+                      padding: "8px", borderRadius: 6, marginBottom: 6,
+                      background: THEME.surface, border: `1px solid ${THEME.border}`,
+                    }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: THEME.text }}>{e.fiscal_quarter}</span>
+                        <span style={{ fontSize: 9, color: THEME.textMuted }}>
+                          {fmtDate(e.report_date)}
+                          {isUpcoming && dd >= 0 && (
+                            <span style={{ marginLeft: 4, fontWeight: 700, color: dd <= 7 ? "#E84F4F" : THEME.textMuted }}>D-{dd}</span>
+                          )}
+                        </span>
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4 }}>
+                        {[
+                          ["Est.", e.eps_estimate != null ? `$${Number(e.eps_estimate).toFixed(2)}` : "TBD"],
+                          ["Act.", e.eps_actual != null ? `$${Number(e.eps_actual).toFixed(2)}` : "—"],
+                          ["Beat", e.eps_beat === true ? "✅" : e.eps_beat === false ? "❌" : "—"],
+                        ].map(([k, v]) => (
+                          <div key={k} style={{ background: THEME.surfaceAlt, borderRadius: 4, padding: "4px 6px", textAlign: "center" }}>
+                            <div style={{ fontSize: 8, color: THEME.textFaint }}>{k}</div>
+                            <div style={{
+                              fontSize: 10, fontWeight: 600,
+                              color: k === "Beat" && e.eps_beat === true ? "#2EC08A" : k === "Beat" && e.eps_beat === false ? "#E84F4F" : THEME.text,
+                            }}>{v}</div>
+                          </div>
+                        ))}
+                      </div>
+                      {e.eps_surprise_pct != null && (
+                        <div style={{
+                          marginTop: 4, fontSize: 9, fontWeight: 600, textAlign: "center",
+                          color: e.eps_surprise_pct >= 0 ? "#2EC08A" : "#E84F4F",
+                        }}>
+                          {e.eps_surprise_pct >= 0 ? "✅ Beat" : "❌ Miss"} {Math.abs(Number(e.eps_surprise_pct)).toFixed(1)}%
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </SectionCard>
+
+            <SectionCard title="News Sentiment" muted="Pre-catalyst and pre-earnings signal">
+              {news.length > 0 ? (
+                <>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                    <div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: sentStyle.color }}>
+                        Sentiment Score: {sentimentScore ?? "—"}/100 {sentimentLabel} {sentimentLabel.toLowerCase().includes("bull") ? "📈" : sentimentLabel.toLowerCase().includes("bear") ? "📉" : ""}
+                      </div>
+                      {sentimentScore != null && (
+                        <div style={{ marginTop: 6, height: 8, width: 140, background: THEME.surfaceAlt, borderRadius: 99, overflow: "hidden", border: `1px solid ${THEME.border}` }}>
+                          <div style={{ width: `${sentimentScore}%`, height: "100%", background: sentStyle.color, opacity: 0.75 }} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 8, color: THEME.textFaint, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>Recent headlines</div>
+                  {topNews.map(n => {
+                    const ns = sentimentStyle(n.ticker_label || n.overall_label);
+                    return (
+                      <a
+                        key={n.id ?? n.url}
+                        href={n.url || "#"}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          display: "block", padding: "6px 0", borderBottom: `1px solid ${THEME.border}`,
+                          textDecoration: "none", color: THEME.textMuted, fontSize: 9, lineHeight: 1.45,
+                        }}
+                      >
+                        <span style={{ color: ns.color, fontWeight: 700 }}>[{n.ticker_label || n.overall_label || "Neutral"}]</span>
+                        {" "}{n.title}
+                        {n.published_at && <span style={{ color: THEME.textFaint }}> ({timeAgo(n.published_at)})</span>}
+                      </a>
+                    );
+                  })}
+                </>
+              ) : (
+                <div style={{ fontSize: 10, color: THEME.textMuted }}>No news sentiment data yet.</div>
+              )}
+            </SectionCard>
+
+            {companyEvents.length > 0 && (
+              <SectionCard title="Events & Catalysts">
+                {companyEvents.map(ev => {
+                  const sm = STATUS_META[ev.status] ?? STATUS_META.upcoming;
+                  return (
+                    <div key={ev.id} style={{
+                      display: "flex", gap: 8, padding: "6px 8px", borderRadius: 5, marginBottom: 4,
+                      background: sm.bg, border: `1px solid ${sm.border}`,
+                    }}>
+                      <span style={{ fontSize: 11 }}>{TYPE_ICON[ev.event_type] ?? TYPE_ICON.OTHER}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 10, fontWeight: 600, color: sm.text }}>{ev.label}</div>
+                        <div style={{ fontSize: 9, color: THEME.textMuted }}>{fmtDate(ev.event_date)} · {sm.label}</div>
+                        {ev.drug_name && <div style={{ fontSize: 9, color: THEME.textFaint }}>{ev.drug_name}</div>}
+                      </div>
+                      {ev.is_manual && onDeleteEvent && (
+                        <button type="button" onClick={() => onDeleteEvent(ev.id)} title="Remove event" style={{
+                          background: "none", border: "none", color: "#E84F4F", cursor: "pointer",
+                          fontSize: 14, padding: 0, flexShrink: 0,
+                        }}>×</button>
+                      )}
+                    </div>
+                  );
+                })}
+              </SectionCard>
+            )}
+
+            <SectionCard title="AI Analysis">
+              {!aiText && !aiLoading && (
+                <div style={{ fontSize: 10, color: THEME.textMuted, lineHeight: 1.5, marginBottom: 8 }}>
+                  Claude AI analyzes event risk and key checkpoints for this ticker.
+                </div>
+              )}
+              {aiLoading && (
+                <div style={{ fontSize: 10, color: THEME.textMuted, marginBottom: 8 }}>Analyzing…</div>
+              )}
+              {aiText && (
+                <div style={{ fontSize: 10, color: THEME.text, lineHeight: 1.55, whiteSpace: "pre-wrap" }}>{aiText}</div>
+              )}
+              {aiError && (
+                <div style={{ fontSize: 9, color: "#E84F4F", marginTop: 8, lineHeight: 1.4 }}>{aiError}</div>
+              )}
+            </SectionCard>
+          </>
         )}
       </div>
 
@@ -331,13 +514,13 @@ function CompanyDetailPanel({ ticker, events, earnings, onClose, onDeleteEvent }
         padding: "10px 12px", borderTop: `1px solid ${THEME.border}`,
         background: THEME.surface, flexShrink: 0,
       }}>
-        <button type="button" onClick={runAiAnalysis} disabled={aiLoading} style={{
+        <button type="button" onClick={runAiAnalysis} disabled={aiLoading || detailLoading} style={{
           width: "100%", padding: "8px 0", borderRadius: 6, cursor: aiLoading ? "wait" : "pointer",
           background: "rgba(123,92,240,0.15)", border: "1px solid rgba(123,92,240,0.45)",
           color: "#c4b5fd", fontSize: 11, fontWeight: 600,
-          opacity: aiLoading ? 0.7 : 1,
+          opacity: aiLoading || detailLoading ? 0.7 : 1,
         }}>
-          {aiLoading ? "Analyzing…" : "🤖 AI Analysis"}
+          {aiLoading ? "Analyzing…" : "🤖 Run analysis"}
         </button>
       </div>
     </div>
@@ -601,7 +784,7 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
   };
 
   const triggerSync = async () => {
-    const { error } = await supabase.functions.invoke("pharma-data-sync");
+    const { error } = await supabase.functions.invoke("pharma-data-sync", { body: { phase: "all" } });
     if (!error) await loadData();
     else alert("Sync failed: " + error.message);
   };

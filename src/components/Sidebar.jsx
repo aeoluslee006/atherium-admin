@@ -30,7 +30,7 @@ const NAV = [
   ]},
 ]
 
-export default function Sidebar({ activePage, userEmail = 'Admin', onSignOut }) {
+export default function Sidebar({ activePage, userEmail = 'Admin' }) {
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -46,57 +46,51 @@ export default function Sidebar({ activePage, userEmail = 'Admin', onSignOut }) 
         </div>
       </div>
 
-      <nav style={s.nav}>
-        {NAV.map(group => (
-          <div key={group.section} style={s.navSection}>
-            <div style={s.navLabel}>{group.section}</div>
-            {group.items.map(item => {
-              const active = item.path
-                ? location.pathname === item.path
-                : item.id && activePage === item.id
-              return (
-                <div
-                  key={item.label}
-                  style={{ ...s.navItem, ...(active ? s.navItemActive : {}) }}
-                  onClick={() => {
-                    if (item.href) {
-                      window.open(item.href, '_blank', 'noopener,noreferrer')
-                      return
-                    }
-                    if (item.path) navigate(item.path)
-                  }}
-                  title={item.href ? 'Open in new tab' : undefined}
-                >
-                  {item.emoji ? (
-                    <span style={{ fontSize: 14, width: 16, textAlign: 'center', flexShrink: 0 }}>{item.emoji}</span>
-                  ) : (
-                    <i className={`ti ${item.icon}`} style={{ fontSize: 14, width: 16, flexShrink: 0 }} aria-hidden="true" />
-                  )}
-                  {item.label}
-                </div>
-              )
-            })}
-          </div>
-        ))}
-      </nav>
+      <div style={s.scroll}>
+        <nav style={s.nav}>
+          {NAV.map(group => (
+            <div key={group.section} style={s.navSection}>
+              <div style={s.navLabel}>{group.section}</div>
+              {group.items.map(item => {
+                const active = item.path
+                  ? location.pathname === item.path
+                  : item.id && activePage === item.id
+                return (
+                  <div
+                    key={item.label}
+                    style={{ ...s.navItem, ...(active ? s.navItemActive : {}) }}
+                    onClick={() => {
+                      if (item.href) {
+                        window.open(item.href, '_blank', 'noopener,noreferrer')
+                        return
+                      }
+                      if (item.path) navigate(item.path)
+                    }}
+                    title={item.href ? 'Open in new tab' : undefined}
+                  >
+                    {item.emoji ? (
+                      <span style={{ fontSize: 14, width: 16, textAlign: 'center', flexShrink: 0 }}>{item.emoji}</span>
+                    ) : (
+                      <i className={`ti ${item.icon}`} style={{ fontSize: 14, width: 16, flexShrink: 0 }} aria-hidden="true" />
+                    )}
+                    {item.label}
+                  </div>
+                )
+              })}
+            </div>
+          ))}
+        </nav>
 
-      <div style={s.footer}>
-        <div style={{ marginBottom: 8 }}>
+        <div style={s.bottomBlock}>
           <AtheriumBottomNav compact />
-        </div>
-        <div style={s.userChip}>
-          <div style={s.avatar}>{(userEmail[0] || 'A').toUpperCase()}</div>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: 12, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userEmail}</div>
-            <div style={{ fontSize: 10, color: 'var(--muted)' }}>Super Owner</div>
+          <div style={s.userChip}>
+            <div style={s.avatar}>{(userEmail[0] || 'A').toUpperCase()}</div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: 12, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userEmail}</div>
+              <div style={{ fontSize: 10, color: 'var(--muted)' }}>Super Owner</div>
+            </div>
           </div>
         </div>
-        {onSignOut && (
-          <button type="button" onClick={onSignOut} style={s.signOutBtn}>
-            <i className="ti ti-logout" style={{ fontSize: 16 }} aria-hidden="true" />
-            Log out
-          </button>
-        )}
       </div>
     </aside>
   )
@@ -117,7 +111,8 @@ const s = {
   },
   logoText: { fontFamily: "'Cinzel', serif", fontSize: 13, fontWeight: 600, color: 'var(--gold)', letterSpacing: 1.5 },
   logoSub: { fontSize: 8, color: 'var(--muted)', letterSpacing: 1.2, textTransform: 'uppercase', marginTop: 2 },
-  nav: { flex: 1, padding: '12px 0', overflowY: 'auto' },
+  scroll: { flex: 1, overflowY: 'auto', minHeight: 0 },
+  nav: { padding: '12px 0 0' },
   navSection: { marginBottom: 2 },
   navLabel: { fontSize: 8, letterSpacing: 1.2, textTransform: 'uppercase', color: 'var(--muted)', padding: '6px 14px 3px', opacity: 0.6 },
   navItem: {
@@ -126,13 +121,12 @@ const s = {
     color: 'var(--muted)', transition: 'all 0.2s', lineHeight: 1.25,
   },
   navItemActive: { color: 'var(--gold)', borderLeftColor: 'var(--gold)', background: 'rgba(201,168,76,0.05)' },
-  footer: { padding: '12px 14px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 },
-  userChip: { display: 'flex', alignItems: 'center', gap: 8 },
-  signOutBtn: {
-    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-    width: '100%', padding: '10px 12px', borderRadius: 8, fontSize: 13, fontWeight: 500,
-    border: '1px solid var(--border2)', background: 'rgba(201,168,76,0.1)', color: 'var(--gold-light)',
+  bottomBlock: {
+    padding: '10px 14px 14px', marginTop: 6,
+    borderTop: '1px solid var(--border)',
+    display: 'flex', flexDirection: 'column', gap: 10,
   },
+  userChip: { display: 'flex', alignItems: 'center', gap: 8 },
   avatar: {
     width: 28, height: 28, borderRadius: '50%',
     background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))',

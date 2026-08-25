@@ -522,11 +522,6 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
     return d.getFullYear() === viewYear && d.getMonth() === viewMonth;
   }).length;
 
-  const monthEvents = events.filter(e => {
-    const d = new Date(e.event_date);
-    return d.getFullYear() === viewYear && d.getMonth() === viewMonth;
-  }).sort((a, b) => new Date(a.event_date) - new Date(b.event_date));
-
   const addEvent = async () => {
     if (!newEv.ticker.trim() || !newEv.date || !newEv.label.trim()) return;
     const { data, error } = await supabase.from("pharma_events").insert({
@@ -548,15 +543,6 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
     await supabase.from("pharma_events").delete().eq("id", id);
     setEvents(ev => ev.filter(e => e.id !== id));
   };
-
-  const monthOfficeEvents = officeEvents.filter(e => {
-    const d = new Date(e.event_date);
-    return d.getFullYear() === viewYear && d.getMonth() === viewMonth;
-  }).sort((a, b) => {
-    const da = `${a.event_date} ${a.start_time ?? ""}`;
-    const db = `${b.event_date} ${b.start_time ?? ""}`;
-    return da.localeCompare(db);
-  });
 
   const addOfficeEvent = async () => {
     if (!newOffice.title.trim() || !newOffice.date) return;
@@ -737,38 +723,6 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
           border: `1px solid ${THEME.border}`, borderRadius: 6, fontSize: 9, fontWeight: 600, cursor: "pointer",
         }}>↑ Import .ics</button>
         <input ref={icsInputRef} type="file" accept=".ics,text/calendar" style={{ display: "none" }} onChange={handleImportIcs} />
-      </RailSection>
-      <RailSection title={`Office this month (${monthOfficeEvents.length})`}>
-        {monthOfficeEvents.length === 0 && <div style={{ fontSize: 9, color: THEME.textFaint }}>No meetings</div>}
-        {monthOfficeEvents.map(ev => {
-          const om = OFFICE_META[ev.category] ?? OFFICE_META.OTHER;
-          return (
-            <div key={ev.id} style={{
-              display: "flex", alignItems: "center", gap: 4, padding: "4px 0",
-              borderBottom: `1px solid ${THEME.border}`, fontSize: 9, cursor: "pointer",
-            }} onClick={() => openOffice(ev)}>
-              <span style={{ color: om.text, flexShrink: 0 }}>{om.icon}</span>
-              <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: THEME.textMuted }}>
-                {!ev.all_day && ev.start_time ? `${fmtTime(ev.start_time)} ` : ""}{ev.title}
-              </span>
-            </div>
-          );
-        })}
-      </RailSection>
-      <RailSection title={`Market this month (${monthEvents.length})`}>
-        {monthEvents.length === 0 && <div style={{ fontSize: 9, color: THEME.textFaint }}>No events</div>}
-        {monthEvents.map(ev => {
-          const sm = STATUS_META[ev.status] ?? STATUS_META.upcoming;
-          return (
-            <div key={ev.id} style={{
-              display: "flex", alignItems: "center", gap: 4, padding: "4px 0",
-              borderBottom: `1px solid ${THEME.border}`, fontSize: 9,
-            }}>
-              <span style={{ fontWeight: 700, color: sm.dot, flexShrink: 0 }}>{ev.ticker}</span>
-              <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: THEME.textMuted }}>{ev.label}</span>
-            </div>
-          );
-        })}
       </RailSection>
     </>
   );

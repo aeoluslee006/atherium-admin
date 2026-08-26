@@ -3,8 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getDirectoryCategoryLabel } from '../../../lib/directoryCategories';
 import {
-  DIRECTORY_GRID_COLS,
-  DIRECTORY_GRID_ROWS,
+  computePageGridSize,
   formatSlotPrice,
   groupSlotsByPage,
   sizeTierLabel,
@@ -54,6 +53,10 @@ export default function AdminDirectoryPages() {
   const pages = useMemo(() => groupSlotsByPage(slots), [slots]);
   const pageNumbers = pages.map((p) => p.pageNumber);
   const current = pages.find((p) => p.pageNumber === page) || pages[0];
+  const { cols, rows } = useMemo(
+    () => computePageGridSize(current?.slots || []),
+    [current]
+  );
 
   useEffect(() => {
     if (pageNumbers.length && !pageNumbers.includes(page)) {
@@ -151,7 +154,7 @@ export default function AdminDirectoryPages() {
       {current ? (
         <div
           className="dir-paper admin-dir-paper"
-          style={{ '--dir-cols': DIRECTORY_GRID_COLS, '--dir-rows': DIRECTORY_GRID_ROWS }}
+          style={{ '--dir-cols': cols, '--dir-rows': rows, '--dir-zoom': 1 }}
         >
           <div className="dir-grid">
             {(current.slots || []).map((slot) => {

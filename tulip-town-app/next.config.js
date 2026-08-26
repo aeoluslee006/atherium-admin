@@ -14,8 +14,8 @@ const nextConfig = {
       { source: '/gift', destination: '/shop', permanent: false },
       { source: '/gift/best', destination: '/shop', permanent: false },
       { source: '/gift/:id', destination: '/shop', permanent: false },
-      { source: '/seller', destination: '/shop/new', permanent: false },
-      { source: '/seller/apply', destination: '/shop/new', permanent: false },
+      // Do not redirect /seller or /seller/apply — those are real seller routes
+      // and redirecting them to /shop/new caused an infinite loop.
     ];
   },
   async headers() {

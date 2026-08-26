@@ -74,7 +74,7 @@ export async function POST(request) {
             quantity: 1,
           },
         ],
-        success_url: `${appUrl}/directory/pages?checkout=success&session_id={CHECKOUT_SESSION_ID}&page=${slot.page_number}`,
+        success_url: `${appUrl}/directory?checkout=success&session_id={CHECKOUT_SESSION_ID}&page=${slot.page_number}`,
         cancel_url: `${appUrl}/directory/pages/apply?slot=${encodeURIComponent(slotId)}&checkout=cancel`,
         metadata: {
           kind: 'directory_slot',

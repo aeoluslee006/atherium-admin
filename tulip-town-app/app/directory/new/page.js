@@ -123,8 +123,8 @@ export default function NewBusinessPage() {
           <h2 className="section-title">업체 등록 · Sponsor listing</h2>
           <div className="hint-text">등록 후 Stripe 월 구독 결제로 이어집니다.</div>
         </div>
-        <Link href="/directory" className="btn btn-outline">
-          목록
+        <Link href="/seller" className="btn btn-outline">
+          내 업체 관리
         </Link>
       </div>
       <Suspense fallback={<div className="card empty-state">로딩 중…</div>}>

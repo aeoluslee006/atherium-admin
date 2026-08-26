@@ -38,10 +38,28 @@ export default function StickersPanel({
   title = '📌 Stickers',
   showBoard = true,
   listOnly = false,
+  constrainBoard = false,
 }) {
   const [editingId, setEditingId] = useState(null)
   const [editDraft, setEditDraft] = useState('')
+  const [boardWidth, setBoardWidth] = useState(width)
   const editRef = useRef(null)
+  const localBoardRef = useRef(null)
+
+  const setBoardRef = (el) => {
+    localBoardRef.current = el
+    if (boardRef) boardRef.current = el
+  }
+
+  useEffect(() => {
+    if (!constrainBoard || !localBoardRef.current) return
+    const el = localBoardRef.current
+    const update = () => setBoardWidth(el.clientWidth)
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [constrainBoard, showBoard])
 
   useEffect(() => {
     if (editingId && editRef.current) {
@@ -52,6 +70,15 @@ export default function StickersPanel({
 
   const noteW = (n) => n.width ?? DEFAULT_NOTE_WIDTH
   const noteH = (n) => n.height ?? DEFAULT_NOTE_HEIGHT
+
+  const clampNoteToBoard = (note) => {
+    const maxW = Math.max(80, boardWidth - 8)
+    const w = Math.min(noteW(note), maxW)
+    const h = noteH(note)
+    const x = Math.max(0, Math.min(note.pos_x, boardWidth - w))
+    const y = Math.max(0, note.pos_y)
+    return { x, y, w, h }
+  }
 
   const boardContentH = notes.length
     ? Math.max(360, ...notes.map(n => (n.pos_y || 0) + noteH(n) + 16))
@@ -118,6 +145,7 @@ export default function StickersPanel({
       alignSelf: 'stretch',
       display: 'flex', flexDirection: 'column',
       minHeight: 0,
+      overflow: constrainBoard ? 'hidden' : undefined,
       background: THEME.surface, borderLeft: fullWidth ? 'none' : `1px solid ${THEME.border}`,
     }}>
       {!hideControls && (
@@ -136,20 +164,22 @@ export default function StickersPanel({
 
       {showBoard && (
         <div
-          ref={boardRef}
+          ref={setBoardRef}
           onMouseMove={onMouseMove}
           onMouseUp={onMouseUp}
           onMouseLeave={onMouseUp}
           onClick={() => { if (editingId) saveEdit() }}
           style={{
-            flex: 1, position: 'relative', overflow: 'auto', minHeight: 120,
+            flex: 1, position: 'relative', minHeight: 120,
+            overflowX: constrainBoard ? 'hidden' : undefined,
+            overflowY: 'auto',
             background: THEME.surfaceAlt,
             backgroundImage: 'radial-gradient(circle, rgba(201,168,76,0.12) 1px, transparent 1px)',
             backgroundSize: '24px 24px',
             cursor: resizing ? 'nwse-resize' : undefined,
           }}
         >
-          <div style={{ position: 'relative', minHeight: boardContentH, width: '100%' }}>
+          <div style={{ position: 'relative', minHeight: boardContentH, width: '100%', maxWidth: '100%' }}>
           {notes.length === 0 && (
             <div style={{
               position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
@@ -160,8 +190,13 @@ export default function StickersPanel({
           )}
           {notes.map(note => {
             const isEditing = editingId === note.id
-            const w = noteW(note)
-            const h = noteH(note)
+            const bounds = constrainBoard ? clampNoteToBoard(note) : {
+              x: note.pos_x,
+              y: note.pos_y,
+              w: noteW(note),
+              h: noteH(note),
+            }
+            const { x, y, w, h } = bounds
             const isEmpty = !note.content?.trim()
             return (
               <div
@@ -170,7 +205,7 @@ export default function StickersPanel({
                 onDoubleClick={e => { e.stopPropagation(); startEdit(note) }}
                 onClick={e => e.stopPropagation()}
                 style={{
-                  position: 'absolute', left: note.pos_x, top: note.pos_y,
+                  position: 'absolute', left: x, top: y,
                   width: w, height: h,
                   background: note.color, color: '#1e293b', borderRadius: 6,
                   padding: '6px 8px 10px',

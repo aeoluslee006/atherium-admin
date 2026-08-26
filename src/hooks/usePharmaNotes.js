@@ -61,7 +61,10 @@ export function usePharmaNotes() {
     const b = boardRef.current.getBoundingClientRect()
     const note = notes.find(n => n.id === id)
     if (!note) return
-    dragOffset.current = { x: e.clientX - b.left - note.pos_x, y: e.clientY - b.top - note.pos_y }
+    const { w } = noteSize(note)
+    const displayX = Math.max(0, Math.min(note.pos_x, b.width - w))
+    const displayY = Math.max(0, note.pos_y)
+    dragOffset.current = { x: e.clientX - b.left - displayX, y: e.clientY - b.top - displayY }
     setDragging(id)
   }
 
@@ -80,9 +83,11 @@ export function usePharmaNotes() {
     const b = boardRef.current.getBoundingClientRect()
 
     if (resizing) {
+      const note = notes.find(n => n.id === resizing)
+      const maxW = note ? Math.max(80, b.width - note.pos_x) : 480
       const dx = e.clientX - resizeStart.current.mouseX
       const dy = e.clientY - resizeStart.current.mouseY
-      const w = Math.max(80, Math.min(480, Math.round(resizeStart.current.w + dx)))
+      const w = Math.max(80, Math.min(maxW, Math.round(resizeStart.current.w + dx)))
       const h = Math.max(60, Math.min(480, Math.round(resizeStart.current.h + dy)))
       setNotes(n => n.map(note => note.id === resizing ? { ...note, width: w, height: h } : note))
       return

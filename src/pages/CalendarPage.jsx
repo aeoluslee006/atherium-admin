@@ -1108,7 +1108,7 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
               )}
 
               {stickersOpen && (
-                <StickersPanel {...stickerPanelProps} width={280} title="📌 Quick Stickers" />
+                <StickersPanel {...stickerPanelProps} width={280} title="📌 Quick Stickers" constrainBoard />
               )}
             </div>
           </>

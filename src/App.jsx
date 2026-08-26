@@ -56,7 +56,7 @@ function AdminLayout({ userEmail, onSignOut }) {
             <Outlet />
           </main>
           {stickersOpen && (
-            <StickersPanel {...stickerPanelProps} width={320} title="📌 Stickers" />
+            <StickersPanel {...stickerPanelProps} width={320} title="📌 Stickers" constrainBoard />
           )}
         </div>
       </div>

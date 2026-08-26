@@ -62,7 +62,13 @@ async function avFetch(params: Record<string, string>) {
 
   const res = await fetch(url.toString());
   if (!res.ok) throw new Error(`Alpha Vantage HTTP ${res.status}`);
-  const data = await res.json();
+  const text = await res.text();
+  let data: Record<string, unknown>;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(`Invalid JSON response: ${text.slice(0, 240)}`);
+  }
   if (data.Note || data.Information) {
     throw new Error(String(data.Note || data.Information));
   }
@@ -96,9 +102,16 @@ async function syncQuotes() {
   for (const ticker of QUOTE_TICKERS) {
     try {
       const data = await avFetch({ function: "GLOBAL_QUOTE", symbol: ticker });
-      const quote = data["Global Quote"];
-      if (!quote?.["05. price"]) {
-        errors.push(`${ticker}: empty quote`);
+      const quote = data["Global Quote"] as Record<string, string> | undefined;
+      if (!quote || Object.keys(quote).length === 0) {
+        errors.push(`${ticker}: empty Global Quote`);
+        await sleep(AV_SLEEP_MS);
+        continue;
+      }
+
+      const price = parseAvNumber(quote["05. price"]);
+      if (price == null) {
+        errors.push(`${ticker}: missing price`);
         await sleep(AV_SLEEP_MS);
         continue;
       }
@@ -106,11 +119,11 @@ async function syncQuotes() {
       const changePctRaw = String(quote["10. change percent"] ?? "0").replace("%", "");
       const { error } = await supabase.from("pharma_quotes").upsert({
         ticker,
-        price: parseFloat(quote["05. price"]),
-        change_amt: parseFloat(quote["09. change"]),
-        change_pct: parseFloat(changePctRaw),
-        volume: parseInt(quote["06. volume"], 10),
-        prev_close: parseFloat(quote["08. previous close"]),
+        price,
+        change_amt: parseAvNumber(quote["09. change"]),
+        change_pct: parseAvNumber(changePctRaw),
+        volume: quote["06. volume"] ? parseInt(quote["06. volume"], 10) : null,
+        prev_close: parseAvNumber(quote["08. previous close"]),
         updated_at: new Date().toISOString(),
       }, { onConflict: "ticker" });
 
@@ -180,28 +193,47 @@ async function syncNewsSentiment() {
       const data = await avFetch({
         function: "NEWS_SENTIMENT",
         tickers: ticker,
-        limit: "20",
+        limit: "50",
       });
-      const feed = data?.feed ?? [];
+      const feed = (data?.feed ?? []) as Array<{
+        title?: string;
+        url?: string;
+        time_published?: string;
+        overall_sentiment_score?: number;
+        overall_sentiment_label?: string;
+        ticker_sentiment?: Array<{
+          ticker?: string;
+          ticker_sentiment_score?: number;
+          ticker_sentiment_label?: string;
+        }>;
+      }>;
+
+      if (feed.length === 0) {
+        errors.push(`${ticker}: empty news feed`);
+        await sleep(AV_SLEEP_MS);
+        continue;
+      }
 
       for (const item of feed) {
+        if (!item.url?.trim()) continue;
+
         const tickerHit = item.ticker_sentiment?.find(
-          (t: { ticker: string }) => t.ticker === ticker,
+          (t) => t.ticker?.toUpperCase() === ticker,
         );
 
         const { error } = await supabase.from("pharma_news").upsert({
           ticker,
           title: item.title ?? null,
-          url: item.url ?? null,
+          url: item.url,
           published_at: parseAvPublished(item.time_published),
-          overall_score: item.overall_sentiment_score ?? null,
+          overall_score: parseAvNumber(item.overall_sentiment_score),
           overall_label: item.overall_sentiment_label ?? null,
-          ticker_score: tickerHit?.ticker_sentiment_score ?? null,
+          ticker_score: parseAvNumber(tickerHit?.ticker_sentiment_score),
           ticker_label: tickerHit?.ticker_sentiment_label ?? null,
-        }, { onConflict: "ticker,url", ignoreDuplicates: true });
+        }, { onConflict: "ticker,url", ignoreDuplicates: false });
 
-        if (!error) upserted++;
-        else errors.push(`${ticker} news: ${error.message}`);
+        if (error) errors.push(`${ticker} news: ${error.message}`);
+        else upserted++;
       }
 
       await sleep(AV_SLEEP_MS);
@@ -383,9 +415,14 @@ function resolvePhases(phase: string): string[] {
     case "earnings":
       return ["calendar", "actual"];
     case "market-data":
-      return ["overview", "quotes"];
+      return ["overview", "quotes", "news"];
+    case "quotes":
+      return ["quotes"];
+    case "news":
+      return ["news"];
     case "all":
-      return ["calendar", "actual", "overview", "quotes", "news", "trials"];
+      // quotes/news first — slow earnings loops can exceed edge timeout if run first
+      return ["quotes", "news", "calendar", "overview", "actual", "trials"];
     default:
       return [phase];
   }
@@ -408,24 +445,6 @@ Deno.serve(async (req) => {
   const results: Record<string, unknown> = { phase, phases };
   console.log("[pharma-data-sync] start:", phase, new Date().toISOString());
 
-  if (phases.includes("calendar")) {
-    const res = await syncEarningsCalendar();
-    results.earnings_calendar = res;
-    await logSync("alpha_earnings_calendar", res.upserted, res.errors);
-  }
-
-  if (phases.includes("actual")) {
-    const res = await syncActualEarnings();
-    results.earnings_actual = res;
-    await logSync("alpha_earnings_actual", res.updated, res.errors);
-  }
-
-  if (phases.includes("overview")) {
-    const res = await syncOverview();
-    results.overview = res;
-    await logSync("alpha_overview", res.upserted, res.errors);
-  }
-
   if (phases.includes("quotes")) {
     const res = await syncQuotes();
     results.quotes = res;
@@ -436,6 +455,24 @@ Deno.serve(async (req) => {
     const res = await syncNewsSentiment();
     results.news = res;
     await logSync("alpha_news", res.upserted, res.errors);
+  }
+
+  if (phases.includes("calendar")) {
+    const res = await syncEarningsCalendar();
+    results.earnings_calendar = res;
+    await logSync("alpha_earnings_calendar", res.upserted, res.errors);
+  }
+
+  if (phases.includes("overview")) {
+    const res = await syncOverview();
+    results.overview = res;
+    await logSync("alpha_overview", res.upserted, res.errors);
+  }
+
+  if (phases.includes("actual")) {
+    const res = await syncActualEarnings();
+    results.earnings_actual = res;
+    await logSync("alpha_earnings_actual", res.updated, res.errors);
   }
 
   if (phases.includes("trials")) {

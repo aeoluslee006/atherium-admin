@@ -32,7 +32,7 @@ const EARNINGS_TICKERS = [
   ...QUOTE_TICKERS.filter((t) => !["VRTX", "GILD", "AMGN", "REGN", "MRNA", "SMMT", "LLY", "PFE"].includes(t)),
 ];
 
-const NEWS_TICKERS = ["NVDA", "AAPL", "MSFT", "SMMT", "GILD", "REGN", "VRTX", "LLY"];
+const NEWS_TICKERS = ["NVDA", "SMMT", "GILD", "REGN"];
 const EARNINGS_TICKER_SET = new Set(EARNINGS_TICKERS);
 
 function parseAvPublished(raw: string | undefined): string | null {
@@ -212,7 +212,7 @@ async function syncNewsSentiment() {
         }, { onConflict: "ticker,url", ignoreDuplicates: false });
         if (!error) saved++;
       }
-      await new Promise((r) => setTimeout(r, 12000));
+      await new Promise((r) => setTimeout(r, 3000));
     } catch (e) {
       errors.push(`${ticker}: ${(e as Error).message}`);
     }

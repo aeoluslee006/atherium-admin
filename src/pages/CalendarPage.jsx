@@ -784,9 +784,14 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
   };
 
   const triggerSync = async () => {
-    const { error } = await supabase.functions.invoke("pharma-data-sync", { body: { phase: "all" } });
-    if (!error) await loadData();
-    else alert("Sync failed: " + error.message);
+    const { error } = await supabase.functions.invoke("pharma-data-sync", {
+      body: { phase: "all" },
+    });
+    if (error) {
+      alert("Sync failed: " + error.message);
+      return;
+    }
+    await loadData();
   };
 
   const EventChip = ({ ev }) => {

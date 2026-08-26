@@ -2,8 +2,8 @@
 // Supabase Edge Function: pharma-data-sync
 // Atherium Holdings — atherium.cosmonova.io
 //
-// Secrets: ALPHA_VANTAGE_API_KEY (Alpha Vantage market data)
-// Phases: calendar | actual | overview | quotes | news | trials | earnings | market-data | all
+// Secrets: ALPHA_VANTAGE_API_KEY
+// Phases: calendar | actual | overview | quotes | news | trials | all
 // ============================================================
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -14,6 +14,7 @@ const supabase = createClient(
 );
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const AV_SLEEP_MS = 13000;
 
 const QUOTE_TICKERS = [
   "AAPL", "MSFT", "NVDA", "AMZN", "META", "GOOGL", "TSLA", "AVGO", "NFLX", "AMGN",
@@ -32,10 +33,23 @@ const EARNINGS_TICKERS = [
 ];
 
 const NEWS_TICKERS = [...new Set([...OVERVIEW_TICKERS, ...QUOTE_TICKERS.slice(0, 10)])];
+const EARNINGS_TICKER_SET = new Set(EARNINGS_TICKERS);
 
 function parseAvPublished(raw: string | undefined): string | null {
   if (!raw || raw.length < 15) return null;
   return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}T${raw.slice(9, 11)}:${raw.slice(11, 13)}:${raw.slice(13, 15)}Z`;
+}
+
+function fiscalQuarterFromDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  const q = Math.ceil((d.getMonth() + 1) / 3);
+  return `Q${q} ${d.getFullYear()}`;
+}
+
+function parseAvNumber(raw: unknown): number | null {
+  if (raw == null || raw === "None" || raw === "") return null;
+  const n = parseFloat(String(raw));
+  return Number.isFinite(n) ? n : null;
 }
 
 async function avFetch(params: Record<string, string>) {
@@ -65,7 +79,7 @@ async function syncQuotes() {
       const quote = data["Global Quote"];
       if (!quote?.["05. price"]) {
         errors.push(`${ticker}: empty quote`);
-        await sleep(13000);
+        await sleep(AV_SLEEP_MS);
         continue;
       }
 
@@ -83,10 +97,10 @@ async function syncQuotes() {
       if (error) errors.push(`${ticker}: ${error.message}`);
       else upserted++;
 
-      await sleep(13000);
+      await sleep(AV_SLEEP_MS);
     } catch (e) {
       errors.push(`${ticker}: ${(e as Error).message}`);
-      await sleep(13000);
+      await sleep(AV_SLEEP_MS);
     }
   }
 
@@ -102,7 +116,7 @@ async function syncOverview() {
       const data = await avFetch({ function: "OVERVIEW", symbol: ticker });
       if (!data?.Symbol) {
         errors.push(`${ticker}: empty overview`);
-        await sleep(13000);
+        await sleep(AV_SLEEP_MS);
         continue;
       }
 
@@ -127,10 +141,10 @@ async function syncOverview() {
       if (error) errors.push(`${ticker}: ${error.message}`);
       else upserted++;
 
-      await sleep(13000);
+      await sleep(AV_SLEEP_MS);
     } catch (e) {
       errors.push(`${ticker}: ${(e as Error).message}`);
-      await sleep(13000);
+      await sleep(AV_SLEEP_MS);
     }
   }
 
@@ -170,74 +184,53 @@ async function syncNewsSentiment() {
         else errors.push(`${ticker} news: ${error.message}`);
       }
 
-      await sleep(13000);
+      await sleep(AV_SLEEP_MS);
     } catch (e) {
       errors.push(`${ticker}: ${(e as Error).message}`);
-      await sleep(13000);
+      await sleep(AV_SLEEP_MS);
     }
   }
 
   return { upserted, errors };
 }
 
-async function syncEarningsFromYahoo() {
+async function syncEarningsCalendar() {
   let upserted = 0;
   const errors: string[] = [];
-  const tickers = [...new Set(EARNINGS_TICKERS)];
 
-  for (const ticker of tickers) {
-    try {
-      const url = `https://query1.finance.yahoo.com/v11/finance/quoteSummary/${ticker}` +
-        `?modules=calendarEvents,earningsTrend,defaultKeyStatistics`;
+  try {
+    const data = await avFetch({
+      function: "EARNINGS_CALENDAR",
+      horizon: "6month",
+    });
 
-      const res = await fetch(url, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (compatible; AtheriumBot/1.0)",
-          Accept: "application/json",
-        },
-      });
+    const rows = data?.earningsCalendar ?? [];
+    for (const row of rows) {
+      const ticker = String(row.symbol ?? "").toUpperCase();
+      if (!ticker || !EARNINGS_TICKER_SET.has(ticker)) continue;
+      if (!row.reportDate) continue;
 
-      if (!res.ok) {
-        errors.push(`${ticker}: HTTP ${res.status}`);
-        continue;
-      }
-
-      const data = await res.json();
-      const result = data?.quoteSummary?.result?.[0];
-      if (!result) continue;
-
-      const nextEarnings = result?.calendarEvents?.earnings?.earningsDate?.[0]?.raw;
-      const epsTrend = result?.earningsTrend?.trend?.[0];
-      const epsEstimate = epsTrend?.earningsEstimate?.avg?.raw ?? null;
-      const revEstimate = epsTrend?.revenueEstimate?.avg?.raw ?? null;
-
-      if (!nextEarnings) continue;
-
-      const d = new Date(nextEarnings * 1000);
-      const reportDate = d.toISOString().split("T")[0];
-      const q = Math.ceil((d.getMonth() + 1) / 3);
-      const fiscalQuarter = `Q${q} ${d.getFullYear()}`;
+      const fiscalQuarter = row.fiscalDateEnding
+        ? fiscalQuarterFromDate(row.fiscalDateEnding)
+        : fiscalQuarterFromDate(row.reportDate);
 
       const { error } = await supabase.from("pharma_earnings").upsert({
         ticker,
-        company_name: ticker,
-        report_date: reportDate,
+        company_name: row.name ?? ticker,
+        report_date: row.reportDate,
         fiscal_quarter: fiscalQuarter,
         report_time: "tbd",
-        eps_estimate: epsEstimate,
-        rev_estimate: revEstimate ? revEstimate / 1e9 : null,
+        eps_estimate: parseAvNumber(row.estimate),
         status: "upcoming",
         is_manual: false,
         updated_at: new Date().toISOString(),
       }, { onConflict: "ticker,fiscal_quarter", ignoreDuplicates: false });
 
-      if (error) errors.push(`${ticker} upsert: ${error.message}`);
+      if (error) errors.push(`${ticker}: ${error.message}`);
       else upserted++;
-
-      await sleep(300);
-    } catch (e) {
-      errors.push(`${ticker}: ${(e as Error).message}`);
     }
+  } catch (e) {
+    errors.push((e as Error).message);
   }
 
   return { upserted, errors };
@@ -250,40 +243,39 @@ async function syncActualEarnings() {
 
   for (const ticker of tickers) {
     try {
-      const url = `https://query1.finance.yahoo.com/v11/finance/quoteSummary/${ticker}?modules=earningsHistory`;
-      const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
-      if (!res.ok) continue;
+      const data = await avFetch({ function: "EARNINGS", symbol: ticker });
+      const quarters = data?.quarterlyEarnings ?? [];
 
-      const data = await res.json();
-      const history = data?.quoteSummary?.result?.[0]?.earningsHistory?.history ?? [];
+      for (const q of quarters.slice(0, 8)) {
+        const epsActual = parseAvNumber(q.reportedEPS);
+        if (epsActual == null || !q.fiscalDateEnding) continue;
 
-      for (const h of history) {
-        const epsActual = h?.epsActual?.raw ?? null;
-        const epsEstimate = h?.epsEstimate?.raw ?? null;
-        const epsDiff = h?.epsDifference?.raw ?? null;
-        const surprisePct = h?.surprisePercent?.raw ?? null;
-        const dateRaw = h?.quarter?.raw ?? null;
-        if (!dateRaw || epsActual === null) continue;
+        const fiscalQuarter = fiscalQuarterFromDate(q.fiscalDateEnding);
+        const epsEstimate = parseAvNumber(q.estimatedEPS);
+        const surprise = parseAvNumber(q.surprise);
+        const surprisePct = parseAvNumber(q.surprisePercentage);
 
-        const d = new Date(dateRaw * 1000);
-        const q = Math.ceil((d.getMonth() + 1) / 3);
-        const fiscalQuarter = `Q${q} ${d.getFullYear()}`;
-
-        const { error } = await supabase.from("pharma_earnings").update({
-          eps_actual: epsActual,
+        const { error } = await supabase.from("pharma_earnings").upsert({
+          ticker,
+          company_name: data.name ?? ticker,
+          report_date: q.reportedDate || q.fiscalDateEnding,
+          fiscal_quarter: fiscalQuarter,
           eps_estimate: epsEstimate,
-          eps_beat: epsDiff !== null ? epsDiff >= 0 : null,
+          eps_actual: epsActual,
+          eps_beat: surprise != null ? surprise >= 0 : (epsEstimate != null ? epsActual >= epsEstimate : null),
           eps_surprise_pct: surprisePct,
           status: "reported",
+          is_manual: false,
           updated_at: new Date().toISOString(),
-        }).eq("ticker", ticker).eq("fiscal_quarter", fiscalQuarter);
+        }, { onConflict: "ticker,fiscal_quarter", ignoreDuplicates: false });
 
         if (!error) updated++;
       }
 
-      await sleep(300);
+      await sleep(AV_SLEEP_MS);
     } catch (e) {
-      errors.push(`${ticker} actual: ${(e as Error).message}`);
+      errors.push(`${ticker}: ${(e as Error).message}`);
+      await sleep(AV_SLEEP_MS);
     }
   }
 
@@ -390,15 +382,15 @@ Deno.serve(async (req) => {
   console.log("[pharma-data-sync] start:", phase, new Date().toISOString());
 
   if (phases.includes("calendar")) {
-    const res = await syncEarningsFromYahoo();
-    results.earnings_upcoming = res;
-    await logSync("yahoo_upcoming", res.upserted, res.errors);
+    const res = await syncEarningsCalendar();
+    results.earnings_calendar = res;
+    await logSync("alpha_earnings_calendar", res.upserted, res.errors);
   }
 
   if (phases.includes("actual")) {
     const res = await syncActualEarnings();
     results.earnings_actual = res;
-    await logSync("yahoo_actual", res.updated, res.errors);
+    await logSync("alpha_earnings_actual", res.updated, res.errors);
   }
 
   if (phases.includes("overview")) {

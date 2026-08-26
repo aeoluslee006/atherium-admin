@@ -69,6 +69,26 @@ async function avFetch(params: Record<string, string>) {
   return data;
 }
 
+async function avFetchCsv(params: Record<string, string>): Promise<string> {
+  const apiKey = Deno.env.get("ALPHA_VANTAGE_API_KEY");
+  if (!apiKey) throw new Error("ALPHA_VANTAGE_API_KEY is not configured");
+
+  const url = new URL("https://www.alphavantage.co/query");
+  url.searchParams.set("apikey", apiKey);
+  url.searchParams.set("datatype", "csv");
+  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error(`Alpha Vantage HTTP ${res.status}`);
+  const text = await res.text();
+  const trimmed = text.trim();
+  if (!trimmed) throw new Error("Empty CSV response");
+  if (trimmed.startsWith("{") || trimmed.includes("Thank you for using Alpha Vantage")) {
+    throw new Error(trimmed.slice(0, 240));
+  }
+  return text;
+}
+
 async function syncQuotes() {
   let upserted = 0;
   const errors: string[] = [];
@@ -199,28 +219,35 @@ async function syncEarningsCalendar() {
   const errors: string[] = [];
 
   try {
-    const data = await avFetch({
+    const text = await avFetchCsv({
       function: "EARNINGS_CALENDAR",
       horizon: "6month",
     });
 
-    const rows = data?.earningsCalendar ?? [];
-    for (const row of rows) {
-      const ticker = String(row.symbol ?? "").toUpperCase();
-      if (!ticker || !EARNINGS_TICKER_SET.has(ticker)) continue;
-      if (!row.reportDate) continue;
+    const lines = text.trim().split(/\r?\n/).slice(1);
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      const cols = line.split(",");
+      const ticker = cols[0]?.trim().toUpperCase();
+      const name = cols[1]?.trim();
+      const reportDate = cols[2]?.trim();
+      const fiscalDateEnding = cols[3]?.trim();
+      const estimate = cols[4]?.trim();
 
-      const fiscalQuarter = row.fiscalDateEnding
-        ? fiscalQuarterFromDate(row.fiscalDateEnding)
-        : fiscalQuarterFromDate(row.reportDate);
+      if (!ticker || !EARNINGS_TICKER_SET.has(ticker)) continue;
+      if (!reportDate) continue;
+
+      const fiscalQuarter = fiscalDateEnding
+        ? fiscalQuarterFromDate(fiscalDateEnding)
+        : fiscalQuarterFromDate(reportDate);
 
       const { error } = await supabase.from("pharma_earnings").upsert({
         ticker,
-        company_name: row.name ?? ticker,
-        report_date: row.reportDate,
+        company_name: name || ticker,
+        report_date: reportDate,
         fiscal_quarter: fiscalQuarter,
         report_time: "tbd",
-        eps_estimate: parseAvNumber(row.estimate),
+        eps_estimate: parseAvNumber(estimate),
         status: "upcoming",
         is_manual: false,
         updated_at: new Date().toISOString(),

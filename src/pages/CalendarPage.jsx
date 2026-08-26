@@ -799,25 +799,40 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
     setSyncDone(false);
     setSyncFeedback(null);
 
-    const { error } = await supabase.functions.invoke("pharma-data-sync", {
-      body: { phase: "all" },
-    });
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "pharma-data-sync",
+        {
+          body: { phase: "quotes" },
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      );
+      if (error) throw error;
+      if (data?.ok === false) throw new Error(data?.results ? JSON.stringify(data.results) : "Sync returned not ok");
 
-    setSyncLoading(false);
+      await loadData({ silent: true });
 
-    if (error) {
-      setSyncFeedback({ type: "error", text: "⚠️ Sync failed" });
-      return;
+      setSyncDone(true);
+      setSyncFeedback({ type: "success", text: "Last sync: just now" });
+
+      syncDoneTimer.current = setTimeout(() => {
+        setSyncDone(false);
+      }, 2000);
+    } catch (err) {
+      console.error("Sync error:", err);
+      const msg = err?.message || String(err);
+      setSyncFeedback({
+        type: "error",
+        text: msg.includes("Failed to send") ? "⚠️ Sync failed — check connection" : `⚠️ Sync failed: ${msg}`,
+      });
+      syncDoneTimer.current = setTimeout(() => {
+        setSyncFeedback(null);
+      }, 3000);
+    } finally {
+      setSyncLoading(false);
     }
-
-    await loadData({ silent: true });
-
-    setSyncDone(true);
-    setSyncFeedback({ type: "success", text: "Last sync: just now" });
-
-    syncDoneTimer.current = setTimeout(() => {
-      setSyncDone(false);
-    }, 2000);
   };
 
   const EventChip = ({ ev }) => {

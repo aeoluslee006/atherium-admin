@@ -135,6 +135,7 @@ function DirectoryPaper({ pageData, category }) {
                 ) : (
                   <div className="dir-cell-empty">
                     <div className="dir-slot-position">{cellLabel}</div>
+                    <div className="dir-slot-vacant">빈 자리</div>
                     <div className="dir-slot-meta">
                       {sizeTierLabel(slot.size_tier)} · {formatSlotPrice(slot.base_price_cents)}
                     </div>
@@ -198,6 +199,29 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
 
   return (
     <div className={`dir-pages${mobileMode === 'list' ? ' is-list-mode' : ''}`}>
+      {/* Mobile: one compact horizontal rail so the newspaper stays above the fold */}
+      <div className="dir-cat-rail" role="toolbar" aria-label="카테고리 필터">
+        <button
+          type="button"
+          className={`dir-cat-rail-item${category === 'all' ? ' is-active' : ''}`}
+          onClick={() => setCategory('all')}
+        >
+          <span aria-hidden="true">📋</span>
+          <span>전체</span>
+        </button>
+        {allCategories.map((c) => (
+          <button
+            key={c.slug}
+            type="button"
+            className={`dir-cat-rail-item${category === c.slug ? ' is-active' : ''}`}
+            onClick={() => setCategory(c.slug)}
+          >
+            <span aria-hidden="true">{c.icon}</span>
+            <span>{c.nameKo}</span>
+          </button>
+        ))}
+      </div>
+
       <div className="dir-spread-stage">
         <SideMenu
           side="left"

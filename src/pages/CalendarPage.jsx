@@ -605,6 +605,10 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
   const [calendarView, setCalendarView] = useState("ALL");
   const [tickerFilter, setTickerFilter] = useState(ALL);
   const [lastSync, setLastSync] = useState(null);
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncDone, setSyncDone] = useState(false);
+  const [syncFeedback, setSyncFeedback] = useState(null);
+  const syncDoneTimer = useRef(null);
   const [newEv, setNewEv] = useState({ ticker: "", date: "", event_type: "FDA", label: "" });
   const [addMode, setAddMode] = useState("office");
   const [newOffice, setNewOffice] = useState({
@@ -627,8 +631,8 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
     setSelOffice(event);
   };
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  const loadData = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
     const [evRes, erRes, offRes, lgRes] = await Promise.all([
       supabase.from("pharma_events").select("*").order("event_date"),
       supabase.from("pharma_earnings").select("*").order("report_date"),
@@ -639,10 +643,14 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
     if (erRes.data) setEarnings(erRes.data);
     if (offRes.data) setOfficeEvents(offRes.data);
     if (lgRes.data?.[0]) setLastSync(lgRes.data[0].synced_at);
-    setLoading(false);
+    if (!silent) setLoading(false);
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  useEffect(() => () => {
+    if (syncDoneTimer.current) clearTimeout(syncDoneTimer.current);
+  }, []);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -784,14 +792,32 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
   };
 
   const triggerSync = async () => {
+    if (syncLoading) return;
+    if (syncDoneTimer.current) clearTimeout(syncDoneTimer.current);
+
+    setSyncLoading(true);
+    setSyncDone(false);
+    setSyncFeedback(null);
+
     const { error } = await supabase.functions.invoke("pharma-data-sync", {
       body: { phase: "all" },
     });
+
+    setSyncLoading(false);
+
     if (error) {
-      alert("Sync failed: " + error.message);
+      setSyncFeedback({ type: "error", text: "⚠️ Sync failed" });
       return;
     }
-    await loadData();
+
+    await loadData({ silent: true });
+
+    setSyncDone(true);
+    setSyncFeedback({ type: "success", text: "Last sync: just now" });
+
+    syncDoneTimer.current = setTimeout(() => {
+      setSyncDone(false);
+    }, 2000);
   };
 
   const EventChip = ({ ev }) => {
@@ -851,10 +877,27 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
             {new Date(lastSync).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
           </div>
         )}
-        <button type="button" onClick={triggerSync} style={{
-          width: "100%", padding: "5px 0", background: THEME.accentSoft, border: `1px solid ${THEME.accent}`,
-          color: THEME.accentText, borderRadius: 6, fontSize: 9, fontWeight: 600, cursor: "pointer",
-        }}>🔄 Sync data</button>
+        <button
+          type="button"
+          onClick={triggerSync}
+          disabled={syncLoading}
+          style={{
+            width: "100%", padding: "5px 0", background: THEME.accentSoft, border: `1px solid ${THEME.accent}`,
+            color: THEME.accentText, borderRadius: 6, fontSize: 9, fontWeight: 600,
+            cursor: syncLoading ? "wait" : "pointer",
+            opacity: syncLoading ? 0.6 : 1,
+          }}
+        >
+          {syncDone ? "✅ Done!" : syncLoading ? "⏳ Syncing..." : "🔄 Sync data"}
+        </button>
+        {syncFeedback && (
+          <div style={{
+            fontSize: 8, marginTop: 6, lineHeight: 1.3,
+            color: syncFeedback.type === "error" ? "#E84F4F" : THEME.textFaint,
+          }}>
+            {syncFeedback.text}
+          </div>
+        )}
       </RailSection>
       <RailSection title="Add event">
         <select value={addMode} onChange={e => setAddMode(e.target.value)} style={inputStyle}>

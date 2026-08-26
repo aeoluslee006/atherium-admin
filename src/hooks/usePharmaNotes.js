@@ -1,14 +1,20 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { STICKER_COLORS } from '../components/StickersPanel'
+import { STICKER_COLORS, DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } from '../components/StickersPanel'
 
 export function usePharmaNotes() {
   const [notes, setNotes] = useState([])
-  const [newNote, setNewNote] = useState('')
   const [noteColor, setNoteColor] = useState(STICKER_COLORS[0])
   const [dragging, setDragging] = useState(null)
+  const [resizing, setResizing] = useState(null)
   const boardRef = useRef(null)
   const dragOffset = useRef({ x: 0, y: 0 })
+  const resizeStart = useRef({ w: 0, h: 0, mouseX: 0, mouseY: 0 })
+
+  const noteSize = (note) => ({
+    w: note.width ?? DEFAULT_NOTE_WIDTH,
+    h: note.height ?? DEFAULT_NOTE_HEIGHT,
+  })
 
   const loadNotes = useCallback(async () => {
     const { data } = await supabase.from('pharma_notes').select('*').order('created_at')
@@ -18,12 +24,18 @@ export function usePharmaNotes() {
   useEffect(() => { loadNotes() }, [loadNotes])
 
   const addNote = async () => {
-    if (!newNote.trim()) return
-    const { data } = await supabase.from('pharma_notes')
-      .insert({ content: newNote, color: noteColor, pos_x: 30, pos_y: 30 })
-      .select().single()
+    const offset = notes.length * 22
+    const pos_x = 24 + (offset % 180)
+    const pos_y = 24 + (offset % 180)
+    const { data } = await supabase.from('pharma_notes').insert({
+      content: '',
+      color: noteColor,
+      pos_x,
+      pos_y,
+      width: DEFAULT_NOTE_WIDTH,
+      height: DEFAULT_NOTE_HEIGHT,
+    }).select().single()
     if (data) setNotes(n => [...n, data])
-    setNewNote('')
   }
 
   const updateNoteContent = async (id, content) => {
@@ -40,6 +52,10 @@ export function usePharmaNotes() {
     await supabase.from('pharma_notes').update({ pos_x: x, pos_y: y }).eq('id', id)
   }
 
+  const saveNoteSize = async (id, width, height) => {
+    await supabase.from('pharma_notes').update({ width, height }).eq('id', id)
+  }
+
   const onMouseDown = (e, id) => {
     if (!boardRef.current) return
     const b = boardRef.current.getBoundingClientRect()
@@ -49,15 +65,47 @@ export function usePharmaNotes() {
     setDragging(id)
   }
 
+  const onResizeMouseDown = (e, id) => {
+    e.stopPropagation()
+    e.preventDefault()
+    const note = notes.find(n => n.id === id)
+    if (!note) return
+    const { w, h } = noteSize(note)
+    resizeStart.current = { w, h, mouseX: e.clientX, mouseY: e.clientY }
+    setResizing(id)
+  }
+
   const onMouseMove = (e) => {
-    if (!dragging || !boardRef.current) return
+    if (!boardRef.current) return
     const b = boardRef.current.getBoundingClientRect()
-    const x = Math.max(0, Math.min(e.clientX - b.left - dragOffset.current.x, b.width - 140))
-    const y = Math.max(0, Math.min(e.clientY - b.top - dragOffset.current.y, Math.max(b.height, boardRef.current.scrollHeight) - 72))
-    setNotes(n => n.map(note => note.id === dragging ? { ...note, pos_x: x, pos_y: y } : note))
+
+    if (resizing) {
+      const dx = e.clientX - resizeStart.current.mouseX
+      const dy = e.clientY - resizeStart.current.mouseY
+      const w = Math.max(80, Math.min(480, Math.round(resizeStart.current.w + dx)))
+      const h = Math.max(60, Math.min(480, Math.round(resizeStart.current.h + dy)))
+      setNotes(n => n.map(note => note.id === resizing ? { ...note, width: w, height: h } : note))
+      return
+    }
+
+    if (!dragging) return
+    const note = notes.find(n => n.id === dragging)
+    if (!note) return
+    const { w, h } = noteSize(note)
+    const x = Math.max(0, Math.min(e.clientX - b.left - dragOffset.current.x, b.width - w))
+    const y = Math.max(0, Math.min(
+      e.clientY - b.top - dragOffset.current.y,
+      Math.max(b.height, boardRef.current.scrollHeight) - h,
+    ))
+    setNotes(n => n.map(item => item.id === dragging ? { ...item, pos_x: x, pos_y: y } : item))
   }
 
   const onMouseUp = () => {
+    if (resizing) {
+      const note = notes.find(n => n.id === resizing)
+      if (note) saveNoteSize(resizing, note.width ?? DEFAULT_NOTE_WIDTH, note.height ?? DEFAULT_NOTE_HEIGHT)
+      setResizing(null)
+    }
     if (dragging) {
       const note = notes.find(n => n.id === dragging)
       if (note) saveNotePos(dragging, note.pos_x, note.pos_y)
@@ -66,7 +114,8 @@ export function usePharmaNotes() {
   }
 
   return {
-    notes, newNote, setNewNote, noteColor, setNoteColor, dragging, boardRef,
-    addNote, deleteNote, updateNoteContent, onMouseDown, onMouseMove, onMouseUp, loadNotes,
+    notes, noteColor, setNoteColor, dragging, resizing, boardRef,
+    addNote, deleteNote, updateNoteContent,
+    onMouseDown, onResizeMouseDown, onMouseMove, onMouseUp, loadNotes,
   }
 }

@@ -26,8 +26,6 @@ function AdminLayout({ userEmail, onSignOut }) {
 
   const stickerPanelProps = {
     notes: sticker.notes,
-    newNote: sticker.newNote,
-    setNewNote: sticker.setNewNote,
     noteColor: sticker.noteColor,
     setNoteColor: sticker.setNoteColor,
     onAdd: sticker.addNote,
@@ -35,9 +33,11 @@ function AdminLayout({ userEmail, onSignOut }) {
     onUpdateContent: sticker.updateNoteContent,
     boardRef: sticker.boardRef,
     onMouseDown: sticker.onMouseDown,
+    onResizeMouseDown: sticker.onResizeMouseDown,
     onMouseMove: sticker.onMouseMove,
     onMouseUp: sticker.onMouseUp,
     dragging: sticker.dragging,
+    resizing: sticker.resizing,
   }
 
   return (

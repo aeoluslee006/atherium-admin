@@ -920,24 +920,15 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
           }} />
         ))}
       </div>
-      <input
-        value={sticker.newNote}
-        onChange={e => sticker.setNewNote(e.target.value)}
-        onKeyDown={e => e.key === "Enter" && sticker.addNote()}
-        placeholder="New sticker…"
-        style={inputStyle}
-      />
       <button type="button" onClick={sticker.addNote} style={{
         width: "100%", padding: "5px 0", background: THEME.accent, color: "#0A0C14",
-        border: "none", borderRadius: 6, fontSize: 9, fontWeight: 600, cursor: "pointer", marginBottom: 6,
+        border: "none", borderRadius: 6, fontSize: 9, fontWeight: 600, cursor: "pointer",
       }}>+ Add sticker</button>
     </RailSection>
   );
 
   const stickerPanelProps = {
     notes: sticker.notes,
-    newNote: sticker.newNote,
-    setNewNote: sticker.setNewNote,
     noteColor: sticker.noteColor,
     setNoteColor: sticker.setNoteColor,
     onAdd: sticker.addNote,
@@ -945,9 +936,11 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
     onUpdateContent: sticker.updateNoteContent,
     boardRef: sticker.boardRef,
     onMouseDown: sticker.onMouseDown,
+    onResizeMouseDown: sticker.onResizeMouseDown,
     onMouseMove: sticker.onMouseMove,
     onMouseUp: sticker.onMouseUp,
     dragging: sticker.dragging,
+    resizing: sticker.resizing,
   };
 
   if (loading) {

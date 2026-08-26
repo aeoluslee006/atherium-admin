@@ -724,7 +724,7 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
       status: newEv.event_type === "FDA" ? "pending" : "upcoming",
       is_manual: true,
     }).select().single();
-    if (error) { alert(error.message); return; }
+    if (error) { console.error(error.message); return; }
     if (data) setEvents(ev => [...ev, data]);
     setNewEv({ ticker: "", date: "", event_type: "FDA", label: "" });
   };
@@ -750,7 +750,10 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
       created_by: userEmail,
     };
     const { data, error } = await supabase.from("company_calendar_events").insert(payload).select().single();
-    if (error) { alert(error.message.includes("company_calendar") ? "Office calendar table not ready — run Supabase migration." : error.message); return; }
+    if (error) {
+      console.error(error.message.includes("company_calendar") ? "Office calendar table not ready — run Supabase migration." : error.message);
+      return;
+    }
     if (data) setOfficeEvents(prev => [...prev, data]);
     setNewOffice({
       title: "", date: "", start_time: "09:00", end_time: "10:00",
@@ -775,13 +778,12 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
     if (!file) return;
     const text = await file.text();
     const parsed = parseIcsFile(text);
-    if (parsed.length === 0) { alert("No events found in file."); return; }
+    if (parsed.length === 0) { console.error("No events found in file."); return; }
     const rows = parsed.map(row => ({ ...row, created_by: userEmail }));
     const { data, error } = await supabase.from("company_calendar_events").insert(rows).select();
-    if (error) { alert(error.message); return; }
+    if (error) { console.error(error.message); return; }
     if (data) setOfficeEvents(prev => [...prev, ...data]);
     e.target.value = "";
-    alert(`Imported ${data.length} event(s).`);
   };
 
   function pad(n) { return String(n).padStart(2, "0"); }
@@ -794,22 +796,13 @@ export default function CalendarPage({ userEmail = 'Admin' }) {
   const triggerSync = async () => {
     setSyncLoading(true);
     try {
-      const response = await fetch(
-        "https://hgsuzanclpnzlskttkok.supabase.co/functions/v1/pharma-data-sync",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({ phase: "quotes" }),
-        },
-      );
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const { error } = await supabase.functions.invoke("pharma-data-sync", {
+        body: { phase: "quotes" },
+      });
+      if (error) throw error;
       await loadData();
     } catch (err) {
-      console.error("Sync error:", err);
+      console.error("Sync failed:", err);
     } finally {
       setSyncLoading(false);
     }

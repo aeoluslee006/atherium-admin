@@ -32,7 +32,7 @@ const EARNINGS_TICKERS = [
   ...QUOTE_TICKERS.filter((t) => !["VRTX", "GILD", "AMGN", "REGN", "MRNA", "SMMT", "LLY", "PFE"].includes(t)),
 ];
 
-const NEWS_TICKERS = [...new Set([...OVERVIEW_TICKERS, ...QUOTE_TICKERS.slice(0, 10)])];
+const NEWS_TICKERS = ["NVDA", "AAPL", "MSFT", "SMMT", "GILD", "REGN", "VRTX", "LLY"];
 const EARNINGS_TICKER_SET = new Set(EARNINGS_TICKERS);
 
 function parseAvPublished(raw: string | undefined): string | null {
@@ -185,65 +185,47 @@ async function syncOverview() {
 }
 
 async function syncNewsSentiment() {
-  let upserted = 0;
+  const AV_KEY = Deno.env.get("ALPHA_VANTAGE_API_KEY");
+  if (!AV_KEY) throw new Error("ALPHA_VANTAGE_API_KEY is not configured");
+
+  let saved = 0;
   const errors: string[] = [];
 
   for (const ticker of NEWS_TICKERS) {
     try {
-      const data = await avFetch({
-        function: "NEWS_SENTIMENT",
-        tickers: ticker,
-        limit: "50",
-      });
-      const feed = (data?.feed ?? []) as Array<{
-        title?: string;
-        url?: string;
-        time_published?: string;
-        overall_sentiment_score?: number;
-        overall_sentiment_label?: string;
-        ticker_sentiment?: Array<{
-          ticker?: string;
-          ticker_sentiment_score?: number;
-          ticker_sentiment_label?: string;
-        }>;
-      }>;
-
-      if (feed.length === 0) {
-        errors.push(`${ticker}: empty news feed`);
-        await sleep(AV_SLEEP_MS);
-        continue;
-      }
+      const url = `https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=${ticker}&limit=5&apikey=${AV_KEY}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const feed = data?.feed ?? [];
 
       for (const item of feed) {
-        if (!item.url?.trim()) continue;
-
-        const tickerHit = item.ticker_sentiment?.find(
-          (t) => t.ticker?.toUpperCase() === ticker,
-        );
-
+        const ts = item.ticker_sentiment?.find((t: { ticker?: string }) => t.ticker === ticker);
         const { error } = await supabase.from("pharma_news").upsert({
           ticker,
-          title: item.title ?? null,
+          title: item.title,
           url: item.url,
-          published_at: parseAvPublished(item.time_published),
-          overall_score: parseAvNumber(item.overall_sentiment_score),
-          overall_label: item.overall_sentiment_label ?? null,
-          ticker_score: parseAvNumber(tickerHit?.ticker_sentiment_score),
-          ticker_label: tickerHit?.ticker_sentiment_label ?? null,
+          published_at: item.time_published,
+          overall_score: parseFloat(item.overall_sentiment_score) || null,
+          overall_label: item.overall_sentiment_label,
+          ticker_score: parseFloat(ts?.ticker_sentiment_score) || null,
+          ticker_label: ts?.ticker_sentiment_label,
         }, { onConflict: "ticker,url", ignoreDuplicates: false });
-
-        if (error) errors.push(`${ticker} news: ${error.message}`);
-        else upserted++;
+        if (!error) saved++;
       }
-
-      await sleep(AV_SLEEP_MS);
+      await new Promise((r) => setTimeout(r, 12000));
     } catch (e) {
       errors.push(`${ticker}: ${(e as Error).message}`);
-      await sleep(AV_SLEEP_MS);
     }
   }
 
-  return { upserted, errors };
+  await supabase.from("pharma_sync_log").insert({
+    source: "alpha_news_sentiment",
+    records_upserted: saved,
+    status: errors.length === 0 ? "ok" : "partial",
+    error_msg: errors.join("; ") || null,
+  });
+
+  return { saved, errors };
 }
 
 async function syncEarningsCalendar() {
@@ -452,9 +434,8 @@ Deno.serve(async (req) => {
   }
 
   if (phases.includes("news")) {
-    const res = await syncNewsSentiment();
-    results.news = res;
-    await logSync("alpha_news", res.upserted, res.errors);
+    console.log("[news] NEWS_SENTIMENT 동기화...");
+    results.news = await syncNewsSentiment();
   }
 
   if (phases.includes("calendar")) {

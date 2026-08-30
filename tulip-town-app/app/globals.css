@@ -4566,3 +4566,162 @@ main:has(.home-page) {
 .wf-featured-row.letter-paper .wf-featured-meta {
   opacity: 0.7;
 }
+
+/* Settlement guide — Michigan map navigation */
+.guide-board-page {
+  padding-bottom: 24px;
+}
+
+.guide-board-head {
+  margin-bottom: 12px;
+}
+
+.guide-board-list {
+  margin-top: 16px;
+  padding: 0;
+}
+
+.guide-board-list-head {
+  padding: 14px 16px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.guide-board-list-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.settle-map {
+  margin-bottom: 8px;
+}
+
+.settle-map-breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.settle-map-crumb {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--accent-dark);
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.settle-map-crumb:hover {
+  text-decoration: underline;
+}
+
+.settle-map-crumb.is-current {
+  color: var(--ink);
+  cursor: default;
+  text-decoration: none;
+}
+
+.settle-map-crumb-sep {
+  color: var(--ink-soft);
+}
+
+.settle-map-stage {
+  background: linear-gradient(180deg, #f7faf8 0%, #eef4f0 100%);
+  border: 1px solid #d8e4dc;
+  border-radius: 16px;
+  padding: 16px 14px 18px;
+}
+
+.settle-map-heading {
+  margin: 0 0 4px;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.settle-map-hint {
+  margin: 0 0 12px;
+}
+
+.settle-map-canvas {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.settle-map-svg-root {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.settle-map-land {
+  fill: #e5e7eb;
+  stroke: #94a3b8;
+  stroke-width: 1.2;
+}
+
+.settle-map-city {
+  cursor: pointer;
+}
+
+.settle-map-dot {
+  fill: #9ca3af;
+  stroke: #f3f4f6;
+  stroke-width: 1;
+  transition: fill 0.15s ease;
+}
+
+.settle-map-label {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  fill: #8b93a1;
+  transition: fill 0.15s ease, font-weight 0.15s ease;
+  pointer-events: none;
+}
+
+.settle-map-city:hover .settle-map-label,
+.settle-map-city.is-active .settle-map-label {
+  fill: #111827;
+  font-weight: 800;
+}
+
+.settle-map-city:hover .settle-map-dot,
+.settle-map-city.is-active .settle-map-dot {
+  fill: #2f6b4f;
+}
+
+.settle-map-city.is-active .settle-map-dot {
+  fill: #1f5a42;
+  stroke: #fff;
+  stroke-width: 1.5;
+}
+
+.settle-map-back {
+  margin-top: 12px;
+}
+
+.settle-map-city-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+@media (max-width: 640px) {
+  .settle-map-stage {
+    padding: 12px 10px 14px;
+  }
+
+  .settle-map-canvas {
+    max-width: none;
+  }
+
+  .settle-map-label {
+    font-size: 10px;
+  }
+}

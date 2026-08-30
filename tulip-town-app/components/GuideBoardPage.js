@@ -33,19 +33,13 @@ export default async function GuideBoardPage({ searchParams = {} }) {
 
   return (
     <div className="container guide-board-page">
-      <header className="guide-board-head row-between">
+      <header className="guide-board-head">
         <div className="board-heading">
           <h2 className="section-title">
             {category.nameKo} · {category.nameEn}
           </h2>
           {category.desc ? <p className="board-heading-desc">{category.desc}</p> : null}
         </div>
-        <Link
-          href={city ? `/board/guide/new?city=${encodeURIComponent(city)}` : '/board/guide/new'}
-          className="btn"
-        >
-          글쓰기
-        </Link>
       </header>
 
       <SettlementGuideMap city={city} />

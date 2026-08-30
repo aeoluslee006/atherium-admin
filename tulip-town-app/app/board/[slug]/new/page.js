@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import JobsComposeForm from '../../../../components/JobsComposeForm';
 import HousingPhotosField from '../../../../components/HousingPhotosField';
@@ -17,6 +17,7 @@ import {
   isValidStationeryId,
   stationeryClassName,
 } from '../../../../lib/stationery';
+import { SETTLEMENT_CITY_NAMES, isValidSettlementCity } from '../../../../lib/settlementTowns';
 import { supabase } from '../../../../lib/supabaseClient';
 
 const CITIES = ['Holland', 'Grand Rapids', 'Zeeland', 'Hudsonville', 'Other'];
@@ -34,10 +35,13 @@ function plainTextFromHtml(html) {
 export default function NewPostPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const category = getCategory(params.slug);
   const isFree = params.slug === 'free';
   const isMarket = params.slug === 'market';
   const isJobs = params.slug === 'jobs';
+  const isGuide = params.slug === 'guide';
+  const cityOptions = isGuide ? SETTLEMENT_CITY_NAMES : CITIES;
   const isHousing = params.slug === 'housing';
   const isClasses = params.slug === 'classes';
   const [authReady, setAuthReady] = useState(false);
@@ -60,6 +64,13 @@ export default function NewPostPage() {
   const [marketPhotos, setMarketPhotos] = useState([]);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const fromMap = searchParams.get('city');
+    if (isGuide && fromMap && isValidSettlementCity(fromMap)) {
+      setCity(fromMap);
+    }
+  }, [isGuide, searchParams]);
 
   useEffect(() => {
     if (params.slug === 'clubs') {
@@ -227,6 +238,10 @@ export default function NewPostPage() {
         !(housingPhotos && housingPhotos.length)
       ) {
         setError('상세 설명 또는 매물 사진을 넣어 주세요.');
+        return;
+      }
+      if (isGuide && !isValidSettlementCity(city)) {
+        setError('지역을 목록에서 선택해 주세요.');
         return;
       }
 
@@ -598,13 +613,16 @@ export default function NewPostPage() {
           required
         />
         <label htmlFor="city">지역</label>
-        <select id="city" value={city} onChange={(e) => setCity(e.target.value)}>
-          {CITIES.map((c) => (
+        <select id="city" value={city} onChange={(e) => setCity(e.target.value)} required>
+          {cityOptions.map((c) => (
             <option key={c} value={c}>
               {c}
             </option>
           ))}
         </select>
+        {isGuide ? (
+          <p className="hint-text">정착 가이드 지도와 동일한 도시명만 선택할 수 있습니다.</p>
+        ) : null}
 
         {isClasses ? (
           <>

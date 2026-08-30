@@ -4566,3 +4566,198 @@ main:has(.home-page) {
 .wf-featured-row.letter-paper .wf-featured-meta {
   opacity: 0.7;
 }
+
+/* Settlement guide — Michigan map navigation */
+.guide-board-page {
+  padding-bottom: 24px;
+}
+
+.guide-board-head {
+  margin-bottom: 12px;
+}
+
+.guide-board-list {
+  margin-top: 16px;
+  padding: 0;
+}
+
+.guide-board-list-head {
+  padding: 14px 16px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.guide-board-list-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.settle-map {
+  margin-bottom: 8px;
+}
+
+.settle-map-breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.settle-map-crumb {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--accent-dark);
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.settle-map-crumb:hover {
+  text-decoration: underline;
+}
+
+.settle-map-crumb.is-current {
+  color: var(--ink);
+  cursor: default;
+  text-decoration: none;
+}
+
+.settle-map-crumb-sep {
+  color: var(--ink-soft);
+}
+
+.settle-map-stage {
+  background: linear-gradient(180deg, #f7faf8 0%, #eef4f0 100%);
+  border: 1px solid #d8e4dc;
+  border-radius: 16px;
+  padding: 16px 14px 18px;
+}
+
+.settle-map-heading {
+  margin: 0 0 4px;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.settle-map-hint {
+  margin: 0 0 12px;
+}
+
+.settle-map-canvas {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  aspect-ratio: 5 / 6;
+}
+
+.settle-map-canvas--regional {
+  max-width: 440px;
+  aspect-ratio: 1 / 1;
+}
+
+.settle-map-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.settle-map-land {
+  fill: #e8f0ea;
+  stroke: #7a9a88;
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+}
+
+.settle-map-canvas--regional .settle-map-land {
+  fill: #eef5f0;
+  stroke: #9ab5a5;
+  rx: 4;
+}
+
+.settle-map-markers {
+  position: absolute;
+  inset: 0;
+}
+
+.settle-map-marker {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.settle-map-marker-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #2f6b4f;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(30, 60, 45, 0.35);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.settle-map-marker--hub .settle-map-marker-dot {
+  width: 18px;
+  height: 18px;
+  background: #1f5a42;
+}
+
+.settle-map-marker-label {
+  max-width: 96px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+  color: #1f3d30;
+  background: rgba(255, 255, 255, 0.88);
+  border-radius: 6px;
+  padding: 2px 5px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.settle-map-marker:hover .settle-map-marker-dot,
+.settle-map-marker.is-active .settle-map-marker-dot {
+  transform: scale(1.15);
+  background: #174533;
+}
+
+.settle-map-marker.is-active .settle-map-marker-label {
+  background: #e8f2ec;
+  color: #174533;
+}
+
+.settle-map-back {
+  margin-top: 12px;
+}
+
+.settle-map-city-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+@media (max-width: 640px) {
+  .settle-map-stage {
+    padding: 12px 10px 14px;
+  }
+
+  .settle-map-marker-label {
+    font-size: 9px;
+    max-width: 72px;
+  }
+
+  .settle-map-canvas {
+    max-width: none;
+  }
+}

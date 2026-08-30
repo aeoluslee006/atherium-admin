@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import ClassesBoardPage from '../../../components/ClassesBoardPage';
 import FreeBoardPage from '../../../components/FreeBoardPage';
+import GuideBoardPage from '../../../components/GuideBoardPage';
 import HousingBoardPage from '../../../components/HousingBoardPage';
 import JobsBoardPage from '../../../components/JobsBoardPage';
 import MarketBoardPage from '../../../components/MarketBoardPage';
@@ -28,6 +29,9 @@ export default async function BoardPage({ params, searchParams }) {
   }
   if (params.slug === 'classes') {
     return <ClassesBoardPage searchParams={searchParams} />;
+  }
+  if (params.slug === 'guide') {
+    return <GuideBoardPage searchParams={searchParams} />;
   }
 
   const category = getCategory(params.slug);

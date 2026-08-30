@@ -113,9 +113,9 @@ export const MI_MAP = {
 };
 
 export const HUB_MAP = {
-  width: 480,
-  height: 340,
-  pad: 36,
+  width: 520,
+  height: 380,
+  pad: 64,
 };
 
 const CITY_INDEX = (() => {

@@ -5466,6 +5466,10 @@ main:has(.home-page) {
   overflow: visible;
 }
 
+.guide-map-stage--hub {
+  width: min(100%, 600px);
+}
+
 .guide-map-svg {
   display: block;
   width: 100%;

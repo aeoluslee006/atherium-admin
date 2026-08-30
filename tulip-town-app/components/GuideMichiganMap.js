@@ -25,12 +25,12 @@ function pinStyle(x, y, width, height) {
 }
 
 function labelSide(x, width, variant, index = 0) {
-  if (variant === 'hub') {
-    return index % 2 === 0 ? 'top' : 'bottom';
-  }
   const t = x / width;
-  if (t < 0.36) return 'right';
-  if (t > 0.64) return 'left';
+  if (t < 0.28) return 'right';
+  if (t > 0.72) return 'left';
+  if (variant === 'hub') return index % 2 === 0 ? 'top' : 'bottom';
+  if (t < 0.38) return 'right';
+  if (t > 0.62) return 'left';
   return 'top';
 }
 
@@ -125,10 +125,10 @@ export function HubZoomMap({ hub }) {
           <rect className="guide-map-water" x="0" y="0" width={HUB_MAP.width} height={HUB_MAP.height} rx="18" />
           <rect
             className="guide-map-hub-area"
-            x="28"
-            y="28"
-            width={HUB_MAP.width - 56}
-            height={HUB_MAP.height - 56}
+            x="48"
+            y="48"
+            width={HUB_MAP.width - 96}
+            height={HUB_MAP.height - 96}
             rx="22"
           />
         </svg>

@@ -1,172 +1,184 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  getHubForCity,
-  getRegionalMapMarkers,
-  getSettlementHub,
-  getStateMapMarkers,
-  isSettlementHub,
   MICHIGAN_STATE_PATH,
-  REGIONAL_MAP_PATH,
+  SETTLEMENT_MAJOR_CITIES,
+  SETTLEMENT_MAP_VIEWBOX,
 } from '../lib/settlementTowns';
 
-function MapMarker({ name, x, y, kind, active, onClick }) {
-  const isHub = kind === 'hub';
-  return (
-    <button
-      type="button"
-      className={`settle-map-marker settle-map-marker--${kind}${active ? ' is-active' : ''}`}
-      style={{ left: `${x}%`, top: `${y}%` }}
-      onClick={() => onClick(name)}
-      aria-label={`${name}${isHub ? ' 허브' : ''}`}
-      title={name}
-    >
-      <span className="settle-map-marker-dot" aria-hidden="true" />
-      <span className="settle-map-marker-label">{name}</span>
-    </button>
-  );
+function pctX(x) {
+  return `${(x / SETTLEMENT_MAP_VIEWBOX.width) * 100}%`;
 }
 
-function MapCanvas({ view, markers, activeCity, onSelectCity }) {
-  const path = view === 'state' ? MICHIGAN_STATE_PATH : REGIONAL_MAP_PATH;
+function pctY(y) {
+  return `${(y / SETTLEMENT_MAP_VIEWBOX.height) * 100}%`;
+}
+
+function MajorCityPin({ city, activeCity, openRegion, onSelectCity, onToggleRegion }) {
+  const hasSatellites = city.satellites.length > 0;
+  const isOpen = openRegion === city.name;
+  const isActive =
+    activeCity === city.name || (activeCity && city.satellites.includes(activeCity));
+
   return (
-    <div className={`settle-map-canvas settle-map-canvas--${view}`}>
-      <svg className="settle-map-svg" viewBox="0 0 100 100" aria-hidden="true">
-        <path className="settle-map-land" d={path} />
-      </svg>
-      <div className="settle-map-markers" role="group" aria-label="도시 선택">
-        {markers.map((m) => (
-          <MapMarker
-            key={m.name}
-            {...m}
-            active={activeCity === m.name}
-            onClick={onSelectCity}
-          />
-        ))}
+    <div
+      className={`settle-map-pin${isActive ? ' is-active' : ''}`}
+      style={{ left: pctX(city.x), top: pctY(city.y) }}
+    >
+      <div className="settle-map-pin-row">
+        <button
+          type="button"
+          className="settle-map-pin-main"
+          onClick={() => onSelectCity(city.name)}
+          aria-label={`${city.name} 정착 가이드`}
+        >
+          <span className="settle-map-pin-dot" aria-hidden="true" />
+          <span className="settle-map-pin-label">{city.name}</span>
+        </button>
+        {hasSatellites ? (
+          <button
+            type="button"
+            className={`settle-map-pin-badge${isOpen ? ' is-open' : ''}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleRegion(city.name);
+            }}
+            aria-expanded={isOpen}
+            aria-haspopup="true"
+            aria-label={`${city.name} 주변 ${city.satellites.length}개 도시`}
+          >
+            +{city.satellites.length}
+          </button>
+        ) : null}
       </div>
+
+      {hasSatellites && isOpen ? (
+        <>
+          <button
+            type="button"
+            className="settle-map-popover-backdrop"
+            aria-label="목록 닫기"
+            onClick={() => onToggleRegion(city.name)}
+          />
+          <div className="settle-map-popover" role="menu" aria-label={`${city.name} 주변 도시`}>
+            <div className="settle-map-popover-head">{city.name} 주변</div>
+            <ul className="settle-map-popover-list">
+              {city.satellites.map((name) => (
+                <li key={name}>
+                  <button
+                    type="button"
+                    className={`settle-map-popover-item${activeCity === name ? ' is-active' : ''}`}
+                    role="menuitem"
+                    onClick={() => onSelectCity(name)}
+                  >
+                    {name}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }
 
-export default function SettlementGuideMap({ hub, city }) {
+export default function SettlementGuideMap({ city }) {
   const router = useRouter();
+  const rootRef = useRef(null);
+  const [openRegion, setOpenRegion] = useState(null);
   const activeCity = city || null;
-  const activeHub = hub || (city ? getHubForCity(city)?.name : null);
 
-  const step = city ? 3 : activeHub ? 2 : 1;
+  useEffect(() => {
+    setOpenRegion(null);
+  }, [city]);
 
-  function goState() {
-    router.push('/board/guide');
-  }
-
-  function goHub(hubName) {
-    router.push(`/board/guide?hub=${encodeURIComponent(hubName)}`);
-  }
+  useEffect(() => {
+    function onKeyDown(e) {
+      if (e.key === 'Escape') setOpenRegion(null);
+    }
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   function goCity(cityName) {
+    setOpenRegion(null);
     router.push(`/board/guide?city=${encodeURIComponent(cityName)}`);
   }
 
-  function handleStateSelect(name) {
-    if (isSettlementHub(name)) {
-      goHub(name);
-    } else {
-      goCity(name);
-    }
+  function goMap() {
+    setOpenRegion(null);
+    router.push('/board/guide');
   }
 
-  function handleRegionalSelect(name) {
-    goCity(name);
+  function toggleRegion(name) {
+    setOpenRegion((prev) => (prev === name ? null : name));
   }
-
-  const stateMarkers = getStateMapMarkers();
-  const regionalMarkers = activeHub ? getRegionalMapMarkers(activeHub) : [];
-  const hubMeta = activeHub ? getSettlementHub(activeHub) : null;
 
   return (
-    <section className="settle-map" aria-label="미시간 정착 가이드 지도">
-      <nav className="settle-map-breadcrumb" aria-label="지도 단계">
-        <button type="button" className="settle-map-crumb" onClick={goState} aria-current={step === 1 ? 'step' : undefined}>
-          미시간
-        </button>
-        {activeHub ? (
-          <>
-            <span className="settle-map-crumb-sep" aria-hidden="true">
-              ›
-            </span>
-            <button
-              type="button"
-              className="settle-map-crumb"
-              onClick={() => goHub(activeHub)}
-              aria-current={step === 2 ? 'step' : undefined}
-            >
-              {activeHub}
-            </button>
-          </>
-        ) : null}
-        {city ? (
-          <>
-            <span className="settle-map-crumb-sep" aria-hidden="true">
-              ›
-            </span>
-            <span className="settle-map-crumb is-current" aria-current="step">
-              {city}
-            </span>
-          </>
-        ) : null}
-      </nav>
+    <section className="settle-map" aria-label="미시간 정착 가이드 지도" ref={rootRef}>
+      {activeCity ? (
+        <nav className="settle-map-breadcrumb" aria-label="선택 경로">
+          <button type="button" className="settle-map-crumb" onClick={goMap}>
+            미시간
+          </button>
+          <span className="settle-map-crumb-sep" aria-hidden="true">
+            ›
+          </span>
+          <span className="settle-map-crumb is-current" aria-current="location">
+            {activeCity}
+          </span>
+        </nav>
+      ) : null}
 
       <div className="settle-map-stage">
-        {step === 1 ? (
-          <>
-            <h3 className="settle-map-heading">미시간 · 허브 도시를 선택하세요</h3>
-            <p className="hint-text settle-map-hint">지도에서 도시를 클릭하면 주변 위성 도시와 정착 가이드 글을 볼 수 있습니다.</p>
-            <MapCanvas view="state" markers={stateMarkers} activeCity={activeCity} onSelectCity={handleStateSelect} />
-          </>
-        ) : step === 2 ? (
-          <>
-            <h3 className="settle-map-heading">{activeHub} · 주변 도시</h3>
-            <p className="hint-text settle-map-hint">
-              {hubMeta?.satellites.length
-                ? '동네를 클릭하면 해당 지역 정착 가이드 글 목록이 표시됩니다.'
-                : '도시를 클릭하세요.'}
-            </p>
-            <MapCanvas
-              view="regional"
-              markers={regionalMarkers}
-              activeCity={activeCity}
-              onSelectCity={handleRegionalSelect}
-            />
-            <button type="button" className="btn btn-outline settle-map-back" onClick={goState}>
-              ← 미시간 지도
+        <h3 className="settle-map-heading">
+          {activeCity ? `${activeCity} · 정착 가이드` : '미시간 · 도시를 선택하세요'}
+        </h3>
+        <p className="hint-text settle-map-hint">
+          {activeCity
+            ? '아래 목록에서 글을 선택하거나, 지도에서 다른 도시를 고르세요.'
+            : '큰 도시 핀을 클릭하거나 +숫자 뱃지로 주변 도시를 펼쳐 보세요.'}
+        </p>
+
+        <div
+          className="settle-map-canvas"
+          style={{ aspectRatio: `${SETTLEMENT_MAP_VIEWBOX.width} / ${SETTLEMENT_MAP_VIEWBOX.height}` }}
+        >
+          <svg
+            className="settle-map-svg"
+            viewBox={`0 0 ${SETTLEMENT_MAP_VIEWBOX.width} ${SETTLEMENT_MAP_VIEWBOX.height}`}
+            aria-hidden="true"
+          >
+            <path className="settle-map-land" d={MICHIGAN_STATE_PATH} />
+          </svg>
+          <div className="settle-map-pins" role="group" aria-label="도시 선택">
+            {SETTLEMENT_MAJOR_CITIES.map((major) => (
+              <MajorCityPin
+                key={major.name}
+                city={major}
+                activeCity={activeCity}
+                openRegion={openRegion}
+                onSelectCity={goCity}
+                onToggleRegion={toggleRegion}
+              />
+            ))}
+          </div>
+        </div>
+
+        {activeCity ? (
+          <div className="settle-map-city-actions">
+            <button type="button" className="btn btn-outline settle-map-back" onClick={goMap}>
+              ← 지도
             </button>
-          </>
-        ) : (
-          <>
-            <h3 className="settle-map-heading">{city} · 정착 가이드</h3>
-            <p className="hint-text settle-map-hint">아래 목록에서 글을 선택하거나, 다른 도시를 고르세요.</p>
-            <div className="settle-map-city-actions">
-              {getHubForCity(city) ? (
-                <button
-                  type="button"
-                  className="btn btn-outline settle-map-back"
-                  onClick={() => goHub(getHubForCity(city).name)}
-                >
-                  ← {getHubForCity(city).name} 주변
-                </button>
-              ) : (
-                <button type="button" className="btn btn-outline settle-map-back" onClick={goState}>
-                  ← 미시간 지도
-                </button>
-              )}
-              <Link href={`/board/guide/new?city=${encodeURIComponent(city)}`} className="btn">
-                글쓰기
-              </Link>
-            </div>
-          </>
-        )}
+            <Link href={`/board/guide/new?city=${encodeURIComponent(activeCity)}`} className="btn">
+              글쓰기
+            </Link>
+          </div>
+        ) : null}
       </div>
     </section>
   );

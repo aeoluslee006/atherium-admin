@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import SettlementGuideMap from './SettlementGuideMap';
 import { getCategory } from '../lib/categories';
-import { getHubForCity, getSettlementHub, isValidSettlementCity } from '../lib/settlementTowns';
+import { isValidSettlementCity } from '../lib/settlementTowns';
 import { supabaseRest } from '../lib/supabaseRest';
 
 function formatDate(value) {
@@ -16,12 +16,7 @@ function formatDate(value) {
 export default async function GuideBoardPage({ searchParams = {} }) {
   const category = getCategory('guide');
   const rawCity = searchParams.city || '';
-  const rawHub = searchParams.hub || '';
   const city = isValidSettlementCity(rawCity) ? rawCity : null;
-  const hub =
-    getSettlementHub(rawHub)?.name ||
-    (city && getHubForCity(city)?.name) ||
-    null;
 
   let posts = [];
   if (city) {
@@ -52,7 +47,7 @@ export default async function GuideBoardPage({ searchParams = {} }) {
         ) : null}
       </header>
 
-      <SettlementGuideMap hub={hub} city={city} />
+      <SettlementGuideMap city={city} />
 
       {city ? (
         <div className="card guide-board-list">

@@ -4648,14 +4648,8 @@ main:has(.home-page) {
 .settle-map-canvas {
   position: relative;
   width: 100%;
-  max-width: 520px;
+  max-width: 560px;
   margin: 0 auto;
-  aspect-ratio: 5 / 6;
-}
-
-.settle-map-canvas--regional {
-  max-width: 440px;
-  aspect-ratio: 1 / 1;
 }
 
 .settle-map-svg {
@@ -4667,71 +4661,149 @@ main:has(.home-page) {
 .settle-map-land {
   fill: #e8f0ea;
   stroke: #7a9a88;
-  stroke-width: 1.2;
-  vector-effect: non-scaling-stroke;
+  stroke-width: 2;
 }
 
-.settle-map-canvas--regional .settle-map-land {
-  fill: #eef5f0;
-  stroke: #9ab5a5;
-  rx: 4;
-}
-
-.settle-map-markers {
+.settle-map-pins {
   position: absolute;
   inset: 0;
+  pointer-events: none;
 }
 
-.settle-map-marker {
+.settle-map-pin {
   position: absolute;
-  transform: translate(-50%, -50%);
+  transform: translate(-4px, -4px);
+  pointer-events: auto;
+  z-index: 1;
+}
+
+.settle-map-pin.is-active {
+  z-index: 3;
+}
+
+.settle-map-pin-row {
   display: flex;
-  flex-direction: column;
   align-items: center;
   gap: 4px;
+}
+
+.settle-map-pin-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   border: none;
   background: none;
   padding: 0;
   cursor: pointer;
-  z-index: 1;
+  text-align: left;
 }
 
-.settle-map-marker-dot {
-  width: 14px;
-  height: 14px;
+.settle-map-pin-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: #2f6b4f;
+  background: var(--accent-dark, #2f6b4f);
   border: 2px solid #fff;
-  box-shadow: 0 2px 8px rgba(30, 60, 45, 0.35);
-  transition: transform 0.15s ease, background 0.15s ease;
+  box-shadow: 0 0 0 1px rgba(47, 107, 79, 0.35), 0 2px 6px rgba(30, 60, 45, 0.25);
+  transition: transform 0.15s ease;
 }
 
-.settle-map-marker--hub .settle-map-marker-dot {
-  width: 18px;
-  height: 18px;
+.settle-map-pin-label {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: #1f3d30;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 6px;
+  padding: 2px 6px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  white-space: nowrap;
+}
+
+.settle-map-pin-badge {
+  flex: 0 0 auto;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: #5a8f74;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.settle-map-pin-badge.is-open,
+.settle-map-pin-badge:hover {
   background: #1f5a42;
 }
 
-.settle-map-marker-label {
-  max-width: 96px;
-  font-size: 10px;
+.settle-map-pin-main:hover .settle-map-pin-dot,
+.settle-map-pin.is-active .settle-map-pin-dot {
+  transform: scale(1.2);
+}
+
+.settle-map-pin.is-active .settle-map-pin-label {
+  background: #e8f2ec;
+  color: #174533;
+}
+
+.settle-map-popover-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  border: none;
+  background: transparent;
+  cursor: default;
+}
+
+.settle-map-popover {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 5;
+  min-width: 168px;
+  border: 1px solid #d8e4dc;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(30, 50, 40, 0.16);
+  overflow: hidden;
+}
+
+.settle-map-popover-head {
+  padding: 8px 12px 6px;
+  font-size: 11px;
   font-weight: 700;
-  line-height: 1.15;
-  text-align: center;
-  color: #1f3d30;
-  background: rgba(255, 255, 255, 0.88);
-  border-radius: 6px;
-  padding: 2px 5px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  color: var(--ink-soft);
+  border-bottom: 1px solid #eef1f4;
 }
 
-.settle-map-marker:hover .settle-map-marker-dot,
-.settle-map-marker.is-active .settle-map-marker-dot {
-  transform: scale(1.15);
-  background: #174533;
+.settle-map-popover-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
 }
 
-.settle-map-marker.is-active .settle-map-marker-label {
+.settle-map-popover-item {
+  display: block;
+  width: 100%;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.settle-map-popover-item:hover,
+.settle-map-popover-item.is-active {
   background: #e8f2ec;
   color: #174533;
 }
@@ -4744,7 +4816,7 @@ main:has(.home-page) {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 4px;
+  margin-top: 12px;
 }
 
 @media (max-width: 640px) {
@@ -4752,12 +4824,50 @@ main:has(.home-page) {
     padding: 12px 10px 14px;
   }
 
-  .settle-map-marker-label {
-    font-size: 9px;
-    max-width: 72px;
+  .settle-map-pin-label {
+    font-size: 10px;
+    max-width: 88px;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .settle-map-canvas {
     max-width: none;
+  }
+
+  .settle-map-popover-backdrop {
+    background: rgba(20, 30, 25, 0.35);
+  }
+
+  .settle-map-popover {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    top: auto;
+    min-width: 0;
+    border-radius: 16px 16px 12px 12px;
+    animation: settle-sheet-up 0.2s ease;
+  }
+
+  .settle-map-popover-head {
+    padding: 12px 14px 8px;
+    font-size: 12px;
+  }
+
+  .settle-map-popover-item {
+    padding: 12px 14px;
+    font-size: 14px;
+  }
+}
+
+@keyframes settle-sheet-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

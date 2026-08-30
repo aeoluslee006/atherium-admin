@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   MICHIGAN_STATE_PATH,
@@ -44,15 +43,6 @@ export default function SettlementGuideMap({ city }) {
       ) : null}
 
       <div className="settle-map-stage">
-        <h3 className="settle-map-heading">
-          {activeCity ? `${activeCity} · 정착 가이드` : '미시간 · 도시를 선택하세요'}
-        </h3>
-        <p className="hint-text settle-map-hint">
-          {activeCity
-            ? '아래 목록에서 글을 선택하거나, 지도에서 다른 도시를 고르세요.'
-            : '지도에서 도시를 클릭하면 해당 지역 정착 가이드 글을 볼 수 있습니다.'}
-        </p>
-
         <div className="settle-map-canvas">
           <svg
             viewBox={`0 0 ${SETTLEMENT_MAP_VIEWBOX.width} ${SETTLEMENT_MAP_VIEWBOX.height}`}
@@ -95,9 +85,6 @@ export default function SettlementGuideMap({ city }) {
             <button type="button" className="btn btn-outline settle-map-back" onClick={goMap}>
               ← 지도
             </button>
-            <Link href={`/board/guide/new?city=${encodeURIComponent(activeCity)}`} className="btn">
-              글쓰기
-            </Link>
           </div>
         ) : null}
       </div>

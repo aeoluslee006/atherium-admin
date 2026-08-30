@@ -4572,8 +4572,12 @@ main:has(.home-page) {
   padding-bottom: 24px;
 }
 
-.guide-board-head {
-  margin-bottom: 12px;
+.guide-board-page .settle-map-canvas {
+  max-width: 100%;
+}
+
+.guide-board-page .settle-map-stage {
+  padding: 8px 10px 10px;
 }
 
 .guide-board-list {
@@ -4632,23 +4636,13 @@ main:has(.home-page) {
   background: linear-gradient(180deg, #f7faf8 0%, #eef4f0 100%);
   border: 1px solid #d8e4dc;
   border-radius: 16px;
-  padding: 16px 14px 18px;
-}
-
-.settle-map-heading {
-  margin: 0 0 4px;
-  font-size: 17px;
-  font-weight: 700;
-}
-
-.settle-map-hint {
-  margin: 0 0 12px;
+  padding: 10px 12px 12px;
 }
 
 .settle-map-canvas {
   position: relative;
   width: 100%;
-  max-width: 560px;
+  max-width: min(960px, 100%);
   margin: 0 auto;
 }
 
@@ -4714,11 +4708,15 @@ main:has(.home-page) {
 
 @media (max-width: 640px) {
   .settle-map-stage {
-    padding: 12px 10px 14px;
+    padding: 6px 6px 8px;
   }
 
   .settle-map-canvas {
     max-width: none;
+  }
+
+  .settle-map-svg-root {
+    min-height: 0;
   }
 
   .settle-map-label {

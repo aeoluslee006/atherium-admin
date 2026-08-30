@@ -4569,11 +4569,22 @@ main:has(.home-page) {
 
 /* Settlement guide — Michigan map navigation */
 .guide-board-page {
+  --guide-map-max-h: calc(100dvh - 280px);
   padding-bottom: 24px;
 }
 
 .guide-board-page .settle-map-canvas {
+  width: min(100%, calc(var(--guide-map-max-h) * 500 / 409));
   max-width: 100%;
+  max-height: var(--guide-map-max-h);
+  aspect-ratio: 500 / 409;
+  margin: 0 auto;
+}
+
+.guide-board-page .settle-map-svg-root {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .guide-board-page .settle-map-stage {
@@ -4707,16 +4718,16 @@ main:has(.home-page) {
 }
 
 @media (max-width: 640px) {
+  .guide-board-page {
+    --guide-map-max-h: calc(100dvh - 300px);
+  }
+
   .settle-map-stage {
     padding: 6px 6px 8px;
   }
 
   .settle-map-canvas {
     max-width: none;
-  }
-
-  .settle-map-svg-root {
-    min-height: 0;
   }
 
   .settle-map-label {

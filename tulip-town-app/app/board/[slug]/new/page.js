@@ -18,6 +18,11 @@ import {
   stationeryClassName,
 } from '../../../../lib/stationery';
 import { supabase } from '../../../../lib/supabaseClient';
+import {
+  SETTLEMENT_CITY_GROUPS,
+  canonicalCityName,
+  isSettlementCity,
+} from '../../../../lib/settlementTowns';
 
 const CITIES = ['Holland', 'Grand Rapids', 'Zeeland', 'Hudsonville', 'Other'];
 
@@ -40,6 +45,7 @@ export default function NewPostPage() {
   const isJobs = params.slug === 'jobs';
   const isHousing = params.slug === 'housing';
   const isClasses = params.slug === 'classes';
+  const isGuide = params.slug === 'guide';
   const [authReady, setAuthReady] = useState(false);
   const [subcategory, setSubcategory] = useState('');
   const [stationeryId, setStationeryId] = useState(DEFAULT_STATIONERY_ID);
@@ -70,8 +76,20 @@ export default function NewPostPage() {
     async function requireMember() {
       const { data } = await supabase.auth.getSession();
       if (cancelled) return;
+      let cityName = null;
+      if (params.slug === 'guide') {
+        try {
+          cityName = canonicalCityName(new URLSearchParams(window.location.search).get('city'));
+          if (cityName) setCity(cityName);
+        } catch {
+          /* ignore */
+        }
+      }
       if (!data.session) {
-        const next = `/board/${params.slug}/new`;
+        const next =
+          params.slug === 'guide' && cityName
+            ? `/board/guide/new?city=${encodeURIComponent(cityName)}`
+            : `/board/${params.slug}/new`;
         router.replace(`/login?next=${encodeURIComponent(next)}`);
         return;
       }
@@ -209,6 +227,10 @@ export default function NewPostPage() {
       }
       if (isHousing && !isValidHousingTag(subcategory)) {
         setError('구분(렌트/매매/룸메이트)을 선택해 주세요.');
+        return;
+      }
+      if (isGuide && !isSettlementCity(city)) {
+        setError('도시를 목록에서 선택해 주세요.');
         return;
       }
       if (
@@ -416,7 +438,10 @@ export default function NewPostPage() {
     <div className="container">
       <div className="row-between">
         <h2 className="section-title">{category.nameKo} 글쓰기</h2>
-        <Link href={`/board/${params.slug}`} className="btn btn-outline">
+        <Link
+          href={isGuide && isSettlementCity(city) ? `/board/guide?city=${encodeURIComponent(city)}` : `/board/${params.slug}`}
+          className="btn btn-outline"
+        >
           목록
         </Link>
       </div>
@@ -597,13 +622,23 @@ export default function NewPostPage() {
           }
           required
         />
-        <label htmlFor="city">지역</label>
-        <select id="city" value={city} onChange={(e) => setCity(e.target.value)}>
-          {CITIES.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
+        <label htmlFor="city">{isGuide ? '도시' : '지역'}</label>
+        <select id="city" value={city} onChange={(e) => setCity(e.target.value)} required={isGuide}>
+          {isGuide
+            ? SETTLEMENT_CITY_GROUPS.map((group) => (
+                <optgroup key={group.hub} label={group.hub}>
+                  {group.cities.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </optgroup>
+              ))
+            : CITIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
         </select>
 
         {isClasses ? (

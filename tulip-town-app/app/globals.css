@@ -5417,3 +5417,205 @@ main:has(.home-page) {
   }
 }
 
+/* Settlement Guide — Michigan map navigation */
+.guide-crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 0;
+  margin: -4px 0 14px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.guide-crumb a {
+  color: var(--accent-dark);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.guide-crumb a:hover {
+  text-decoration: underline;
+}
+
+.guide-crumb-sep {
+  margin: 0 8px;
+  color: #c5ccd3;
+}
+
+.guide-crumb-current {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.guide-map-card {
+  padding: 18px 18px 12px;
+  overflow: visible;
+}
+
+.guide-map-hint {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.guide-map-stage {
+  position: relative;
+  width: min(100%, 520px);
+  margin: 0 auto;
+  overflow: visible;
+}
+
+.guide-map-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.guide-map-water {
+  fill: #d7ebf7;
+}
+
+.guide-map-land {
+  fill: #3f8f63;
+  stroke: #2c6b49;
+  stroke-width: 1.2;
+}
+
+.guide-map-hub-area {
+  fill: #eef7f1;
+  stroke: #b7d4c3;
+  stroke-width: 1.4;
+  stroke-dasharray: 7 5;
+}
+
+.guide-map-pin {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: inherit;
+  z-index: 1;
+}
+
+.guide-map-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--accent);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.22);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.guide-map-pin.is-hub .guide-map-dot {
+  width: 15px;
+  height: 15px;
+  border-color: var(--tulip-pink);
+  background: #fff7fb;
+}
+
+.guide-map-pin:hover,
+.guide-map-pin:focus-visible {
+  z-index: 2;
+}
+
+.guide-map-pin:hover .guide-map-dot,
+.guide-map-pin:focus-visible .guide-map-dot {
+  transform: scale(1.18);
+  box-shadow: 0 2px 8px rgba(31, 143, 224, 0.35);
+}
+
+.guide-map-name {
+  position: absolute;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 700;
+  color: #163024;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+  padding: 2px 7px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  pointer-events: none;
+}
+
+.guide-map-pin--top .guide-map-name {
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.guide-map-pin--bottom .guide-map-name {
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.guide-map-pin--right .guide-map-name {
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.guide-map-pin--left .guide-map-name {
+  right: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.guide-map-fallback {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 14px 0 4px;
+  padding: 0;
+}
+
+.guide-map-fallback li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.guide-map-fallback a {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.guide-map-fallback a:hover {
+  border-color: var(--accent);
+  color: var(--accent-dark);
+}
+
+.guide-map-fallback span {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 640px) {
+  .guide-map-card {
+    padding: 14px 12px 10px;
+  }
+
+  .guide-map-stage {
+    width: 100%;
+  }
+
+  .guide-map-name {
+    font-size: 11px;
+    padding: 1px 6px;
+  }
+}
+

@@ -5570,6 +5570,16 @@ main:has(.home-page) {
   transform: translateY(-50%);
 }
 
+.guide-map-pin--tooltip .guide-map-name {
+  opacity: 0;
+  z-index: 3;
+}
+
+.guide-map-pin--tooltip:hover .guide-map-name,
+.guide-map-pin--tooltip:focus-visible .guide-map-name {
+  opacity: 1;
+}
+
 .guide-map-fallback {
   display: flex;
   flex-wrap: wrap;

@@ -39,7 +39,9 @@ function MarkerPin({ town, href, variant, index = 0 }) {
   return (
     <Link
       href={href}
-      className={`guide-map-pin guide-map-pin--${variant} guide-map-pin--${side}${town.kind === 'hub' ? ' is-hub' : ''}`}
+      aria-label={town.name}
+      title={town.name}
+      className={`guide-map-pin guide-map-pin--${variant} guide-map-pin--${side}${town.kind === 'hub' ? ' is-hub' : ''}${variant === 'hub' ? ' guide-map-pin--tooltip' : ''}`}
       style={pinStyle(town.x, town.y, town.mapW, town.mapH)}
     >
       <span className="guide-map-dot" aria-hidden="true" />

@@ -28,20 +28,6 @@ export default function SettlementGuideMap({ city }) {
 
   return (
     <section className="settle-map" aria-label="미시간 정착 가이드 지도">
-      {activeCity ? (
-        <nav className="settle-map-breadcrumb" aria-label="선택 경로">
-          <button type="button" className="settle-map-crumb" onClick={goMap}>
-            미시간
-          </button>
-          <span className="settle-map-crumb-sep" aria-hidden="true">
-            ›
-          </span>
-          <span className="settle-map-crumb is-current" aria-current="location">
-            {activeCity}
-          </span>
-        </nav>
-      ) : null}
-
       <div className="settle-map-stage">
         <div className="settle-map-canvas">
           <svg

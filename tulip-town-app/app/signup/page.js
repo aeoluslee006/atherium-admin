@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 
 function normalizeUsername(value) {
@@ -12,8 +12,33 @@ function normalizeUsername(value) {
     .replace(/\s+/g, '');
 }
 
+async function upsertProfile(userId, profile) {
+  const { error: profileError } = await supabase.from('profiles').upsert({
+    id: userId,
+    ...profile,
+  });
+  if (profileError) {
+    await supabase.from('profiles').upsert({
+      id: userId,
+      email: profile.email,
+      phone: profile.phone,
+      display_name: profile.display_name,
+    });
+  }
+}
+
 export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="container"><div className="card empty-state">로딩 중…</div></div>}>
+      <SignupPageContent />
+    </Suspense>
+  );
+}
+
+function SignupPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [step, setStep] = useState('form');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
@@ -21,9 +46,22 @@ export default function SignupPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [otp, setOtp] = useState('');
+  const [pendingUserId, setPendingUserId] = useState(null);
+  const [pendingProfile, setPendingProfile] = useState(null);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [saving, setSaving] = useState(false);
+  const [resending, setResending] = useState(false);
+
+  useEffect(() => {
+    const linkError = searchParams.get('error');
+    if (linkError === 'link_expired') {
+      setError('인증 링크가 만료되었거나 이미 사용되었습니다. 아래에서 인증 코드를 다시 받아 주세요.');
+    } else if (linkError === 'invalid_link') {
+      setError('유효하지 않은 인증 링크입니다. 인증 코드로 다시 시도해 주세요.');
+    }
+  }, [searchParams]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -63,6 +101,18 @@ export default function SignupPage() {
         return;
       }
 
+      const profilePayload = {
+        email,
+        phone: phoneValue,
+        first_name: first,
+        last_name: last,
+        username: publicId,
+        display_name: publicId,
+      };
+
+      const redirectTo =
+        typeof window !== 'undefined' ? `${window.location.origin}/auth/confirm` : undefined;
+
       const { data, error: signError } = await supabase.auth.signUp({
         email,
         password,
@@ -74,42 +124,131 @@ export default function SignupPage() {
             username: publicId,
             display_name: publicId,
           },
+          emailRedirectTo: redirectTo,
         },
       });
       if (signError) throw signError;
 
       if (data.user) {
-        const fullProfile = {
-          id: data.user.id,
-          email,
-          phone: phoneValue,
-          first_name: first,
-          last_name: last,
-          username: publicId,
-          display_name: publicId,
-        };
-        const { error: profileError } = await supabase.from('profiles').upsert(fullProfile);
-        if (profileError) {
-          await supabase.from('profiles').upsert({
-            id: data.user.id,
-            email,
-            phone: phoneValue,
-            display_name: publicId,
-          });
-        }
+        await upsertProfile(data.user.id, profilePayload);
       }
 
       if (data.session) {
         router.push('/');
         router.refresh();
-      } else {
-        setMessage('가입 확인 메일을 보냈습니다. 이메일을 확인해주세요.');
+        return;
       }
+
+      setPendingUserId(data.user?.id || null);
+      setPendingProfile(profilePayload);
+      setOtp('');
+      setStep('verify');
+      setMessage(`${email}(으)로 인증 코드(6자리)를 보냈습니다. 아래에 입력해 주세요.`);
     } catch (err) {
       setError(err.message || '회원가입에 실패했습니다.');
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleVerifyOtp(e) {
+    e.preventDefault();
+    setError('');
+    setMessage('');
+    setSaving(true);
+
+    const code = otp.replace(/\D/g, '');
+    if (code.length !== 6) {
+      setError('6자리 인증 코드를 입력해 주세요.');
+      setSaving(false);
+      return;
+    }
+
+    try {
+      const { data, error: verifyError } = await supabase.auth.verifyOtp({
+        email,
+        token: code,
+        type: 'email',
+      });
+      if (verifyError) throw verifyError;
+
+      const userId = data.user?.id || pendingUserId;
+      if (userId && pendingProfile) {
+        await upsertProfile(userId, pendingProfile);
+      }
+
+      router.push('/');
+      router.refresh();
+    } catch (err) {
+      setError(err.message || '인증 코드가 올바르지 않거나 만료되었습니다.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleResendCode() {
+    setError('');
+    setMessage('');
+    setResending(true);
+    try {
+      const { error: resendError } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      });
+      if (resendError) throw resendError;
+      setMessage(`${email}(으)로 인증 코드를 다시 보냈습니다.`);
+    } catch (err) {
+      setError(err.message || '인증 코드 재전송에 실패했습니다.');
+    } finally {
+      setResending(false);
+    }
+  }
+
+  function handleBackToForm() {
+    setStep('form');
+    setOtp('');
+    setError('');
+    setMessage('');
+  }
+
+  if (step === 'verify') {
+    return (
+      <div className="container">
+        <h2 className="section-title">이메일 인증 · Verify email</h2>
+        <form className="card form-card" onSubmit={handleVerifyOtp}>
+          <p className="hint-text">{message || `${email}(으)로 인증 코드(6자리)를 보냈습니다.`}</p>
+
+          <label htmlFor="otp">인증 코드</label>
+          <input
+            id="otp"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            pattern="[0-9]{6}"
+            maxLength={6}
+            value={otp}
+            onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            placeholder="123456"
+            required
+          />
+
+          {error ? <div className="error-text">{error}</div> : null}
+          <button className="btn" type="submit" disabled={saving}>
+            {saving ? '확인 중…' : '인증 완료'}
+          </button>
+          <button
+            className="btn btn-outline"
+            type="button"
+            onClick={handleResendCode}
+            disabled={resending}
+          >
+            {resending ? '재전송 중…' : '코드 다시 받기'}
+          </button>
+          <button className="btn btn-outline" type="button" onClick={handleBackToForm}>
+            ← 회원가입으로 돌아가기
+          </button>
+        </form>
+      </div>
+    );
   }
 
   return (

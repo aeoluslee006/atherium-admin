@@ -1,6 +1,7 @@
 'use client';
 
 import { STATIONERY_OPTIONS } from '../../lib/stationery';
+import StationeryBox from './StationeryBox';
 
 /**
  * @param {{ value: string, onChange: (id: string) => void, disabled?: boolean }} props
@@ -21,12 +22,6 @@ export default function StationeryPicker({ value, onChange, disabled }) {
             <label
               key={option.id}
               className={`stationery-option${selected ? ' is-selected' : ''}`}
-              style={{
-                backgroundImage: `url('${option.file}')`,
-                backgroundSize: 'contain',
-                backgroundPosition: 'top center',
-                backgroundRepeat: 'no-repeat',
-              }}
             >
               <input
                 type="radio"
@@ -36,7 +31,9 @@ export default function StationeryPicker({ value, onChange, disabled }) {
                 onChange={() => onChange(option.id)}
                 required
               />
-              <span className="stationery-option-name">{option.name}</span>
+              <StationeryBox stationeryId={option.id} className="stationery-option-preview">
+                <span className="stationery-option-name">{option.name}</span>
+              </StationeryBox>
             </label>
           );
         })}

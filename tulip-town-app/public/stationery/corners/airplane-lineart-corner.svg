@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="170" height="110" viewBox="0 0 170 110">
+  <g fill="none" stroke="#1f2937" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 70 L150 40"/>
+    <path d="M150 40 L130 48 L138 70"/>
+    <path d="M70 58 L55 30 L68 55"/>
+    <path d="M95 50 L115 78 L100 54"/>
+    <path d="M40 66 L28 78 L48 64"/>
+    <path d="M148 38 c4 -2 10 -1 12 3"/>
+  </g>
+  <path d="M30 88 C50 78 70 90 90 82" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="3 4"/>
+</svg>

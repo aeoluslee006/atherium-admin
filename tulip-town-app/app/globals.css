@@ -4518,6 +4518,40 @@ main:has(.home-page) {
   opacity: 0.22;
 }
 
+
+.stationery-option-preview {
+  min-height: 120px;
+  pointer-events: none;
+}
+
+.stationery-option .stationery-option-name {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 650;
+  background: rgba(255,255,255,0.85);
+}
+
+.stationery-option {
+  padding: 0;
+  background-image: none !important;
+}
+
+.letter-compose .letter-compose-textarea,
+.letter-compose-textarea {
+  width: 100%;
+  min-height: 220px;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  resize: vertical;
+  line-height: 1.75;
+  font-size: 15px;
+  padding: 0 !important;
+}
+
 .stationery-option.is-selected {
   border-color: #2f4a3a;
   box-shadow: 0 0 0 2px rgba(47, 74, 58, 0.18);

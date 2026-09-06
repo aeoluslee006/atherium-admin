@@ -7,6 +7,7 @@ import JobsComposeForm from '../../../../components/JobsComposeForm';
 import HousingPhotosField from '../../../../components/HousingPhotosField';
 import MarketBodyEditor from '../../../../components/MarketBodyEditor';
 import StationeryPicker from '../../../../components/StationeryPicker';
+import StationeryBox from '../../../../components/stationery/StationeryBox';
 import { getCategory } from '../../../../lib/categories';
 import { FREE_BOARD_WRITE_TAGS, isValidFreeBoardWriteTag } from '../../../../lib/freeBoardTags';
 import { HOUSING_TAGS, HOUSING_TYPES, isValidHousingTag } from '../../../../lib/housingTags';
@@ -15,7 +16,6 @@ import { serializeImageUrls } from '../../../../lib/postImages';
 import {
   DEFAULT_STATIONERY_ID,
   isValidStationeryId,
-  stationeryClassName,
 } from '../../../../lib/stationery';
 import { SETTLEMENT_CITY_NAMES, isValidSettlementCity } from '../../../../lib/settlementTowns';
 import { supabase } from '../../../../lib/supabaseClient';
@@ -425,8 +425,7 @@ export default function NewPostPage() {
         : null;
   const needsSubcategory = isFree || isMarket || isHousing;
   const isFeaturedWrite = isFree && subcategory === 'featured';
-  const letterPaperClass = isFeaturedWrite ? stationeryClassName(stationeryId) : '';
-
+  
   return (
     <div className="container">
       <div className="row-between">
@@ -661,7 +660,7 @@ export default function NewPostPage() {
             }
           />
         ) : isFeaturedWrite ? (
-          <div className={`letter-compose ${letterPaperClass}`}>
+          <StationeryBox stationeryId={stationeryId} className="letter-compose">
             <textarea
               id="body"
               className="letter-compose-textarea"
@@ -670,7 +669,7 @@ export default function NewPostPage() {
               placeholder="편지지 위에 마음을 적어 보세요…"
               required
             />
-          </div>
+          </StationeryBox>
         ) : (
           <textarea id="body" value={body} onChange={(e) => setBody(e.target.value)} required />
         )}

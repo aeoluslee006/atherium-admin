@@ -284,7 +284,7 @@ function SignupPageContent() {
           type="tel"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
-          placeholder="예: 616-555-0100"
+          placeholder=""
           autoComplete="tel"
           required
         />
@@ -304,7 +304,7 @@ function SignupPageContent() {
           id="username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          placeholder="영문 소문자/숫자 3~20자"
+          placeholder=""
           autoComplete="username"
           minLength={3}
           maxLength={20}

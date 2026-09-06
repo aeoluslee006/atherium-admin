@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
-import { SELLER_STATUS_LABEL, SUB_STATUS_LABEL } from '../../../lib/sellerConstants';
+import { SELLER_STATUS_LABEL } from '../../../lib/sellerConstants';
 
 export default function AdminSellersPage() {
   const [rows, setRows] = useState([]);
@@ -38,16 +38,21 @@ export default function AdminSellersPage() {
   }, []);
 
   async function setStatus(id, status) {
-    let rejection_reason = '';
+    let review_notes = '';
     if (status === 'rejected') {
-      rejection_reason = window.prompt('거절 사유 (선택)') || '';
+      review_notes = window.prompt('거절 사유') || '';
+      if (!review_notes.trim()) {
+        setError('거절 사유를 입력해 주세요.');
+        return;
+      }
     }
     setBusyId(id);
+    setError('');
     try {
       const res = await fetch('/api/admin/sellers', {
         method: 'PATCH',
         headers: await headers(),
-        body: JSON.stringify({ id, status, rejection_reason }),
+        body: JSON.stringify({ id, status, review_notes, keep_plan: true }),
       });
       const payload = await res.json();
       if (!res.ok) throw new Error(payload.error || '업데이트 실패');
@@ -59,11 +64,39 @@ export default function AdminSellersPage() {
     }
   }
 
+  async function openDocument(id) {
+    setBusyId(id);
+    setError('');
+    try {
+      const res = await fetch(`/api/admin/sellers?doc=${encodeURIComponent(id)}`, {
+        headers: await headers(),
+      });
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload.error || '서류 열기 실패');
+      if (!payload.url) throw new Error('서명 URL을 받지 못했습니다.');
+      window.open(payload.url, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusyId('');
+    }
+  }
+
+  function formatDate(value) {
+    if (!value) return '—';
+    try {
+      return new Date(value).toLocaleString('ko-KR');
+    } catch {
+      return '—';
+    }
+  }
+
   return (
     <div>
-      <h3 className="section-title">판매자 승인 · 튤립가게</h3>
+      <h3 className="section-title">사업자 입점 승인 · 튤립가게</h3>
       <p className="hint-text" style={{ marginBottom: 14 }}>
-        개인 판매자도 승인 가능. 승인 후 판매자가 $15 구독·Connect 계좌를 연결합니다.
+        EIN·주소·서류는 관리자만 볼 수 있습니다. 승인 즉시 상품 등록이 가능하며, 구독 결제는 판매자가
+        이후에 진행합니다.
       </p>
       {error ? <div className="error-text">{error}</div> : null}
       {loading ? <div className="hint-text">불러오는 중…</div> : null}
@@ -71,31 +104,47 @@ export default function AdminSellersPage() {
         <table className="admin-table">
           <thead>
             <tr>
-              <th>상점</th>
-              <th>유형</th>
-              <th>연락</th>
+              <th>신청일</th>
+              <th>사업자명</th>
+              <th>EIN</th>
+              <th>사업자 주소</th>
+              <th>서류</th>
               <th>상태</th>
-              <th>구독</th>
-              <th>정산</th>
               <th>액션</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((s) => (
               <tr key={s.id}>
+                <td className="hint-text">{formatDate(s.created_at)}</td>
                 <td>
-                  <strong>{s.shop_name}</strong>
-                  <div className="hint-text">{s.contact_name} · {s.city}</div>
-                  <div className="hint-text">{s.bio}</div>
+                  <strong>{s.business_name}</strong>
+                  <div className="hint-text">{s.city || '—'}</div>
+                  {s.review_notes ? (
+                    <div className="hint-text" style={{ color: '#c04545' }}>
+                      메모: {s.review_notes}
+                    </div>
+                  ) : null}
                 </td>
-                <td>{s.seller_type === 'business' ? '사업자' : '개인'}</td>
                 <td>
-                  <div className="hint-text">{s.phone}</div>
-                  <div className="hint-text">{s.email}</div>
+                  <code>{s.ein || '—'}</code>
+                </td>
+                <td className="hint-text">{s.business_address || '—'}</td>
+                <td>
+                  {s.sos_document_path ? (
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      disabled={busyId === s.id}
+                      onClick={() => openDocument(s.id)}
+                    >
+                      서류 보기
+                    </button>
+                  ) : (
+                    '—'
+                  )}
                 </td>
                 <td>{SELLER_STATUS_LABEL[s.status] || s.status}</td>
-                <td>{SUB_STATUS_LABEL[s.subscription_status] || s.subscription_status}</td>
-                <td>{s.charges_enabled ? 'OK' : '—'}</td>
                 <td>
                   <div className="admin-actions">
                     {s.status !== 'approved' ? (
@@ -116,16 +165,6 @@ export default function AdminSellersPage() {
                         onClick={() => setStatus(s.id, 'rejected')}
                       >
                         거절
-                      </button>
-                    ) : null}
-                    {s.status === 'approved' ? (
-                      <button
-                        type="button"
-                        className="btn btn-outline"
-                        disabled={busyId === s.id}
-                        onClick={() => setStatus(s.id, 'suspended')}
-                      >
-                        정지
                       </button>
                     ) : null}
                   </div>

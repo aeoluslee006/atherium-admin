@@ -91,6 +91,10 @@ function DirectoryPaper({ pageData, category }) {
             const slot = cell.primary;
             const ad = activeAd(slot);
             const occupied = slot.status === 'occupied' && ad;
+            const applySlot = !occupied
+              ? cell.slots.find((s) => s.status === 'available') || slot
+              : null;
+            const canApply = Boolean(applySlot?.id && applySlot.status === 'available');
             const dim =
               category !== 'all' && occupied && ad.category_slug && ad.category_slug !== category;
             const highlight =
@@ -98,12 +102,24 @@ function DirectoryPaper({ pageData, category }) {
             const isMerged = cell.slots.length > 1;
             const cellLabel = cell.label || displayCellLabel(cell.displayRow, cell.displayCol);
 
+            const emptyBody = (
+              <>
+                <div className="dir-slot-position">{cellLabel}</div>
+                <div className="dir-slot-vacant">빈 자리</div>
+                <div className="dir-slot-meta">
+                  {sizeTierLabel(slot.size_tier)} · {formatSlotPrice(slot.base_price_cents)}
+                </div>
+                {canApply ? <div className="dir-slot-cta">광고 신청</div> : null}
+              </>
+            );
+
             return (
               <div
                 key={cell.key}
                 className={[
                   'dir-cell',
                   occupied ? 'is-occupied' : 'is-empty',
+                  canApply ? 'is-applyable' : '',
                   dim ? 'is-dimmed' : '',
                   highlight ? 'is-highlight' : '',
                   isMerged ? 'is-merged-block' : '',
@@ -132,14 +148,16 @@ function DirectoryPaper({ pageData, category }) {
                       {ad.ad_phone ? <div className="dir-ad-phone">{ad.ad_phone}</div> : null}
                     </div>
                   </div>
+                ) : canApply ? (
+                  <Link
+                    href={`/directory/pages/apply?slot=${encodeURIComponent(applySlot.id)}`}
+                    className="dir-cell-empty dir-cell-empty--link"
+                    aria-label={`${cellLabel} 광고 신청`}
+                  >
+                    {emptyBody}
+                  </Link>
                 ) : (
-                  <div className="dir-cell-empty">
-                    <div className="dir-slot-position">{cellLabel}</div>
-                    <div className="dir-slot-vacant">빈 자리</div>
-                    <div className="dir-slot-meta">
-                      {sizeTierLabel(slot.size_tier)} · {formatSlotPrice(slot.base_price_cents)}
-                    </div>
-                  </div>
+                  <div className="dir-cell-empty">{emptyBody}</div>
                 )}
               </div>
             );
@@ -150,7 +168,7 @@ function DirectoryPaper({ pageData, category }) {
   );
 }
 
-/** Phase 1: view-only 지면. Apply/checkout wired in a later phase. */
+/** Empty slots link to /directory/pages/apply for image upload + checkout. */
 export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
   const pageNumbers = pages.map((p) => p.pageNumber);
   const spreads = useMemo(() => buildDirectorySpreads(pageNumbers), [pageNumbers]);
@@ -333,16 +351,32 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
           {listSlots.map((slot) => {
             const ad = activeAd(slot);
             const occupied = slot.status === 'occupied' && ad;
-            return (
-              <div key={slot.id} className="dir-mobile-list-row">
+            const canApply = !occupied && slot.status === 'available';
+            const row = (
+              <>
                 <strong>{slot.position_label}</strong>
                 <span>{sizeTierLabel(slot.size_tier)}</span>
                 <span>
                   {occupied
                     ? `${ad.ad_title} · ${getDirectoryCategoryLabel(ad.category_slug)}`
-                    : '빈 자리'}
+                    : canApply
+                      ? '빈 자리 · 신청'
+                      : '빈 자리'}
                 </span>
                 <span>{formatSlotPrice(slot.base_price_cents)}</span>
+              </>
+            );
+            return canApply ? (
+              <Link
+                key={slot.id}
+                href={`/directory/pages/apply?slot=${encodeURIComponent(slot.id)}`}
+                className="dir-mobile-list-row dir-mobile-list-row--link"
+              >
+                {row}
+              </Link>
+            ) : (
+              <div key={slot.id} className="dir-mobile-list-row">
+                {row}
               </div>
             );
           })}

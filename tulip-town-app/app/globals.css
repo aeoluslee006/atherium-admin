@@ -920,14 +920,16 @@ main:has(.home-page) {
   max-width: 36em;
 }
 
-/* 2) 지역뉴스 | 좋은글  ≈ 60:40 — 페이지 중앙을 크게 차지 */
+/* 2) 지역뉴스 | 좋은글  ≈ 60:40 — 창구 높이 고정 */
 .wf-mid {
   display: grid;
   grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
   gap: 18px;
   margin-bottom: 20px;
   align-items: stretch;
+  height: 520px;
   min-height: 520px;
+  max-height: 520px;
 }
 
 .wf-news {
@@ -935,7 +937,9 @@ main:has(.home-page) {
   flex-direction: column;
   padding: 0;
   overflow: hidden;
-  min-height: 520px;
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
 }
 
 .wf-news-body {
@@ -1213,7 +1217,9 @@ main:has(.home-page) {
   flex-direction: column;
   padding: 0;
   overflow: hidden;
-  min-height: 520px;
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
 }
 
 .wf-featured-list {
@@ -1261,16 +1267,20 @@ main:has(.home-page) {
   line-height: 1.45;
 }
 
-/* 하루 1편 — 편지지가 패널 전체를 채움 */
+/* 하루 1편 — 창구 안에서만 스크롤 */
 .wf-featured-letter {
   flex: 1;
   display: flex;
   flex-direction: column;
   min-height: 0;
+  max-height: 100%;
   padding: 22px 24px 20px;
   text-decoration: none;
   color: inherit;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .wf-featured-letter-top {
@@ -1307,7 +1317,7 @@ main:has(.home-page) {
 }
 
 .wf-featured-letter-body {
-  flex: 1;
+  flex: 0 0 auto;
   margin: 0;
   white-space: pre-wrap;
   font-size: 15px;
@@ -1659,15 +1669,28 @@ main:has(.home-page) {
     grid-template-columns: 1fr;
   }
 
-  .wf-mid,
+  .wf-mid {
+    height: auto;
+    min-height: 0;
+    max-height: none;
+  }
+
   .wf-news,
   .wf-featured,
   .wf-news-detail {
     min-height: 0;
+    height: auto;
+    max-height: none;
   }
 
   .wf-news {
     min-height: 420px;
+    max-height: 480px;
+  }
+
+  .wf-featured {
+    height: 480px;
+    max-height: 480px;
   }
 
   .wf-news-body {

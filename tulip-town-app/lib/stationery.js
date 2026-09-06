@@ -1,5 +1,5 @@
 // 편지지(스테이셔너리) 옵션 목록
-// - file: public/stationery/ 아래 원본 비율 600x800 그래픽
+// - file: public/stationery/ 아래 원본 비율 600x800 그래픽 (사용자 제공 원본 PNG)
 // - id 값은 posts.stationery_id 컬럼에 저장
 
 export const STATIONERY_OPTIONS = [
@@ -18,51 +18,31 @@ export const STATIONERY_OPTIONS = [
     name: '꽃바구니 자전거',
     file: '/stationery/stationery-bicycle-lineart.png',
   },
-  {
-    id: 'pastel-cute',
-    name: '파스텔 다이어리',
-    file: '/stationery/stationery-pastel-cute.png',
-  },
-  {
-    id: 'classic-notes',
-    name: '클래식 노트',
-    file: '/stationery/classic-notes.svg',
-  },
-  {
-    id: 'watercolor-floral',
-    name: '수채화 꽃',
-    file: '/stationery/stationery-watercolor-floral.svg',
-  },
-  {
-    id: 'vintage-kraft',
-    name: '빈티지 크래프트',
-    file: '/stationery/stationery-vintage-kraft.svg',
-  },
-  {
-    id: 'botanical-lineart',
-    name: '보태니컬 라인아트',
-    file: '/stationery/stationery-botanical-lineart.svg',
-  },
 ];
 
 /** @deprecated legacy theme ids → current ids */
 const LEGACY_STATIONERY_MAP = {
-  'cream-lined': 'classic-notes',
-  'blush-petal': 'pastel-cute',
-  'sage-leaf': 'botanical-lineart',
+  'pastel-cute': 'diary-doodle',
+  'classic-notes': 'diary-doodle',
+  'watercolor-floral': 'diary-doodle',
+  'vintage-kraft': 'car-lineart',
+  'botanical-lineart': 'bicycle-lineart',
+  'cream-lined': 'diary-doodle',
+  'blush-petal': 'diary-doodle',
+  'sage-leaf': 'bicycle-lineart',
   'sky-note': 'bicycle-lineart',
   'linen-grid': 'diary-doodle',
-  parchment: 'vintage-kraft',
-  'tulip-garden': 'watercolor-floral',
-  'cherry-blossom': 'watercolor-floral',
-  'rose-garden': 'pastel-cute',
-  'lavender-field': 'pastel-cute',
-  'peony-bloom': 'watercolor-floral',
-  wildflower: 'watercolor-floral',
-  'watercolor-wash': 'watercolor-floral',
-  'gold-foil': 'vintage-kraft',
-  'mint-bloom': 'botanical-lineart',
-  'midnight-ink': 'classic-notes',
+  parchment: 'car-lineart',
+  'tulip-garden': 'diary-doodle',
+  'cherry-blossom': 'diary-doodle',
+  'rose-garden': 'diary-doodle',
+  'lavender-field': 'diary-doodle',
+  'peony-bloom': 'diary-doodle',
+  wildflower: 'diary-doodle',
+  'watercolor-wash': 'diary-doodle',
+  'gold-foil': 'car-lineart',
+  'mint-bloom': 'bicycle-lineart',
+  'midnight-ink': 'diary-doodle',
 };
 
 export const DEFAULT_STATIONERY_ID = 'diary-doodle';
@@ -107,5 +87,6 @@ export function stationeryBackgroundStyle(id) {
     backgroundSize: 'contain',
     backgroundPosition: 'top center',
     backgroundRepeat: 'no-repeat',
+    backgroundColor: '#fefdf9',
   };
 }

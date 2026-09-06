@@ -23,8 +23,9 @@ export default function StationeryPicker({ value, onChange, disabled }) {
               className={`stationery-option${selected ? ' is-selected' : ''}`}
               style={{
                 backgroundImage: `url('${option.file}')`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
+                backgroundSize: 'contain',
+                backgroundPosition: 'top center',
+                backgroundRepeat: 'no-repeat',
               }}
             >
               <input

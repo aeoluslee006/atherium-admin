@@ -51,19 +51,19 @@ async function safeRest(path) {
 }
 
 async function getHomeData() {
-  const featuredSelectWithPaper =
+  const featuredSelect =
     'posts?select=id,title,body,category_slug,created_at,is_featured,subcategory&is_featured=eq.true&order=created_at.desc&limit=50';
   const featuredSelectBasic =
     'posts?select=id,title,body,category_slug,created_at,is_featured&is_featured=eq.true&order=created_at.desc&limit=50';
 
-  const [premiumAds, localNewsRaw, featuredWithPaper, classPosts, marketPosts] = await Promise.all([
+  const [premiumAds, localNewsRaw, featuredRows, classPosts, marketPosts] = await Promise.all([
     safeRest(
       'sponsors?select=id,business_name,category,city,description,website_url,discount_text,tier,listing_type,status&listing_type=eq.banner&status=eq.approved&tier=eq.premium&order=created_at.desc&limit=2'
     ),
     safeRest(
       'local_news?select=id,title,source,url,published_at,is_active&is_active=eq.true&order=published_at.desc&limit=20'
     ),
-    safeRest(featuredSelectWithPaper),
+    safeRest(featuredSelect),
     safeRest(
       'posts?select=id,title,created_at&category_slug=eq.classes&order=created_at.desc&limit=6'
     ),
@@ -72,7 +72,7 @@ async function getHomeData() {
     ),
   ]);
 
-  let featuredPool = Array.isArray(featuredWithPaper) ? featuredWithPaper : [];
+  let featuredPool = Array.isArray(featuredRows) ? featuredRows : [];
   if (!featuredPool.length) {
     featuredPool = await safeRest(featuredSelectBasic);
   }

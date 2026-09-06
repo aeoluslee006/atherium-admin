@@ -5,26 +5,34 @@ export async function loadDirectoryPages() {
   let slots = [];
   try {
     const rows = await supabaseRest(
-      'directory_slots?select=id,page_number,row_index,col_index,span_cols,span_rows,position_label,size_tier,base_price_cents,status,directory_slot_ads(id,slot_id,submitted_by,category_slug,ad_title,ad_image_url,ad_phone,status,period_end)&order=page_number.asc,row_index.asc,col_index.asc'
+      'directory_slots?select=id,page_number,row_index,col_index,span_cols,span_rows,position_label,size_tier,base_price_cents,status,directory_slot_ads(id,slot_id,submitted_by,category_slug,ad_title,ad_body,ad_image_url,ad_image_urls,ad_phone,status,period_end)&order=page_number.asc,row_index.asc,col_index.asc'
     );
     slots = Array.isArray(rows) ? rows : [];
   } catch {
     try {
-      const rawSlots = await supabaseRest(
-        'directory_slots?select=*&order=page_number.asc,row_index.asc,col_index.asc'
+      // Fallback before ad_body / ad_image_urls migration.
+      const rows = await supabaseRest(
+        'directory_slots?select=id,page_number,row_index,col_index,span_cols,span_rows,position_label,size_tier,base_price_cents,status,directory_slot_ads(id,slot_id,submitted_by,category_slug,ad_title,ad_image_url,ad_phone,status,period_end)&order=page_number.asc,row_index.asc,col_index.asc'
       );
-      const ads = await supabaseRest('directory_slot_ads?select=*&status=eq.active');
-      const adBySlot = new Map();
-      for (const ad of Array.isArray(ads) ? ads : []) {
-        if (!adBySlot.has(ad.slot_id)) adBySlot.set(ad.slot_id, []);
-        adBySlot.get(ad.slot_id).push(ad);
-      }
-      slots = (Array.isArray(rawSlots) ? rawSlots : []).map((s) => ({
-        ...s,
-        directory_slot_ads: adBySlot.get(s.id) || [],
-      }));
+      slots = Array.isArray(rows) ? rows : [];
     } catch {
-      slots = [];
+      try {
+        const rawSlots = await supabaseRest(
+          'directory_slots?select=*&order=page_number.asc,row_index.asc,col_index.asc'
+        );
+        const ads = await supabaseRest('directory_slot_ads?select=*&status=eq.active');
+        const adBySlot = new Map();
+        for (const ad of Array.isArray(ads) ? ads : []) {
+          if (!adBySlot.has(ad.slot_id)) adBySlot.set(ad.slot_id, []);
+          adBySlot.get(ad.slot_id).push(ad);
+        }
+        slots = (Array.isArray(rawSlots) ? rawSlots : []).map((s) => ({
+          ...s,
+          directory_slot_ads: adBySlot.get(s.id) || [],
+        }));
+      } catch {
+        slots = [];
+      }
     }
   }
 

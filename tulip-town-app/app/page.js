@@ -132,7 +132,7 @@ export default async function HomePage() {
   const cat = featuredPost ? getCategory(featuredPost.category_slug) : null;
   const paper = featuredPost ? stationeryClassName(featuredPost.stationery_id) : '';
   const paperStyle = featuredPost
-    ? stationeryBackgroundStyle(featuredPost.stationery_id || 'classic-notes')
+    ? stationeryBackgroundStyle(featuredPost.stationery_id || 'diary-doodle')
     : null;
   const bodyText = featuredPost ? letterBody(featuredPost.body) : '';
 
@@ -192,7 +192,7 @@ export default async function HomePage() {
           {featuredPost ? (
             <Link
               href={`/post/${featuredPost.id}`}
-              className={`wf-featured-letter${paper ? ` ${paper}` : ' letter-paper letter-paper--svg letter-paper--classic-notes'}`}
+              className={`wf-featured-letter${paper ? ` ${paper}` : ' letter-paper letter-paper--svg letter-paper--diary-doodle'}`}
               style={paperStyle || undefined}
             >
               <div className="wf-featured-letter-top">

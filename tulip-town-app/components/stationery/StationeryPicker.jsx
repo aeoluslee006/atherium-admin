@@ -12,7 +12,7 @@ export default function StationeryPicker({ value, onChange, disabled }) {
         편지지 <span className="required-mark">필수</span>
       </legend>
       <p className="hint-text stationery-hint">
-        꽃·파스텔·빈티지 등 예쁜 편지지를 골라 주세요. 홈/글 상세에 배경으로 보입니다.
+        모서리 삽화가 또렷하게 보이는 편지지를 골라 주세요. 홈/글 상세에 그대로 보입니다.
       </p>
       <div className="stationery-options" role="radiogroup" aria-label="편지지">
         {STATIONERY_OPTIONS.map((option) => {

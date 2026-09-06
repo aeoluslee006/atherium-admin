@@ -174,10 +174,10 @@ export default async function PostPage({ params }) {
     (post.subcategory === 'featured' || post.is_featured || Boolean(post.stationery_id));
   const letterTheme = isLetterPost ? getStationery(post.stationery_id) : null;
   const letterPaperClass = isLetterPost
-    ? stationeryClassName(post.stationery_id || 'classic-notes')
+    ? stationeryClassName(post.stationery_id || 'diary-doodle')
     : '';
   const letterPaperStyle = isLetterPost
-    ? stationeryBackgroundStyle(post.stationery_id || 'classic-notes')
+    ? stationeryBackgroundStyle(post.stationery_id || 'diary-doodle')
     : null;
   const marketTagLabel = isMarket ? getMarketTagLabel(post.subcategory) : '';
   const jobTagLabel = isJobs ? getJobTagLabel(post.subcategory) : '';

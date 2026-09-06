@@ -1,5 +1,5 @@
 // 편지지(스테이셔너리) 옵션 목록
-// - file: public/stationery/ 아래 SVG
+// - file: public/stationery/ 아래 원본 SVG (모서리 삽화는 워터마크가 아니라 선명한 일러스트)
 // - id 값은 posts.stationery_id 컬럼에 저장
 
 export const STATIONERY_OPTIONS = [
@@ -45,7 +45,7 @@ export const STATIONERY_OPTIONS = [
   },
 ];
 
-/** @deprecated legacy CSS theme ids → new SVG ids */
+/** @deprecated legacy theme ids → current ids */
 const LEGACY_STATIONERY_MAP = {
   'cream-lined': 'classic-notes',
   'blush-petal': 'pastel-cute',
@@ -65,7 +65,7 @@ const LEGACY_STATIONERY_MAP = {
   'midnight-ink': 'classic-notes',
 };
 
-export const DEFAULT_STATIONERY_ID = STATIONERY_OPTIONS[0].id;
+export const DEFAULT_STATIONERY_ID = 'diary-doodle';
 
 export function resolveStationeryId(id) {
   if (!id) return DEFAULT_STATIONERY_ID;
@@ -107,5 +107,6 @@ export function stationeryBackgroundStyle(id) {
     backgroundSize: 'contain',
     backgroundPosition: 'top center',
     backgroundRepeat: 'no-repeat',
+    backgroundColor: '#fefdf9',
   };
 }

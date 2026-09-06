@@ -4,7 +4,6 @@ import { getCategory } from '../lib/categories';
 import { pickDailyFeatured, siteDateKey } from '../lib/dailyFeatured';
 import { isExampleLocalNews } from '../lib/localNews';
 import { getSampleClassesPost, SAMPLE_CLASSES_POST_ID } from '../lib/sampleClassesPost';
-import { stationeryBackgroundStyle, stationeryClassName } from '../lib/stationery';
 import { supabaseRest } from '../lib/supabaseRest';
 
 export const dynamic = 'force-dynamic';
@@ -52,19 +51,19 @@ async function safeRest(path) {
 }
 
 async function getHomeData() {
-  const featuredSelectWithPaper =
-    'posts?select=id,title,body,category_slug,created_at,is_featured,stationery_id,subcategory&is_featured=eq.true&order=created_at.desc&limit=50';
+  const featuredSelect =
+    'posts?select=id,title,body,category_slug,created_at,is_featured,subcategory&is_featured=eq.true&order=created_at.desc&limit=50';
   const featuredSelectBasic =
     'posts?select=id,title,body,category_slug,created_at,is_featured&is_featured=eq.true&order=created_at.desc&limit=50';
 
-  const [premiumAds, localNewsRaw, featuredWithPaper, classPosts, marketPosts] = await Promise.all([
+  const [premiumAds, localNewsRaw, featuredRows, classPosts, marketPosts] = await Promise.all([
     safeRest(
       'sponsors?select=id,business_name,category,city,description,website_url,discount_text,tier,listing_type,status&listing_type=eq.banner&status=eq.approved&tier=eq.premium&order=created_at.desc&limit=2'
     ),
     safeRest(
       'local_news?select=id,title,source,url,published_at,is_active&is_active=eq.true&order=published_at.desc&limit=20'
     ),
-    safeRest(featuredSelectWithPaper),
+    safeRest(featuredSelect),
     safeRest(
       'posts?select=id,title,created_at&category_slug=eq.classes&order=created_at.desc&limit=6'
     ),
@@ -73,7 +72,7 @@ async function getHomeData() {
     ),
   ]);
 
-  let featuredPool = Array.isArray(featuredWithPaper) ? featuredWithPaper : [];
+  let featuredPool = Array.isArray(featuredRows) ? featuredRows : [];
   if (!featuredPool.length) {
     featuredPool = await safeRest(featuredSelectBasic);
   }
@@ -130,10 +129,6 @@ export default async function HomePage() {
     await getHomeData();
   const ads = padAds(premiumAds);
   const cat = featuredPost ? getCategory(featuredPost.category_slug) : null;
-  const paper = featuredPost ? stationeryClassName(featuredPost.stationery_id) : '';
-  const paperStyle = featuredPost
-    ? stationeryBackgroundStyle(featuredPost.stationery_id || 'classic-notes')
-    : null;
   const bodyText = featuredPost ? letterBody(featuredPost.body) : '';
 
   return (
@@ -178,7 +173,7 @@ export default async function HomePage() {
         })}
       </section>
 
-      {/* 2구역 — 지역뉴스 / 오늘의 좋은글 (하루 1편 편지지) */}
+      {/* 2구역 — 지역뉴스 / 오늘의 좋은글 (하루 1편) */}
       <section className="wf-mid" aria-label="지역뉴스와 좋은글">
         <LocalNewsPanel items={localNews || []} />
 
@@ -190,11 +185,7 @@ export default async function HomePage() {
             </Link>
           </div>
           {featuredPost ? (
-            <Link
-              href={`/post/${featuredPost.id}`}
-              className={`wf-featured-letter${paper ? ` ${paper}` : ' letter-paper letter-paper--svg letter-paper--classic-notes'}`}
-              style={paperStyle || undefined}
-            >
+            <Link href={`/post/${featuredPost.id}`} className="wf-featured-letter">
               <div className="wf-featured-letter-top">
                 <span className="wf-featured-today">오늘의 글</span>
                 <div className="wf-featured-meta">
@@ -213,7 +204,7 @@ export default async function HomePage() {
           ) : (
             <div className="wf-empty wf-empty--grow">
               아직 홈에 올린 좋은글이 없습니다. 글쓰기에서 「좋은글」선택 후 「홈에 표시」를
-              체크하세요. 체크한 글 중 하루에 한 편이 편지지로 보입니다.
+              체크하세요. 체크한 글 중 하루에 한 편이 보입니다.
             </div>
           )}
         </div>

@@ -4467,7 +4467,8 @@ main:has(.home-page) {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  min-height: 108px;
+  min-height: 132px;
+  aspect-ratio: 600 / 800;
   padding: 12px;
   border: 1.5px solid rgba(40, 30, 20, 0.08);
   border-radius: 12px;
@@ -4476,8 +4477,8 @@ main:has(.home-page) {
   overflow: hidden;
   background-color: #fffaf3;
   background-repeat: no-repeat;
-  background-size: cover;
-  background-position: center;
+  background-size: contain;
+  background-position: top center;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
@@ -4580,8 +4581,8 @@ main:has(.home-page) {
   color: var(--letter-ink);
   background-color: #f7f1e4;
   background-repeat: no-repeat;
-  background-size: cover;
-  background-position: center top;
+  background-size: contain;
+  background-position: top center;
 }
 
 .letter-paper--svg {
@@ -4597,13 +4598,30 @@ main:has(.home-page) {
   margin-bottom: 10px;
 }
 
-.card.letter-paper {
+/* 옵션 A: 글 상세 편지지는 SVG 원본 비율(600x800) 그대로 */
+.card.letter-paper,
+.post-body-html.letter-paper {
+  max-width: 640px;
+  width: 100%;
+  aspect-ratio: 600 / 800;
+  margin-left: auto;
+  margin-right: auto;
+  overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   border-color: rgba(40, 30, 20, 0.1);
   box-shadow: 0 8px 24px rgba(40, 30, 20, 0.06);
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: top center;
 }
 
+/* 홈 좋은글 창구는 고정 높이 유지 — 원본 비율로 contain (잘림 방지) */
 .wf-featured-letter.letter-paper {
   border-radius: 0 0 14px 14px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: top center;
 }
 
 .wf-featured-letter.letter-paper .wf-featured-name,

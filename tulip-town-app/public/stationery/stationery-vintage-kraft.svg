@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1100" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <radialGradient id="kraft" cx="40%" cy="30%" r="80%"><stop offset="0%" stop-color="#f3e2c2"/><stop offset="100%" stop-color="#d2b48c"/></radialGradient>
+    <pattern id="fiber" width="120" height="120" patternUnits="userSpaceOnUse">
+      <path d="M0 40h120M20 0v120M80 0v120" stroke="#b08968" stroke-width=".7"/>
+    </pattern>
+  </defs>
+  <rect width="800" height="1100" fill="url(#kraft)"/>
+  <rect width="800" height="1100" fill="url(#fiber)"/>
+  <!-- kraft frame — near-opaque so it reads as illustration, not a watermark -->
+  <rect x="28" y="28" width="744" height="1044" fill="none" stroke="#8b5a14" stroke-width="2.5"/>
+  <rect x="36" y="36" width="728" height="1028" fill="none" stroke="#a16207" stroke-width="1.25"/>
+</svg>

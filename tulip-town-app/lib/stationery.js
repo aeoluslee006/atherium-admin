@@ -1,48 +1,68 @@
 // 편지지(스테이셔너리) 옵션 목록
-// - file: public/stationery/ 아래 원본 비율 600x800 그래픽 (사용자 제공 원본 PNG)
+// - file: public/stationery/ 아래 원본 SVG (모서리 삽화는 워터마크가 아니라 선명한 일러스트)
 // - id 값은 posts.stationery_id 컬럼에 저장
 
 export const STATIONERY_OPTIONS = [
   {
-    id: 'diary-doodle',
-    name: '다이어리 낙서',
-    file: '/stationery/stationery-diary-doodle.png',
+    id: 'classic-notes',
+    name: '클래식 노트',
+    file: '/stationery/classic-notes.svg',
   },
   {
-    id: 'car-lineart',
-    name: '구름과 자동차',
-    file: '/stationery/stationery-car-lineart.png',
+    id: 'watercolor-floral',
+    name: '수채화 꽃',
+    file: '/stationery/stationery-watercolor-floral.svg',
+  },
+  {
+    id: 'pastel-cute',
+    name: '파스텔 큐트',
+    file: '/stationery/stationery-pastel-cute.svg',
+  },
+  {
+    id: 'vintage-kraft',
+    name: '빈티지 크래프트',
+    file: '/stationery/stationery-vintage-kraft.svg',
+  },
+  {
+    id: 'botanical-lineart',
+    name: '보태니컬 라인아트',
+    file: '/stationery/stationery-botanical-lineart.svg',
   },
   {
     id: 'bicycle-lineart',
-    name: '꽃바구니 자전거',
-    file: '/stationery/stationery-bicycle-lineart.png',
+    name: '자전거',
+    file: '/stationery/stationery-bicycle-lineart.svg',
+  },
+  {
+    id: 'car-lineart',
+    name: '자동차',
+    file: '/stationery/stationery-car-lineart.svg',
+  },
+  {
+    id: 'diary-doodle',
+    name: '다이어리 낙서',
+    file: '/stationery/stationery-diary-doodle.svg',
   },
 ];
 
 /** @deprecated legacy theme ids → current ids */
 const LEGACY_STATIONERY_MAP = {
-  'pastel-cute': 'diary-doodle',
-  'classic-notes': 'diary-doodle',
-  'watercolor-floral': 'diary-doodle',
-  'vintage-kraft': 'car-lineart',
-  'botanical-lineart': 'bicycle-lineart',
-  'cream-lined': 'diary-doodle',
-  'blush-petal': 'diary-doodle',
-  'sage-leaf': 'bicycle-lineart',
+  'cream-lined': 'classic-notes',
+  'blush-petal': 'pastel-cute',
+  'sage-leaf': 'botanical-lineart',
   'sky-note': 'bicycle-lineart',
   'linen-grid': 'diary-doodle',
-  parchment: 'car-lineart',
-  'tulip-garden': 'diary-doodle',
-  'cherry-blossom': 'diary-doodle',
-  'rose-garden': 'diary-doodle',
-  'lavender-field': 'diary-doodle',
-  'peony-bloom': 'diary-doodle',
-  wildflower: 'diary-doodle',
-  'watercolor-wash': 'diary-doodle',
-  'gold-foil': 'car-lineart',
-  'mint-bloom': 'bicycle-lineart',
-  'midnight-ink': 'diary-doodle',
+  parchment: 'vintage-kraft',
+  'tulip-garden': 'watercolor-floral',
+  'cherry-blossom': 'watercolor-floral',
+  'rose-garden': 'pastel-cute',
+  'lavender-field': 'pastel-cute',
+  'peony-bloom': 'watercolor-floral',
+  wildflower: 'watercolor-floral',
+  'watercolor-wash': 'watercolor-floral',
+  'gold-foil': 'vintage-kraft',
+  'mint-bloom': 'botanical-lineart',
+  'midnight-ink': 'classic-notes',
 };
 
 export const DEFAULT_STATIONERY_ID = 'diary-doodle';

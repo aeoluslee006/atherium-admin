@@ -40,6 +40,7 @@ export async function middleware(request) {
     /^\/board\/[^/]+\/new\/?$/.test(path) ||
     /^\/directory\/new\/?$/.test(path) ||
     /^\/directory\/pages\/apply\/?$/.test(path) ||
+    /^\/directory\/pages\/edit\/?$/.test(path) ||
     /^\/shop\/new\/?$/.test(path) ||
     path.startsWith('/seller');
 

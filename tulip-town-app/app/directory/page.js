@@ -17,7 +17,7 @@ export default async function DirectoryPage({ searchParams }) {
       {pages.length ? (
         <>
           <p className="dir-pages-hint">
-            빈 자리를 누르면 광고 신청·이미지 업로드·결제 화면으로 이동합니다.
+            빈 자리는 누구나 신청할 수 있고, 이미 올라간 광고는 올린 본인만 수정할 수 있습니다.
           </p>
           <DirectoryPagesView pages={pages} initialPage={initialPage} />
         </>

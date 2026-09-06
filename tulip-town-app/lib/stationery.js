@@ -1,8 +1,28 @@
 // 편지지(스테이셔너리) 옵션 목록
-// - file: public/stationery/ 아래 SVG
+// - file: public/stationery/ 아래 원본 비율 600x800 그래픽
 // - id 값은 posts.stationery_id 컬럼에 저장
 
 export const STATIONERY_OPTIONS = [
+  {
+    id: 'diary-doodle',
+    name: '다이어리 낙서',
+    file: '/stationery/stationery-diary-doodle.png',
+  },
+  {
+    id: 'car-lineart',
+    name: '구름과 자동차',
+    file: '/stationery/stationery-car-lineart.png',
+  },
+  {
+    id: 'bicycle-lineart',
+    name: '꽃바구니 자전거',
+    file: '/stationery/stationery-bicycle-lineart.png',
+  },
+  {
+    id: 'pastel-cute',
+    name: '파스텔 다이어리',
+    file: '/stationery/stationery-pastel-cute.png',
+  },
   {
     id: 'classic-notes',
     name: '클래식 노트',
@@ -14,11 +34,6 @@ export const STATIONERY_OPTIONS = [
     file: '/stationery/stationery-watercolor-floral.svg',
   },
   {
-    id: 'pastel-cute',
-    name: '파스텔 큐트',
-    file: '/stationery/stationery-pastel-cute.svg',
-  },
-  {
     id: 'vintage-kraft',
     name: '빈티지 크래프트',
     file: '/stationery/stationery-vintage-kraft.svg',
@@ -28,24 +43,9 @@ export const STATIONERY_OPTIONS = [
     name: '보태니컬 라인아트',
     file: '/stationery/stationery-botanical-lineart.svg',
   },
-  {
-    id: 'bicycle-lineart',
-    name: '자전거',
-    file: '/stationery/stationery-bicycle-lineart.svg',
-  },
-  {
-    id: 'car-lineart',
-    name: '자동차',
-    file: '/stationery/stationery-car-lineart.svg',
-  },
-  {
-    id: 'diary-doodle',
-    name: '다이어리 낙서',
-    file: '/stationery/stationery-diary-doodle.svg',
-  },
 ];
 
-/** @deprecated legacy CSS theme ids → new SVG ids */
+/** @deprecated legacy theme ids → current ids */
 const LEGACY_STATIONERY_MAP = {
   'cream-lined': 'classic-notes',
   'blush-petal': 'pastel-cute',
@@ -65,7 +65,7 @@ const LEGACY_STATIONERY_MAP = {
   'midnight-ink': 'classic-notes',
 };
 
-export const DEFAULT_STATIONERY_ID = STATIONERY_OPTIONS[0].id;
+export const DEFAULT_STATIONERY_ID = 'diary-doodle';
 
 export function resolveStationeryId(id) {
   if (!id) return DEFAULT_STATIONERY_ID;

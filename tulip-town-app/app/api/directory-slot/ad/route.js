@@ -1,15 +1,32 @@
 import { NextResponse } from 'next/server';
 import { getUserFromRequest, tryAdminSupabase } from '../../../../lib/apiAuth';
+import {
+  adBodyLimit,
+  normalizeAdImageUrls,
+} from '../../../../lib/directoryAdContent';
 import { isValidDirectoryCategory } from '../../../../lib/directoryCategories';
 
+const AD_SELECT =
+  'id,slot_id,sponsor_id,submitted_by,category_slug,ad_title,ad_body,ad_image_url,ad_image_urls,ad_phone,status,period_end,directory_slots(id,page_number,position_label,size_tier,base_price_cents,status)';
+
 async function loadOwnedAd(reader, adId, userId) {
-  const { data, error } = await reader
+  let { data, error } = await reader
     .from('directory_slot_ads')
-    .select(
-      'id,slot_id,sponsor_id,submitted_by,category_slug,ad_title,ad_image_url,ad_phone,status,period_end,directory_slots(id,page_number,position_label,size_tier,base_price_cents,status)'
-    )
+    .select(AD_SELECT)
     .eq('id', adId)
     .maybeSingle();
+
+  if (error && (String(error.message || '').includes('ad_body') || String(error.message || '').includes('ad_image_urls'))) {
+    const legacy = await reader
+      .from('directory_slot_ads')
+      .select(
+        'id,slot_id,sponsor_id,submitted_by,category_slug,ad_title,ad_image_url,ad_phone,status,period_end,directory_slots(id,page_number,position_label,size_tier,base_price_cents,status)'
+      )
+      .eq('id', adId)
+      .maybeSingle();
+    data = legacy.data;
+    error = legacy.error;
+  }
   if (error) throw error;
   if (!data) return { error: '광고를 찾을 수 없습니다.', status: 404 };
   if (data.submitted_by !== userId) {
@@ -66,6 +83,7 @@ export async function PATCH(request) {
       return NextResponse.json({ error: owned.error }, { status: owned.status });
     }
 
+    const sizeTier = owned.ad?.directory_slots?.size_tier || 'small';
     const patch = {};
     if ('ad_title' in body || 'business_name' in body) {
       const title = String(body.ad_title || body.business_name || '').trim();
@@ -88,8 +106,18 @@ export async function PATCH(request) {
       }
       patch.ad_phone = phone;
     }
-    if ('ad_image_url' in body) {
-      patch.ad_image_url = String(body.ad_image_url || '').trim() || null;
+    if ('ad_body' in body) {
+      const text = String(body.ad_body || '').trim();
+      const max = adBodyLimit(sizeTier);
+      if (text.length > max) {
+        return NextResponse.json({ error: `광고 문구는 ${max}자 이내로 작성해 주세요.` }, { status: 400 });
+      }
+      patch.ad_body = text || null;
+    }
+    if ('ad_image_urls' in body || 'ad_image_url' in body) {
+      const urls = normalizeAdImageUrls(body.ad_image_urls, body.ad_image_url);
+      patch.ad_image_urls = urls;
+      patch.ad_image_url = urls[0] || null;
     }
 
     if (!Object.keys(patch).length) {
@@ -104,15 +132,18 @@ export async function PATCH(request) {
       .eq('submitted_by', user.id)
       .eq('status', 'active')
       .select(
-        'id,slot_id,sponsor_id,submitted_by,category_slug,ad_title,ad_image_url,ad_phone,status,period_end'
+        'id,slot_id,sponsor_id,submitted_by,category_slug,ad_title,ad_body,ad_image_url,ad_image_urls,ad_phone,status,period_end'
       )
       .single();
 
     if (error) {
-      if (!admin) throw error;
-      const retry = await admin
+      // Fallback without new columns
+      const legacyPatch = { ...patch };
+      delete legacyPatch.ad_body;
+      delete legacyPatch.ad_image_urls;
+      const retry = await (admin || writer)
         .from('directory_slot_ads')
-        .update(patch)
+        .update(legacyPatch)
         .eq('id', adId)
         .eq('submitted_by', user.id)
         .eq('status', 'active')
@@ -124,7 +155,6 @@ export async function PATCH(request) {
       data = retry.data;
     }
 
-    // Keep linked directory sponsor listing in sync when present.
     if (data?.sponsor_id && (patch.ad_title || patch.ad_phone || patch.ad_image_url || patch.category_slug)) {
       const sponsorPatch = {};
       if (patch.ad_title) sponsorPatch.business_name = patch.ad_title;

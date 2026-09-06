@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import DirectoryAdSlider from './DirectoryAdSlider';
 import { listDirectoryCategories, getDirectoryCategoryLabel } from '../lib/directoryCategories';
 import {
   buildDirectorySpreads,
@@ -144,14 +145,10 @@ function DirectoryPaper({ pageData, category, currentUserId }) {
                       className="dir-ad dir-ad--mine"
                       aria-label={`${ad.ad_title || cellLabel} 수정`}
                     >
-                      {ad.ad_image_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={ad.ad_image_url} alt="" className="dir-ad-image" draggable={false} />
-                      ) : (
-                        <div className="dir-ad-image dir-ad-image--placeholder" />
-                      )}
+                      <DirectoryAdSlider ad={ad} />
                       <div className="dir-ad-body">
                         <div className="dir-ad-title">{ad.ad_title}</div>
+                        {ad.ad_body ? <div className="dir-ad-copy">{ad.ad_body}</div> : null}
                         <div className="dir-ad-cat">
                           {getDirectoryCategoryLabel(ad.category_slug)}
                         </div>
@@ -161,14 +158,10 @@ function DirectoryPaper({ pageData, category, currentUserId }) {
                     </Link>
                   ) : (
                     <div className="dir-ad" aria-disabled="true">
-                      {ad.ad_image_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={ad.ad_image_url} alt="" className="dir-ad-image" draggable={false} />
-                      ) : (
-                        <div className="dir-ad-image dir-ad-image--placeholder" />
-                      )}
+                      <DirectoryAdSlider ad={ad} />
                       <div className="dir-ad-body">
                         <div className="dir-ad-title">{ad.ad_title}</div>
+                        {ad.ad_body ? <div className="dir-ad-copy">{ad.ad_body}</div> : null}
                         <div className="dir-ad-cat">
                           {getDirectoryCategoryLabel(ad.category_slug)}
                         </div>

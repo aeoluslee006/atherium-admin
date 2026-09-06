@@ -124,6 +124,8 @@ async function activateDirectorySlotAd(admin, meta, subscription) {
   const categorySlug = String(meta.category_slug || 'other').trim();
   const adPhone = String(meta.ad_phone || '').trim() || null;
   const adImageUrl = String(meta.ad_image_url || '').trim() || null;
+  const adBody = String(meta.ad_body || '').trim() || null;
+  const pendingAdId = String(meta.pending_ad_id || '').trim() || null;
   const subscriptionId = subscription?.id || null;
 
   const periodStart = subscription?.current_period_start
@@ -176,14 +178,43 @@ async function activateDirectorySlotAd(admin, meta, subscription) {
     sponsorId = created.id;
   }
 
-  // Expire any prior active ad on this slot, then insert.
+  // Expire any prior active ad on this slot.
   await admin
     .from('directory_slot_ads')
     .update({ status: 'expired' })
     .eq('slot_id', slotId)
     .eq('status', 'active');
 
-  const { error: adErr } = await admin.from('directory_slot_ads').insert({
+  // Prefer activating the checkout draft (keeps multi-image + body).
+  if (pendingAdId) {
+    const activatePatch = {
+      sponsor_id: sponsorId,
+      period_start: periodStart,
+      period_end: periodEnd,
+      stripe_subscription_id: subscriptionId,
+      status: 'active',
+      category_slug: categorySlug,
+      ad_title: adTitle,
+      ad_phone: adPhone,
+      ad_image_url: adImageUrl,
+    };
+    if (adBody != null) activatePatch.ad_body = adBody;
+
+    const { data: activated, error: actErr } = await admin
+      .from('directory_slot_ads')
+      .update(activatePatch)
+      .eq('id', pendingAdId)
+      .eq('submitted_by', userId)
+      .select('id')
+      .maybeSingle();
+    if (actErr) throw actErr;
+    if (activated?.id) {
+      await admin.from('directory_slots').update({ status: 'occupied' }).eq('id', slotId);
+      return true;
+    }
+  }
+
+  const insertRow = {
     slot_id: slotId,
     sponsor_id: sponsorId,
     submitted_by: userId,
@@ -195,8 +226,28 @@ async function activateDirectorySlotAd(admin, meta, subscription) {
     period_end: periodEnd,
     stripe_subscription_id: subscriptionId,
     status: 'active',
-  });
-  if (adErr) throw adErr;
+  };
+  if (adBody) insertRow.ad_body = adBody;
+  if (adImageUrl) insertRow.ad_image_urls = [adImageUrl];
+
+  const { error: adErr } = await admin.from('directory_slot_ads').insert(insertRow);
+  if (adErr) {
+    // Retry without new columns if migration not applied.
+    const { error: legacyErr } = await admin.from('directory_slot_ads').insert({
+      slot_id: slotId,
+      sponsor_id: sponsorId,
+      submitted_by: userId,
+      category_slug: categorySlug,
+      ad_title: adTitle,
+      ad_image_url: adImageUrl,
+      ad_phone: adPhone,
+      period_start: periodStart,
+      period_end: periodEnd,
+      stripe_subscription_id: subscriptionId,
+      status: 'active',
+    });
+    if (legacyErr) throw legacyErr;
+  }
 
   const { error: slotErr } = await admin
     .from('directory_slots')
@@ -361,10 +412,21 @@ export async function POST(request) {
       case 'checkout.session.async_payment_failed': {
         const session = event.data.object;
         if (session.metadata?.kind === 'directory_slot' && session.metadata?.slot_id) {
-          await admin
-            .from('directory_slots')
-            .update({ status: 'available' })
-            .eq('id', session.metadata.slot_id);
+          const slotId = session.metadata.slot_id;
+          if (session.metadata.pending_ad_id) {
+            await admin
+              .from('directory_slot_ads')
+              .delete()
+              .eq('id', session.metadata.pending_ad_id)
+              .eq('status', 'pending');
+          } else {
+            await admin
+              .from('directory_slot_ads')
+              .delete()
+              .eq('slot_id', slotId)
+              .eq('status', 'pending');
+          }
+          await admin.from('directory_slots').update({ status: 'available' }).eq('id', slotId);
         }
         break;
       }

@@ -6,17 +6,11 @@ import Link from 'next/link';
 import JobsComposeForm from '../../../../components/JobsComposeForm';
 import HousingPhotosField from '../../../../components/HousingPhotosField';
 import MarketBodyEditor from '../../../../components/MarketBodyEditor';
-import StationeryPicker from '../../../../components/StationeryPicker';
-import StationeryBox from '../../../../components/stationery/StationeryBox';
 import { getCategory } from '../../../../lib/categories';
 import { FREE_BOARD_WRITE_TAGS, isValidFreeBoardWriteTag } from '../../../../lib/freeBoardTags';
 import { HOUSING_TAGS, HOUSING_TYPES, isValidHousingTag } from '../../../../lib/housingTags';
 import { MARKET_TAGS, isValidMarketTag } from '../../../../lib/marketTags';
 import { serializeImageUrls } from '../../../../lib/postImages';
-import {
-  DEFAULT_STATIONERY_ID,
-  isValidStationeryId,
-} from '../../../../lib/stationery';
 import { SETTLEMENT_CITY_NAMES, isValidSettlementCity } from '../../../../lib/settlementTowns';
 import { supabase } from '../../../../lib/supabaseClient';
 
@@ -46,7 +40,6 @@ export default function NewPostPage() {
   const isClasses = params.slug === 'classes';
   const [authReady, setAuthReady] = useState(false);
   const [subcategory, setSubcategory] = useState('');
-  const [stationeryId, setStationeryId] = useState(DEFAULT_STATIONERY_ID);
   const [showOnDashboard, setShowOnDashboard] = useState(false);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
@@ -210,10 +203,6 @@ export default function NewPostPage() {
         setError('서브카테고리를 선택해 주세요.');
         return;
       }
-      if (isFree && subcategory === 'featured' && !isValidStationeryId(stationeryId)) {
-        setError('편지지를 선택해 주세요.');
-        return;
-      }
       if (isMarket && !isValidMarketTag(subcategory)) {
         setError('구분(팝니다/삽니다 등)을 선택해 주세요.');
         return;
@@ -258,9 +247,6 @@ export default function NewPostPage() {
         payload.subcategory = subcategory;
         // 좋은글 board list vs home dashboard: many featured posts, only checked ones on home.
         payload.is_featured = subcategory === 'featured' && showOnDashboard;
-        if (subcategory === 'featured') {
-          payload.stationery_id = stationeryId;
-        }
       }
       if (isMarket) {
         payload.subcategory = subcategory;
@@ -287,17 +273,6 @@ export default function NewPostPage() {
 
       let { data, error: insertError } = await supabase.from('posts').insert(payload).select('id').single();
 
-      if (insertError && isFree && payload.stationery_id) {
-        const { stationery_id, ...withoutStationery } = payload;
-        const retry = await supabase.from('posts').insert(withoutStationery).select('id').single();
-        if (!retry.error) {
-          setError(
-            '글은 등록됐지만 편지지 컬럼이 아직 DB에 없습니다. featured_stationery_schema.sql을 실행해 주세요.'
-          );
-        }
-        data = retry.data;
-        insertError = retry.error;
-      }
 
       if (insertError && isMarket) {
         const { price_text, contact_text, image_urls, ...basic } = payload;
@@ -478,11 +453,6 @@ export default function NewPostPage() {
 
         {isFeaturedWrite ? (
           <>
-            <StationeryPicker
-              value={stationeryId}
-              onChange={setStationeryId}
-              disabled={saving}
-            />
             <label className="dashboard-feature-toggle">
               <input
                 type="checkbox"
@@ -493,7 +463,7 @@ export default function NewPostPage() {
               <span>
                 홈에 <strong>좋은 글</strong> 후보로 올리기
                 <em className="dashboard-feature-hint">
-                  체크한 글 중에서 하루에 한 편이 홈 편지지에 랜덤으로 보입니다. 좋은글
+                  체크한 글 중에서 하루에 한 편이 홈에 랜덤으로 보입니다. 좋은글
                   게시판에는 모두 남습니다.
                 </em>
               </span>
@@ -659,19 +629,14 @@ export default function NewPostPage() {
                 : undefined
             }
           />
-        ) : isFeaturedWrite ? (
-          <StationeryBox stationeryId={stationeryId} className="letter-compose">
-            <textarea
-              id="body"
-              className="letter-compose-textarea"
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              placeholder="편지지 위에 마음을 적어 보세요…"
-              required
-            />
-          </StationeryBox>
         ) : (
-          <textarea id="body" value={body} onChange={(e) => setBody(e.target.value)} required />
+          <textarea
+            id="body"
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            placeholder={isFeaturedWrite ? '좋은글 내용을 적어 주세요…' : undefined}
+            required
+          />
         )}
 
         {error ? <div className="error-text">{error}</div> : null}

@@ -4,7 +4,6 @@ import { getCategory } from '../lib/categories';
 import { pickDailyFeatured, siteDateKey } from '../lib/dailyFeatured';
 import { isExampleLocalNews } from '../lib/localNews';
 import { getSampleClassesPost, SAMPLE_CLASSES_POST_ID } from '../lib/sampleClassesPost';
-import StationeryBox from '../components/stationery/StationeryBox';
 import { supabaseRest } from '../lib/supabaseRest';
 
 export const dynamic = 'force-dynamic';
@@ -53,7 +52,7 @@ async function safeRest(path) {
 
 async function getHomeData() {
   const featuredSelectWithPaper =
-    'posts?select=id,title,body,category_slug,created_at,is_featured,stationery_id,subcategory&is_featured=eq.true&order=created_at.desc&limit=50';
+    'posts?select=id,title,body,category_slug,created_at,is_featured,subcategory&is_featured=eq.true&order=created_at.desc&limit=50';
   const featuredSelectBasic =
     'posts?select=id,title,body,category_slug,created_at,is_featured&is_featured=eq.true&order=created_at.desc&limit=50';
 
@@ -174,7 +173,7 @@ export default async function HomePage() {
         })}
       </section>
 
-      {/* 2구역 — 지역뉴스 / 오늘의 좋은글 (하루 1편 편지지) */}
+      {/* 2구역 — 지역뉴스 / 오늘의 좋은글 (하루 1편) */}
       <section className="wf-mid" aria-label="지역뉴스와 좋은글">
         <LocalNewsPanel items={localNews || []} />
 
@@ -187,27 +186,25 @@ export default async function HomePage() {
           </div>
           {featuredPost ? (
             <Link href={`/post/${featuredPost.id}`} className="wf-featured-letter">
-              <StationeryBox stationeryId={featuredPost.stationery_id}>
-                <div className="wf-featured-letter-top">
-                  <span className="wf-featured-today">오늘의 글</span>
-                  <div className="wf-featured-meta">
-                    <span>{cat?.nameKo || featuredPost.category_slug || '게시판'}</span>
-                    <time>{formatDate(featuredPost.created_at)}</time>
-                  </div>
+              <div className="wf-featured-letter-top">
+                <span className="wf-featured-today">오늘의 글</span>
+                <div className="wf-featured-meta">
+                  <span>{cat?.nameKo || featuredPost.category_slug || '게시판'}</span>
+                  <time>{formatDate(featuredPost.created_at)}</time>
                 </div>
-                <div className="wf-featured-name">{featuredPost.title}</div>
-                {bodyText ? <p className="wf-featured-letter-body">{bodyText}</p> : null}
-                {featuredPoolCount > 1 ? (
-                  <span className="wf-featured-letter-foot">
-                    체크된 좋은글 {featuredPoolCount}편 중 · 매일 다른 글이 바뀝니다
-                  </span>
-                ) : null}
-              </StationeryBox>
+              </div>
+              <div className="wf-featured-name">{featuredPost.title}</div>
+              {bodyText ? <p className="wf-featured-letter-body">{bodyText}</p> : null}
+              {featuredPoolCount > 1 ? (
+                <span className="wf-featured-letter-foot">
+                  체크된 좋은글 {featuredPoolCount}편 중 · 매일 다른 글이 바뀝니다
+                </span>
+              ) : null}
             </Link>
           ) : (
             <div className="wf-empty wf-empty--grow">
               아직 홈에 올린 좋은글이 없습니다. 글쓰기에서 「좋은글」선택 후 「홈에 표시」를
-              체크하세요. 체크한 글 중 하루에 한 편이 편지지로 보입니다.
+              체크하세요. 체크한 글 중 하루에 한 편이 보입니다.
             </div>
           )}
         </div>

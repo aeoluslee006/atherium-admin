@@ -5041,10 +5041,6 @@ main:has(.home-page) {
   font-weight: 650;
 }
 
-.dir-pages-hint {
-  margin-top: 8px;
-}
-
 .dir-zoom {
   display: flex;
   flex-wrap: wrap;
@@ -5200,7 +5196,7 @@ main:has(.home-page) {
   min-width: 0;
   min-height: 0;
   gap: 4px;
-  pointer-events: none; /* 지면 클릭 불가 */
+  pointer-events: auto;
 }
 
 .dir-cell {
@@ -5276,6 +5272,12 @@ main:has(.home-page) {
   font-size: 7px;
 }
 
+.dir-pages-hint {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
 .dir-cell-empty {
   height: 100%;
   min-width: 0;
@@ -5286,6 +5288,44 @@ main:has(.home-page) {
   justify-content: space-between;
   padding: 3px 4px;
   box-sizing: border-box;
+}
+
+.dir-cell-empty--link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.dir-cell.is-applyable {
+  border-style: dashed;
+  border-color: rgba(47, 93, 74, 0.35);
+}
+
+.dir-cell.is-applyable:hover,
+.dir-cell.is-applyable:focus-within {
+  background: rgba(47, 93, 74, 0.08);
+  border-color: rgba(47, 93, 74, 0.55);
+}
+
+.dir-slot-cta {
+  flex: 0 0 auto;
+  text-align: center;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #2f5d4a;
+  margin-top: 1px;
+}
+
+.dir-mobile-list-row--link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.dir-mobile-list-row--link:hover {
+  background: rgba(47, 93, 74, 0.06);
 }
 
 .dir-slot-position {

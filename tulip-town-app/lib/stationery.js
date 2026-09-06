@@ -104,8 +104,8 @@ export function stationeryBackgroundStyle(id) {
   const s = getStationeryById(id);
   return {
     backgroundImage: `url('${s.file}')`,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center top',
+    backgroundSize: 'contain',
+    backgroundPosition: 'top center',
     backgroundRepeat: 'no-repeat',
   };
 }

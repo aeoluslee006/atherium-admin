@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import LocalNewsPanel from '../components/LocalNewsPanel';
 import { getCategory } from '../lib/categories';
+import { pickDailyFeatured, siteDateKey } from '../lib/dailyFeatured';
 import { isExampleLocalNews } from '../lib/localNews';
 import { getSampleClassesPost, SAMPLE_CLASSES_POST_ID } from '../lib/sampleClassesPost';
 import { stationeryClassName } from '../lib/stationery';
@@ -27,6 +28,21 @@ function excerpt(text, max = 110) {
   return `${plain.slice(0, max).trim()}…`;
 }
 
+function letterBody(text, max = 1100) {
+  if (!text) return '';
+  const plain = String(text)
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+  if (plain.length <= max) return plain;
+  return `${plain.slice(0, max).trim()}…`;
+}
+
 async function safeRest(path) {
   try {
     return await supabaseRest(path);
@@ -37,9 +53,9 @@ async function safeRest(path) {
 
 async function getHomeData() {
   const featuredSelectWithPaper =
-    'posts?select=id,title,body,category_slug,created_at,is_featured,stationery_id,subcategory&is_featured=eq.true&order=created_at.desc&limit=10';
+    'posts?select=id,title,body,category_slug,created_at,is_featured,stationery_id,subcategory&is_featured=eq.true&order=created_at.desc&limit=50';
   const featuredSelectBasic =
-    'posts?select=id,title,body,category_slug,created_at,is_featured&is_featured=eq.true&order=created_at.desc&limit=10';
+    'posts?select=id,title,body,category_slug,created_at,is_featured&is_featured=eq.true&order=created_at.desc&limit=50';
 
   const [premiumAds, localNewsRaw, featuredWithPaper, classPosts, marketPosts] = await Promise.all([
     safeRest(
@@ -57,10 +73,12 @@ async function getHomeData() {
     ),
   ]);
 
-  let featuredPosts = Array.isArray(featuredWithPaper) ? featuredWithPaper : [];
-  if (!featuredPosts.length) {
-    featuredPosts = await safeRest(featuredSelectBasic);
+  let featuredPool = Array.isArray(featuredWithPaper) ? featuredWithPaper : [];
+  if (!featuredPool.length) {
+    featuredPool = await safeRest(featuredSelectBasic);
   }
+
+  const featuredPost = pickDailyFeatured(featuredPool, siteDateKey());
 
   const localNews = (Array.isArray(localNewsRaw) ? localNewsRaw : [])
     .filter((row) => !isExampleLocalNews(row))
@@ -73,7 +91,14 @@ async function getHomeData() {
     classes = [{ id: sample.id, title: sample.title, created_at: sample.created_at }, ...classes];
   }
 
-  return { premiumAds, localNews, featuredPosts, classPosts: classes, marketPosts };
+  return {
+    premiumAds,
+    localNews,
+    featuredPost,
+    featuredPoolCount: featuredPool.length,
+    classPosts: classes,
+    marketPosts,
+  };
 }
 
 function padAds(ads) {
@@ -101,8 +126,12 @@ function SimpleRows({ posts, empty }) {
 }
 
 export default async function HomePage() {
-  const { premiumAds, localNews, featuredPosts, classPosts, marketPosts } = await getHomeData();
+  const { premiumAds, localNews, featuredPost, featuredPoolCount, classPosts, marketPosts } =
+    await getHomeData();
   const ads = padAds(premiumAds);
+  const cat = featuredPost ? getCategory(featuredPost.category_slug) : null;
+  const paper = featuredPost ? stationeryClassName(featuredPost.stationery_id) : '';
+  const bodyText = featuredPost ? letterBody(featuredPost.body) : '';
 
   return (
     <div className="container home-page">
@@ -146,7 +175,7 @@ export default async function HomePage() {
         })}
       </section>
 
-      {/* 2구역 — 지역뉴스(축소판→전체) / 좋은글 */}
+      {/* 2구역 — 지역뉴스 / 오늘의 좋은글 (하루 1편 편지지) */}
       <section className="wf-mid" aria-label="지역뉴스와 좋은글">
         <LocalNewsPanel items={localNews || []} />
 
@@ -157,34 +186,30 @@ export default async function HomePage() {
               더보기
             </Link>
           </div>
-          {featuredPosts?.length ? (
-            <ul className="wf-featured-list">
-              {featuredPosts.map((post) => {
-                const cat = getCategory(post.category_slug);
-                const paper = stationeryClassName(post.stationery_id);
-                return (
-                  <li key={post.id}>
-                    <Link
-                      href={`/post/${post.id}`}
-                      className={`wf-featured-row${paper ? ` ${paper}` : ''}`}
-                    >
-                      <div className="wf-featured-meta">
-                        <span>{cat?.nameKo || post.category_slug || '게시판'}</span>
-                        <time>{formatDate(post.created_at)}</time>
-                      </div>
-                      <div className="wf-featured-name">{post.title}</div>
-                      {post.body ? (
-                        <p className="wf-featured-excerpt">{excerpt(post.body, 90)}</p>
-                      ) : null}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
+          {featuredPost ? (
+            <Link
+              href={`/post/${featuredPost.id}`}
+              className={`wf-featured-letter${paper ? ` ${paper}` : ' letter-paper letter-paper--cream-lined'}`}
+            >
+              <div className="wf-featured-letter-top">
+                <span className="wf-featured-today">오늘의 글</span>
+                <div className="wf-featured-meta">
+                  <span>{cat?.nameKo || featuredPost.category_slug || '게시판'}</span>
+                  <time>{formatDate(featuredPost.created_at)}</time>
+                </div>
+              </div>
+              <div className="wf-featured-name">{featuredPost.title}</div>
+              {bodyText ? <p className="wf-featured-letter-body">{bodyText}</p> : null}
+              {featuredPoolCount > 1 ? (
+                <span className="wf-featured-letter-foot">
+                  체크된 좋은글 {featuredPoolCount}편 중 · 매일 다른 글이 바뀝니다
+                </span>
+              ) : null}
+            </Link>
           ) : (
             <div className="wf-empty wf-empty--grow">
-              아직 홈에 올린 좋은글이 없습니다. 글쓰기에서 「좋은글」선택 후 「홈 대시보드에 표시」를
-              체크하세요.
+              아직 홈에 올린 좋은글이 없습니다. 글쓰기에서 「좋은글」선택 후 「홈에 표시」를
+              체크하세요. 체크한 글 중 하루에 한 편이 편지지로 보입니다.
             </div>
           )}
         </div>

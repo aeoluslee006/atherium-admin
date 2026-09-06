@@ -492,9 +492,10 @@ export default function NewPostPage() {
                 disabled={saving}
               />
               <span>
-                홈 대시보드 <strong>좋은 글</strong> 창에 표시
+                홈에 <strong>좋은 글</strong> 후보로 올리기
                 <em className="dashboard-feature-hint">
-                  체크한 글만 메인 화면에 보입니다. 좋은글 게시판에는 모두 남습니다.
+                  체크한 글 중에서 하루에 한 편이 홈 편지지에 랜덤으로 보입니다. 좋은글
+                  게시판에는 모두 남습니다.
                 </em>
               </span>
             </label>

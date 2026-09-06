@@ -1,25 +1,45 @@
 import { NextResponse } from 'next/server';
 import { getUserFromRequest, tryAdminSupabase } from '../../../../lib/apiAuth';
-import { SELLER_PLAN_KEY } from '../../../../lib/sellerConstants';
+import {
+  SHOP_MONTHLY_KEY,
+  SHOP_UPGRADE_MONTHLY_KEY,
+} from '../../../../lib/sellerConstants';
 import { getAppUrl, getStripe } from '../../../../lib/stripe';
+
+async function getShopSponsor(db, userId) {
+  const { data, error } = await db
+    .from('sponsors')
+    .select('*')
+    .eq('listing_type', 'shop')
+    .eq('submitted_by', userId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
 
 export async function POST(request) {
   try {
     const { user, db } = await getUserFromRequest(request);
     if (!user || !db) return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
 
-    const { data: seller, error: sellerErr } = await db
-      .from('gift_sellers')
-      .select('*')
-      .eq('user_id', user.id)
-      .maybeSingle();
-    if (sellerErr) throw sellerErr;
-    if (!seller) return NextResponse.json({ error: '판매자 신청이 없습니다.' }, { status: 404 });
-    if (seller.status !== 'approved') {
+    const body = await request.json().catch(() => ({}));
+    const plan = body.plan === 'upgrade' ? 'upgrade' : 'basic';
+    const pricingKey = plan === 'upgrade' ? SHOP_UPGRADE_MONTHLY_KEY : SHOP_MONTHLY_KEY;
+
+    const sponsor = await getShopSponsor(db, user.id);
+    if (!sponsor) {
+      return NextResponse.json(
+        { error: '입점 신청이 없습니다. 먼저 사업자 입점을 신청해 주세요.' },
+        { status: 404 }
+      );
+    }
+    if (sponsor.status !== 'approved') {
       return NextResponse.json({ error: '관리자 승인 후 구독할 수 있습니다.' }, { status: 400 });
     }
-    if (seller.subscription_status === 'active') {
-      return NextResponse.json({ error: '이미 구독 중입니다.' }, { status: 400 });
+    if (plan === 'upgrade' && sponsor.plan_tier === 'extended') {
+      return NextResponse.json({ error: '이미 확장 요금제입니다.' }, { status: 400 });
     }
 
     const admin = tryAdminSupabase();
@@ -27,21 +47,25 @@ export async function POST(request) {
     const { data: pricing, error: pricingErr } = await reader
       .from('pricing_settings')
       .select('*')
-      .eq('key', SELLER_PLAN_KEY)
+      .eq('key', pricingKey)
       .eq('is_active', true)
       .maybeSingle();
     if (pricingErr) throw pricingErr;
 
-    const amountCents = pricing?.amount_cents ?? 1500;
+    const amountCents =
+      pricing?.amount_cents ?? (plan === 'upgrade' ? 2000 : 1000);
     const currency = (pricing?.currency || 'usd').toLowerCase();
-    const label = pricing?.label || '튤립가게 판매자 월 구독';
+    const label =
+      pricing?.label ||
+      (plan === 'upgrade' ? '튤립가게 확장 요금제 (+$20)' : '튤립가게 월 구독 ($10)');
 
     const stripe = getStripe();
     const appUrl = getAppUrl();
+    const kind = plan === 'upgrade' ? 'shop_upgrade' : 'shop_subscription';
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
-      customer_email: seller.email || user.email,
+      customer_email: user.email,
       line_items: [
         {
           price_data: {
@@ -53,31 +77,23 @@ export async function POST(request) {
           quantity: 1,
         },
       ],
-      success_url: `${appUrl}/seller?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${appUrl}/seller?checkout=success&session_id={CHECKOUT_SESSION_ID}&plan=${plan}`,
       cancel_url: `${appUrl}/seller?checkout=cancel`,
       metadata: {
-        kind: 'seller_subscription',
-        seller_id: seller.id,
+        kind,
+        sponsor_id: sponsor.id,
         user_id: user.id,
-        pricing_key: SELLER_PLAN_KEY,
+        pricing_key: pricingKey,
       },
       subscription_data: {
         metadata: {
-          kind: 'seller_subscription',
-          seller_id: seller.id,
+          kind,
+          sponsor_id: sponsor.id,
           user_id: user.id,
-          pricing_key: SELLER_PLAN_KEY,
+          pricing_key: pricingKey,
         },
       },
     });
-
-    await db
-      .from('gift_sellers')
-      .update({
-        subscription_status: 'pending',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', seller.id);
 
     return NextResponse.json({ url: session.url, session_id: session.id });
   } catch (err) {

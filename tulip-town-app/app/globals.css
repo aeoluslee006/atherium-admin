@@ -5250,6 +5250,16 @@ main:has(.home-page) {
   border-style: solid;
   border-color: rgba(90, 70, 45, 0.28);
   background: #fff;
+  pointer-events: none;
+  cursor: default;
+  user-select: none;
+}
+
+.dir-cell.is-occupied .dir-ad,
+.dir-cell.is-occupied a,
+.dir-cell.is-occupied button {
+  pointer-events: none;
+  cursor: default;
 }
 
 .dir-cell.is-dimmed {

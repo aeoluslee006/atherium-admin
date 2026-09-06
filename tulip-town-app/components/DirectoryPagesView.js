@@ -133,10 +133,10 @@ function DirectoryPaper({ pageData, category }) {
                 }}
               >
                 {occupied ? (
-                  <div className="dir-ad">
+                  <div className="dir-ad" aria-disabled="true">
                     {ad.ad_image_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={ad.ad_image_url} alt="" className="dir-ad-image" />
+                      <img src={ad.ad_image_url} alt="" className="dir-ad-image" draggable={false} />
                     ) : (
                       <div className="dir-ad-image dir-ad-image--placeholder" />
                     )}
@@ -375,7 +375,11 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
                 {row}
               </Link>
             ) : (
-              <div key={slot.id} className="dir-mobile-list-row">
+              <div
+                key={slot.id}
+                className={`dir-mobile-list-row${occupied ? ' is-occupied' : ''}`}
+                aria-disabled={occupied ? 'true' : undefined}
+              >
                 {row}
               </div>
             );

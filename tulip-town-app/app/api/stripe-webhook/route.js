@@ -113,6 +113,145 @@ async function syncShopSponsorPlan(admin, subscriptionOrSession) {
   return true;
 }
 
+/** Upsert member_tier subscriptions row (tulip_shop / directory_listing). */
+async function upsertMemberSubscription(admin, {
+  profileId,
+  productType,
+  status,
+  periodStart = null,
+  periodEnd = null,
+  stripeSubscriptionId = null,
+}) {
+  if (!profileId || !productType || !status) return false;
+
+  if (stripeSubscriptionId) {
+    const { data: byStripe } = await admin
+      .from('subscriptions')
+      .select('id')
+      .eq('stripe_subscription_id', stripeSubscriptionId)
+      .maybeSingle();
+    if (byStripe?.id) {
+      const { error } = await admin
+        .from('subscriptions')
+        .update({
+          status,
+          period_start: periodStart,
+          period_end: periodEnd,
+          product_type: productType,
+          profile_id: profileId,
+        })
+        .eq('id', byStripe.id);
+      if (error) throw error;
+      return true;
+    }
+  }
+
+  if (status === 'active') {
+    const { data: existing } = await admin
+      .from('subscriptions')
+      .select('id')
+      .eq('profile_id', profileId)
+      .eq('product_type', productType)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (existing?.id) {
+      const { error } = await admin
+        .from('subscriptions')
+        .update({
+          status: 'active',
+          period_start: periodStart,
+          period_end: periodEnd,
+          stripe_subscription_id: stripeSubscriptionId,
+        })
+        .eq('id', existing.id);
+      if (error) throw error;
+      return true;
+    }
+
+    const { error } = await admin.from('subscriptions').insert({
+      profile_id: profileId,
+      product_type: productType,
+      status: 'active',
+      period_start: periodStart,
+      period_end: periodEnd,
+      stripe_subscription_id: stripeSubscriptionId,
+    });
+    if (error) throw error;
+    return true;
+  }
+
+  // canceled / expired: mark matching active rows
+  let query = admin
+    .from('subscriptions')
+    .update({ status, period_end: periodEnd || new Date().toISOString() })
+    .eq('profile_id', profileId)
+    .eq('product_type', productType)
+    .eq('status', 'active');
+  if (stripeSubscriptionId) {
+    query = admin
+      .from('subscriptions')
+      .update({ status, period_end: periodEnd || new Date().toISOString() })
+      .eq('stripe_subscription_id', stripeSubscriptionId);
+  }
+  const { error } = await query;
+  if (error) throw error;
+  return true;
+}
+
+function subscriptionPeriodBounds(subscription) {
+  const periodStart = subscription?.current_period_start
+    ? new Date(subscription.current_period_start * 1000).toISOString()
+    : null;
+  const periodEnd = subscription?.current_period_end
+    ? new Date(subscription.current_period_end * 1000).toISOString()
+    : null;
+  return { periodStart, periodEnd };
+}
+
+async function syncShopMemberSubscription(admin, subscriptionOrSession, status = 'active') {
+  const meta = subscriptionOrSession?.metadata || {};
+  if (meta.kind !== 'shop_upgrade' && meta.kind !== 'shop_subscription') return false;
+  const profileId = meta.user_id;
+  if (!profileId) return false;
+
+  const stripeSubscriptionId =
+    typeof subscriptionOrSession?.id === 'string' && subscriptionOrSession.id.startsWith('sub_')
+      ? subscriptionOrSession.id
+      : typeof subscriptionOrSession?.subscription === 'string'
+        ? subscriptionOrSession.subscription
+        : subscriptionOrSession?.subscription?.id || null;
+
+  const { periodStart, periodEnd } = subscriptionPeriodBounds(subscriptionOrSession);
+  await upsertMemberSubscription(admin, {
+    profileId,
+    productType: 'tulip_shop',
+    status,
+    periodStart,
+    periodEnd,
+    stripeSubscriptionId,
+  });
+  return true;
+}
+
+async function syncDirectoryMemberSubscription(admin, meta, subscription, status = 'active') {
+  const profileId = meta?.user_id;
+  if (!profileId) return false;
+  const stripeSubscriptionId = subscription?.id || null;
+  const { periodStart, periodEnd } = subscriptionPeriodBounds(subscription);
+  await upsertMemberSubscription(admin, {
+    profileId,
+    productType: 'directory_listing',
+    status,
+    periodStart: periodStart || new Date().toISOString(),
+    periodEnd,
+    stripeSubscriptionId,
+  });
+  return true;
+}
+
 async function activateDirectorySlotAd(admin, meta, subscription) {
   if (!meta || meta.kind !== 'directory_slot') return false;
   const slotId = meta.slot_id;
@@ -293,6 +432,7 @@ export async function POST(request) {
             subscription = await stripe.subscriptions.retrieve(subscriptionId);
           }
           await activateDirectorySlotAd(admin, session.metadata, subscription);
+          await syncDirectoryMemberSubscription(admin, session.metadata, subscription, 'active');
           break;
         }
         if (
@@ -308,7 +448,12 @@ export async function POST(request) {
             if (subscriptionId) {
               const subscription = await stripe.subscriptions.retrieve(subscriptionId);
               await syncShopSponsorPlan(admin, subscription);
+              await syncShopMemberSubscription(admin, subscription, 'active');
+            } else {
+              await syncShopMemberSubscription(admin, session, 'active');
             }
+          } else {
+            await syncShopMemberSubscription(admin, session, 'active');
           }
           break;
         }
@@ -385,9 +530,18 @@ export async function POST(request) {
                 .eq('stripe_subscription_id', subscription.id)
                 .eq('status', 'active');
             }
+            await syncDirectoryMemberSubscription(
+              admin,
+              subscription.metadata,
+              subscription,
+              'active'
+            );
             break;
           }
-          if (await syncShopSponsorPlan(admin, subscription)) break;
+          if (await syncShopSponsorPlan(admin, subscription)) {
+            await syncShopMemberSubscription(admin, subscription, 'active');
+            break;
+          }
           if (await syncSellerSubscription(admin, subscription, 'active')) break;
           const sponsorId = subscription.metadata?.sponsor_id;
           await upsertPaymentFromSubscription({
@@ -407,7 +561,16 @@ export async function POST(request) {
           typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id;
         if (subscriptionId) {
           const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-          if (await releaseDirectorySlot(admin, subscription)) break;
+          if (await releaseDirectorySlot(admin, subscription)) {
+            await syncDirectoryMemberSubscription(
+              admin,
+              subscription.metadata,
+              subscription,
+              'expired'
+            );
+            break;
+          }
+          if (await syncShopMemberSubscription(admin, subscription, 'expired')) break;
           if (await syncSellerSubscription(admin, subscription, 'past_due')) break;
           const sponsorId = subscription.metadata?.sponsor_id;
           await upsertPaymentFromSubscription({
@@ -423,7 +586,16 @@ export async function POST(request) {
       }
       case 'customer.subscription.deleted': {
         const subscription = event.data.object;
-        if (await releaseDirectorySlot(admin, subscription)) break;
+        if (await releaseDirectorySlot(admin, subscription)) {
+          await syncDirectoryMemberSubscription(
+            admin,
+            subscription.metadata,
+            subscription,
+            'canceled'
+          );
+          break;
+        }
+        if (await syncShopMemberSubscription(admin, subscription, 'canceled')) break;
         if (await syncSellerSubscription(admin, subscription, 'canceled')) break;
         const sponsorId = subscription.metadata?.sponsor_id;
         await upsertPaymentFromSubscription({

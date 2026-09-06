@@ -4,7 +4,7 @@ import { getCategory } from '../lib/categories';
 import { pickDailyFeatured, siteDateKey } from '../lib/dailyFeatured';
 import { isExampleLocalNews } from '../lib/localNews';
 import { getSampleClassesPost, SAMPLE_CLASSES_POST_ID } from '../lib/sampleClassesPost';
-import { stationeryClassName } from '../lib/stationery';
+import { stationeryBackgroundStyle, stationeryClassName } from '../lib/stationery';
 import { supabaseRest } from '../lib/supabaseRest';
 
 export const dynamic = 'force-dynamic';
@@ -131,6 +131,9 @@ export default async function HomePage() {
   const ads = padAds(premiumAds);
   const cat = featuredPost ? getCategory(featuredPost.category_slug) : null;
   const paper = featuredPost ? stationeryClassName(featuredPost.stationery_id) : '';
+  const paperStyle = featuredPost
+    ? stationeryBackgroundStyle(featuredPost.stationery_id || 'classic-notes')
+    : null;
   const bodyText = featuredPost ? letterBody(featuredPost.body) : '';
 
   return (
@@ -189,7 +192,8 @@ export default async function HomePage() {
           {featuredPost ? (
             <Link
               href={`/post/${featuredPost.id}`}
-              className={`wf-featured-letter${paper ? ` ${paper}` : ' letter-paper letter-paper--cream-lined'}`}
+              className={`wf-featured-letter${paper ? ` ${paper}` : ' letter-paper letter-paper--svg letter-paper--classic-notes'}`}
+              style={paperStyle || undefined}
             >
               <div className="wf-featured-letter-top">
                 <span className="wf-featured-today">오늘의 글</span>

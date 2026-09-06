@@ -77,8 +77,8 @@ export async function POST(request) {
           quantity: 1,
         },
       ],
-      success_url: `${appUrl}/seller?checkout=success&session_id={CHECKOUT_SESSION_ID}&plan=${plan}`,
-      cancel_url: `${appUrl}/seller?checkout=cancel`,
+      success_url: `${appUrl}/mypage/shop?checkout=success&session_id={CHECKOUT_SESSION_ID}&plan=${plan}`,
+      cancel_url: `${appUrl}/mypage/shop?checkout=cancel`,
       metadata: {
         kind,
         sponsor_id: sponsor.id,

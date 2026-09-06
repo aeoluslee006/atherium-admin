@@ -10,7 +10,7 @@ async function getShopSponsor(db, userId) {
   const { data, error } = await db
     .from('sponsors')
     .select(
-      'id,business_name,business_address,ein,sos_document_path,city,description,status,plan_tier,product_limit,review_notes,approved_at,created_at,listing_type,submitted_by'
+      'id,business_name,business_address,ein,sos_document_path,city,description,contact,image_url,website_url,status,plan_tier,product_limit,review_notes,approved_at,created_at,listing_type,submitted_by'
     )
     .eq('listing_type', 'shop')
     .eq('submitted_by', userId)
@@ -28,6 +28,76 @@ export async function GET(request) {
 
     const sponsor = await getShopSponsor(db, user.id);
     return NextResponse.json({ seller: sponsor || null, sponsor: sponsor || null });
+  } catch (err) {
+    return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request) {
+  try {
+    const { user, db } = await getUserFromRequest(request);
+    if (!user || !db) return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
+
+    const sponsor = await getShopSponsor(db, user.id);
+    if (!sponsor) {
+      return NextResponse.json({ error: '입점된 매장이 없습니다.' }, { status: 404 });
+    }
+
+    const body = await request.json().catch(() => ({}));
+    const patch = {};
+
+    if ('business_name' in body) {
+      const v = String(body.business_name || '').trim();
+      if (!v) return NextResponse.json({ error: '상호명을 입력해 주세요.' }, { status: 400 });
+      patch.business_name = v;
+    }
+    if ('city' in body) {
+      patch.city = String(body.city || '').trim() || null;
+    }
+    if ('description' in body || 'bio' in body) {
+      patch.description = String(body.description || body.bio || '').trim() || null;
+    }
+    if ('contact' in body) {
+      patch.contact = String(body.contact || '').trim() || null;
+    }
+    if ('image_url' in body) {
+      patch.image_url = String(body.image_url || '').trim() || null;
+    }
+    if ('website_url' in body) {
+      patch.website_url = String(body.website_url || '').trim() || null;
+    }
+
+    if (!Object.keys(patch).length) {
+      return NextResponse.json({ error: '변경할 항목이 없습니다.' }, { status: 400 });
+    }
+
+    let { data, error } = await db
+      .from('sponsors')
+      .update(patch)
+      .eq('id', sponsor.id)
+      .eq('submitted_by', user.id)
+      .select(
+        'id,business_name,business_address,city,description,contact,image_url,website_url,status,plan_tier,product_limit,review_notes,approved_at,created_at,listing_type,submitted_by'
+      )
+      .single();
+
+    if (error) {
+      const admin = tryAdminSupabase();
+      if (!admin) throw error;
+      const retry = await admin
+        .from('sponsors')
+        .update(patch)
+        .eq('id', sponsor.id)
+        .eq('submitted_by', user.id)
+        .select(
+          'id,business_name,business_address,city,description,contact,image_url,website_url,status,plan_tier,product_limit,review_notes,approved_at,created_at,listing_type,submitted_by'
+        )
+        .single();
+      if (retry.error) throw retry.error;
+      data = retry.data;
+    }
+
+    return NextResponse.json({ seller: data, sponsor: data });
   } catch (err) {
     return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 });
   }

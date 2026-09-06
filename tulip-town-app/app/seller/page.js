@@ -146,6 +146,9 @@ function SellerDashboardInner() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <Link href="/mypage/shop" className="btn btn-outline">
+            내 매장 관리
+          </Link>
           <Link href="/directory" className="btn btn-outline">
             디렉토리
           </Link>

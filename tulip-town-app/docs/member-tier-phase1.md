@@ -20,7 +20,7 @@ This adds:
 
 ## Out of scope (later phases)
 
-- Shop management UI
+- ~~Shop management UI~~ → see `member-tier-phase2.md`
 - Moderator tools
 - Atherium admin member controls
 - Tier badges on board/comment bylines

@@ -140,6 +140,23 @@ export default async function MyPage() {
         <MemberTierBadge tier={tier} />
       </header>
 
+      <section className="mypage-section card" aria-labelledby="mypage-shop-title">
+        <div className="mypage-section-head">
+          <h2 id="mypage-shop-title">내 매장</h2>
+        </div>
+        <div className="mypage-empty">
+          <p>튤립가게 매장 정보와 상품을 관리합니다.</p>
+          <div className="mypage-empty-actions">
+            <Link href="/mypage/shop" className="btn btn-outline">
+              내 매장 관리
+            </Link>
+            <Link href="/seller" className="btn btn-outline">
+              판매자 센터
+            </Link>
+          </div>
+        </div>
+      </section>
+
       <section className="mypage-section card" aria-labelledby="mypage-subs-title">
         <div className="mypage-section-head">
           <h2 id="mypage-subs-title">구독 현황</h2>

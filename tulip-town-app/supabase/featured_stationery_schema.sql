@@ -9,7 +9,7 @@ comment on column public.posts.is_featured is
   'When true, post appears in the home dashboard 좋은글 panel.';
 
 comment on column public.posts.stationery_id is
-  'Letter-paper theme id for 좋은글 posts (e.g. cream-lined, sage-leaf).';
+  'Letter-paper theme id for 좋은글 posts (e.g. classic-notes, watercolor-floral).';
 
 create index if not exists posts_is_featured_idx
   on public.posts (is_featured)

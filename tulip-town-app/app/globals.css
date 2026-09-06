@@ -5338,6 +5338,12 @@ main:has(.home-page) {
   background: rgba(47, 93, 74, 0.06);
 }
 
+.dir-mobile-list-row.is-occupied {
+  pointer-events: none;
+  cursor: default;
+  opacity: 0.95;
+}
+
 .dir-slot-position {
   flex: 1 1 auto;
   display: flex;

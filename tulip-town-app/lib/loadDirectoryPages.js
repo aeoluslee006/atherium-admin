@@ -5,7 +5,7 @@ export async function loadDirectoryPages() {
   let slots = [];
   try {
     const rows = await supabaseRest(
-      'directory_slots?select=id,page_number,row_index,col_index,span_cols,span_rows,position_label,size_tier,base_price_cents,status,directory_slot_ads(id,slot_id,category_slug,ad_title,ad_image_url,ad_phone,status,period_end)&order=page_number.asc,row_index.asc,col_index.asc'
+      'directory_slots?select=id,page_number,row_index,col_index,span_cols,span_rows,position_label,size_tier,base_price_cents,status,directory_slot_ads(id,slot_id,submitted_by,category_slug,ad_title,ad_image_url,ad_phone,status,period_end)&order=page_number.asc,row_index.asc,col_index.asc'
     );
     slots = Array.isArray(rows) ? rows : [];
   } catch {

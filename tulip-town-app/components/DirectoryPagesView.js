@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { listDirectoryCategories, getDirectoryCategoryLabel } from '../lib/directoryCategories';
 import {
   buildDirectorySpreads,
@@ -13,6 +13,7 @@ import {
   mergeSlotsForDisplay,
   sizeTierLabel,
 } from '../lib/directorySlots';
+import { supabase } from '../lib/supabaseClient';
 
 const ZOOM_MIN = 0.75;
 const ZOOM_MAX = 2.5;
@@ -65,7 +66,7 @@ function SideMenu({ side, categories, category, onSelect, showAll, showList }) {
   );
 }
 
-function DirectoryPaper({ pageData, category }) {
+function DirectoryPaper({ pageData, category, currentUserId }) {
   const pageNumber = pageData?.pageNumber || 1;
   const slots = pageData?.slots || [];
   const rawSize = computePageGridSize(slots);
@@ -91,6 +92,9 @@ function DirectoryPaper({ pageData, category }) {
             const slot = cell.primary;
             const ad = activeAd(slot);
             const occupied = slot.status === 'occupied' && ad;
+            const isMine = Boolean(
+              occupied && currentUserId && ad.submitted_by && ad.submitted_by === currentUserId
+            );
             const applySlot = !occupied
               ? cell.slots.find((s) => s.status === 'available') || slot
               : null;
@@ -119,6 +123,7 @@ function DirectoryPaper({ pageData, category }) {
                 className={[
                   'dir-cell',
                   occupied ? 'is-occupied' : 'is-empty',
+                  isMine ? 'is-mine' : '',
                   canApply ? 'is-applyable' : '',
                   dim ? 'is-dimmed' : '',
                   highlight ? 'is-highlight' : '',
@@ -133,21 +138,44 @@ function DirectoryPaper({ pageData, category }) {
                 }}
               >
                 {occupied ? (
-                  <div className="dir-ad" aria-disabled="true">
-                    {ad.ad_image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={ad.ad_image_url} alt="" className="dir-ad-image" draggable={false} />
-                    ) : (
-                      <div className="dir-ad-image dir-ad-image--placeholder" />
-                    )}
-                    <div className="dir-ad-body">
-                      <div className="dir-ad-title">{ad.ad_title}</div>
-                      <div className="dir-ad-cat">
-                        {getDirectoryCategoryLabel(ad.category_slug)}
+                  isMine ? (
+                    <Link
+                      href={`/directory/pages/edit?ad=${encodeURIComponent(ad.id)}`}
+                      className="dir-ad dir-ad--mine"
+                      aria-label={`${ad.ad_title || cellLabel} 수정`}
+                    >
+                      {ad.ad_image_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={ad.ad_image_url} alt="" className="dir-ad-image" draggable={false} />
+                      ) : (
+                        <div className="dir-ad-image dir-ad-image--placeholder" />
+                      )}
+                      <div className="dir-ad-body">
+                        <div className="dir-ad-title">{ad.ad_title}</div>
+                        <div className="dir-ad-cat">
+                          {getDirectoryCategoryLabel(ad.category_slug)}
+                        </div>
+                        {ad.ad_phone ? <div className="dir-ad-phone">{ad.ad_phone}</div> : null}
+                        <div className="dir-slot-cta">내 광고 수정</div>
                       </div>
-                      {ad.ad_phone ? <div className="dir-ad-phone">{ad.ad_phone}</div> : null}
+                    </Link>
+                  ) : (
+                    <div className="dir-ad" aria-disabled="true">
+                      {ad.ad_image_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={ad.ad_image_url} alt="" className="dir-ad-image" draggable={false} />
+                      ) : (
+                        <div className="dir-ad-image dir-ad-image--placeholder" />
+                      )}
+                      <div className="dir-ad-body">
+                        <div className="dir-ad-title">{ad.ad_title}</div>
+                        <div className="dir-ad-cat">
+                          {getDirectoryCategoryLabel(ad.category_slug)}
+                        </div>
+                        {ad.ad_phone ? <div className="dir-ad-phone">{ad.ad_phone}</div> : null}
+                      </div>
                     </div>
-                  </div>
+                  )
                 ) : canApply ? (
                   <Link
                     href={`/directory/pages/apply?slot=${encodeURIComponent(applySlot.id)}`}
@@ -187,6 +215,22 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
   const [category, setCategory] = useState('all');
   const [mobileMode, setMobileMode] = useState('grid');
   const [zoom, setZoom] = useState(1);
+  const [currentUserId, setCurrentUserId] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!cancelled) setCurrentUserId(data.session?.user?.id || '');
+    })();
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      setCurrentUserId(session?.user?.id || '');
+    });
+    return () => {
+      cancelled = true;
+      sub?.subscription?.unsubscribe?.();
+    };
+  }, []);
 
   const spread = spreads[spreadIndex] || spreads[0] || { left: 1, right: null };
   const leftPage = pageByNumber.get(spread.left);
@@ -257,8 +301,8 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
             className={`dir-spread-papers${isSingleSpread ? ' is-single' : ''}`}
             style={{ '--spread-page-count': isSingleSpread ? 1 : 2 }}
           >
-            {leftPage ? <DirectoryPaper pageData={leftPage} category={category} /> : null}
-            {rightPage ? <DirectoryPaper pageData={rightPage} category={category} /> : null}
+            {leftPage ? <DirectoryPaper pageData={leftPage} category={category} currentUserId={currentUserId} /> : null}
+            {rightPage ? <DirectoryPaper pageData={rightPage} category={category} currentUserId={currentUserId} /> : null}
           </div>
         </div>
 
@@ -351,6 +395,9 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
           {listSlots.map((slot) => {
             const ad = activeAd(slot);
             const occupied = slot.status === 'occupied' && ad;
+            const isMine = Boolean(
+              occupied && currentUserId && ad.submitted_by && ad.submitted_by === currentUserId
+            );
             const canApply = !occupied && slot.status === 'available';
             const row = (
               <>
@@ -358,7 +405,9 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
                 <span>{sizeTierLabel(slot.size_tier)}</span>
                 <span>
                   {occupied
-                    ? `${ad.ad_title} · ${getDirectoryCategoryLabel(ad.category_slug)}`
+                    ? `${ad.ad_title} · ${getDirectoryCategoryLabel(ad.category_slug)}${
+                        isMine ? ' · 내 광고' : ''
+                      }`
                     : canApply
                       ? '빈 자리 · 신청'
                       : '빈 자리'}
@@ -366,15 +415,29 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
                 <span>{formatSlotPrice(slot.base_price_cents)}</span>
               </>
             );
-            return canApply ? (
-              <Link
-                key={slot.id}
-                href={`/directory/pages/apply?slot=${encodeURIComponent(slot.id)}`}
-                className="dir-mobile-list-row dir-mobile-list-row--link"
-              >
-                {row}
-              </Link>
-            ) : (
+            if (canApply) {
+              return (
+                <Link
+                  key={slot.id}
+                  href={`/directory/pages/apply?slot=${encodeURIComponent(slot.id)}`}
+                  className="dir-mobile-list-row dir-mobile-list-row--link"
+                >
+                  {row}
+                </Link>
+              );
+            }
+            if (isMine) {
+              return (
+                <Link
+                  key={slot.id}
+                  href={`/directory/pages/edit?ad=${encodeURIComponent(ad.id)}`}
+                  className="dir-mobile-list-row dir-mobile-list-row--link is-mine"
+                >
+                  {row}
+                </Link>
+              );
+            }
+            return (
               <div
                 key={slot.id}
                 className={`dir-mobile-list-row${occupied ? ' is-occupied' : ''}`}

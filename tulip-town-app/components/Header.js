@@ -170,6 +170,12 @@ export default function Header() {
                     관리자
                   </Link>
                 ) : null}
+                <Link
+                  href="/mypage"
+                  className={`mypage-link${isNavActive(pathname, '/mypage') ? ' is-active' : ''}`}
+                >
+                  마이페이지
+                </Link>
                 <span className="auth-email">{session.user.email}</span>
                 <button type="button" onClick={handleLogout}>
                   로그아웃

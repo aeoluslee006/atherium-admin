@@ -1,18 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1100" preserveAspectRatio="xMidYMid slice">
-  <rect width="800" height="1100" fill="#faf7f2"/>
-  <g transform="translate(500,50) scale(0.9)" fill="none" stroke="#a16207" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".4">
-    <path d="M40 120 H250"/>
-    <path d="M60 120 C70 90 100 70 130 70 H180 C210 70 230 95 240 120"/>
-    <path d="M80 120 V145 H220 V120"/>
-    <circle cx="100" cy="145" r="16"/>
-    <circle cx="210" cy="145" r="16"/>
-    <path d="M110 95 H165"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="800" viewBox="0 0 600 800">
+  <rect width="600" height="800" fill="#f7f5f1"/>
+  <rect x="28" y="28" width="544" height="744" fill="#fffcf7" stroke="#d9d4cc" stroke-width="1.5"/>
+  <!-- cloud — full opacity -->
+  <g fill="none" stroke="#374151" stroke-width="2.4" stroke-linecap="round">
+    <path d="M70 80 c8 -18 28 -22 40 -12 8 -14 28 -16 40 -4 14 -2 26 10 24 24 h-96 c-4 -12 0 -22 -8 -8 z"/>
   </g>
-  <g transform="translate(30,940) scale(0.75)" fill="none" stroke="#d97706" stroke-width="3" opacity=".3">
-    <path d="M40 120 H250"/>
-    <path d="M60 120 C70 90 100 70 130 70 H180 C210 70 230 95 240 120"/>
-    <circle cx="100" cy="145" r="16"/>
-    <circle cx="210" cy="145" r="16"/>
+  <!-- ground line -->
+  <line x1="48" y1="700" x2="552" y2="700" stroke="#9ca3af" stroke-width="1.6"/>
+  <!-- car — full opacity -->
+  <g fill="none" stroke="#1f2937" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M390 700 v-18 h28 c18 -28 48 -42 78 -42 h40 c22 0 42 12 52 32 l18 28 h24 v18"/>
+    <path d="M430 642 h70"/>
+    <circle cx="430" cy="700" r="16"/>
+    <circle cx="520" cy="700" r="16"/>
+    <circle cx="430" cy="700" r="6"/>
+    <circle cx="520" cy="700" r="6"/>
   </g>
 </svg>

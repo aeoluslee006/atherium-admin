@@ -1,21 +1,40 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1100" preserveAspectRatio="xMidYMid slice">
-  <defs>
-    <pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse">
-      <path d="M28 0H0V28" fill="none" stroke="#cbd5e1" stroke-width="1" opacity=".45"/>
-    </pattern>
-  </defs>
-  <rect width="800" height="1100" fill="#fffef8"/>
-  <rect width="800" height="1100" fill="url(#grid)"/>
-  <g fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" opacity=".4">
-    <path d="M90 120c20-30 55-20 55 12 0 34-55 52-55 52s-55-18-55-52c0-32 35-42 55-12z"/>
-    <path d="M680 160 l18 18 M698 160 l-18 18"/>
-    <path d="M720 980c12 0 22 10 22 22s-10 22-22 22-22-10-22-22 10-22 22-22z"/>
-    <path d="M70 960 q20 -30 45 -10 q20 25 -5 40" />
-    <path d="M650 100 q30 10 20 40"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="800" viewBox="0 0 600 800">
+  <rect width="600" height="800" fill="#fefdf9"/>
+  <!-- top-left washi — opaque -->
+  <rect x="18" y="22" width="70" height="16" rx="2" transform="rotate(-8 18 22)" fill="#c9a8e0"/>
+  <!-- mug -->
+  <g fill="none" stroke="#2f2f2f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M70 95 h48 v42 c0 14 -10 24 -24 24 h0 c-14 0 -24 -10 -24 -24 z"/>
+    <path d="M118 108 h14 c8 0 14 6 14 14 s-6 14 -14 14 h-14"/>
+    <path d="M82 88 c0 -10 6 -16 12 -16"/>
+    <path d="M98 88 c0 -10 6 -16 12 -16"/>
   </g>
-  <g fill="#f472b6" opacity=".35">
-    <circle cx="140" cy="200" r="4"/><circle cx="700" cy="920" r="5"/>
+  <text x="130" y="108" font-size="14" fill="#3f3f3f">+</text>
+  <!-- book top-right -->
+  <g fill="none" stroke="#2f2f2f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M470 70 h70 v55 h-35 v-55"/>
+    <path d="M505 70 v55"/>
+    <path d="M480 82 h20"/>
+    <path d="M480 92 h20"/>
+    <path d="M515 82 h20"/>
+    <path d="M515 92 h20"/>
   </g>
-  <text x="660" y="70" font-family="Georgia, serif" font-size="28" fill="#94a3b8" opacity=".35">Dear...</text>
+  <circle cx="455" cy="78" r="3" fill="#2f2f2f"/>
+  <!-- plant bottom-left -->
+  <g fill="none" stroke="#2f2f2f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M55 700 c8 -28 28 -42 28 -42 s10 20 8 42"/>
+    <path d="M70 700 c-2 -22 8 -40 18 -48"/>
+    <path d="M48 700 h50 l-6 42 h-38 z"/>
+  </g>
+  <text x="105" y="690" font-size="16" fill="#3f3f3f">v</text>
+  <!-- coffee bottom-right -->
+  <g fill="none" stroke="#2f2f2f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M480 700 h55 v38 c0 12 -9 20 -20 20 h-15 c-11 0 -20 -8 -20 -20 z"/>
+    <path d="M535 712 h12 c7 0 12 5 12 12 s-5 12 -12 12 h-12"/>
+    <path d="M495 690 c0 -8 5 -12 10 -12"/>
+    <path d="M512 690 c0 -8 5 -12 10 -12"/>
+  </g>
+  <rect x="500" y="760" width="72" height="14" rx="2" fill="#e8a86a"/>
+  <text x="560" y="700" font-size="14" fill="#3f3f3f">+</text>
 </svg>

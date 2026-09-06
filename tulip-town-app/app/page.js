@@ -4,7 +4,7 @@ import { getCategory } from '../lib/categories';
 import { pickDailyFeatured, siteDateKey } from '../lib/dailyFeatured';
 import { isExampleLocalNews } from '../lib/localNews';
 import { getSampleClassesPost, SAMPLE_CLASSES_POST_ID } from '../lib/sampleClassesPost';
-import { stationeryBackgroundStyle, stationeryClassName } from '../lib/stationery';
+import StationeryBox from '../components/stationery/StationeryBox';
 import { supabaseRest } from '../lib/supabaseRest';
 
 export const dynamic = 'force-dynamic';
@@ -130,10 +130,6 @@ export default async function HomePage() {
     await getHomeData();
   const ads = padAds(premiumAds);
   const cat = featuredPost ? getCategory(featuredPost.category_slug) : null;
-  const paper = featuredPost ? stationeryClassName(featuredPost.stationery_id) : '';
-  const paperStyle = featuredPost
-    ? stationeryBackgroundStyle(featuredPost.stationery_id || 'classic-notes')
-    : null;
   const bodyText = featuredPost ? letterBody(featuredPost.body) : '';
 
   return (
@@ -190,25 +186,23 @@ export default async function HomePage() {
             </Link>
           </div>
           {featuredPost ? (
-            <Link
-              href={`/post/${featuredPost.id}`}
-              className={`wf-featured-letter${paper ? ` ${paper}` : ' letter-paper letter-paper--svg letter-paper--classic-notes'}`}
-              style={paperStyle || undefined}
-            >
-              <div className="wf-featured-letter-top">
-                <span className="wf-featured-today">오늘의 글</span>
-                <div className="wf-featured-meta">
-                  <span>{cat?.nameKo || featuredPost.category_slug || '게시판'}</span>
-                  <time>{formatDate(featuredPost.created_at)}</time>
+            <Link href={`/post/${featuredPost.id}`} className="wf-featured-letter">
+              <StationeryBox stationeryId={featuredPost.stationery_id}>
+                <div className="wf-featured-letter-top">
+                  <span className="wf-featured-today">오늘의 글</span>
+                  <div className="wf-featured-meta">
+                    <span>{cat?.nameKo || featuredPost.category_slug || '게시판'}</span>
+                    <time>{formatDate(featuredPost.created_at)}</time>
+                  </div>
                 </div>
-              </div>
-              <div className="wf-featured-name">{featuredPost.title}</div>
-              {bodyText ? <p className="wf-featured-letter-body">{bodyText}</p> : null}
-              {featuredPoolCount > 1 ? (
-                <span className="wf-featured-letter-foot">
-                  체크된 좋은글 {featuredPoolCount}편 중 · 매일 다른 글이 바뀝니다
-                </span>
-              ) : null}
+                <div className="wf-featured-name">{featuredPost.title}</div>
+                {bodyText ? <p className="wf-featured-letter-body">{bodyText}</p> : null}
+                {featuredPoolCount > 1 ? (
+                  <span className="wf-featured-letter-foot">
+                    체크된 좋은글 {featuredPoolCount}편 중 · 매일 다른 글이 바뀝니다
+                  </span>
+                ) : null}
+              </StationeryBox>
             </Link>
           ) : (
             <div className="wf-empty wf-empty--grow">

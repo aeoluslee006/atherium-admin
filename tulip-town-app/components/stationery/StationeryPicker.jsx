@@ -1,6 +1,7 @@
 'use client';
 
 import { STATIONERY_OPTIONS } from '../../lib/stationery';
+import StationeryBox from './StationeryBox';
 
 /**
  * @param {{ value: string, onChange: (id: string) => void, disabled?: boolean }} props
@@ -12,7 +13,7 @@ export default function StationeryPicker({ value, onChange, disabled }) {
         편지지 <span className="required-mark">필수</span>
       </legend>
       <p className="hint-text stationery-hint">
-        꽃·파스텔·빈티지 등 예쁜 편지지를 골라 주세요. 홈/글 상세에 배경으로 보입니다.
+        모서리 삽화가 또렷하게 보이는 편지지를 골라 주세요. 홈/글 상세에 그대로 보입니다.
       </p>
       <div className="stationery-options" role="radiogroup" aria-label="편지지">
         {STATIONERY_OPTIONS.map((option) => {
@@ -21,12 +22,6 @@ export default function StationeryPicker({ value, onChange, disabled }) {
             <label
               key={option.id}
               className={`stationery-option${selected ? ' is-selected' : ''}`}
-              style={{
-                backgroundImage: `url('${option.file}')`,
-                backgroundSize: 'contain',
-                backgroundPosition: 'top center',
-                backgroundRepeat: 'no-repeat',
-              }}
             >
               <input
                 type="radio"
@@ -36,7 +31,9 @@ export default function StationeryPicker({ value, onChange, disabled }) {
                 onChange={() => onChange(option.id)}
                 required
               />
-              <span className="stationery-option-name">{option.name}</span>
+              <StationeryBox stationeryId={option.id} className="stationery-option-preview">
+                <span className="stationery-option-name">{option.name}</span>
+              </StationeryBox>
             </label>
           );
         })}

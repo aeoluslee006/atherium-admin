@@ -30,11 +30,8 @@ import {
   getSampleFreeClubPost,
   isSampleFreeClubPostId,
 } from '../../../lib/sampleFreeClubPost';
-import {
-  getStationery,
-  stationeryBackgroundStyle,
-  stationeryClassName,
-} from '../../../lib/stationery';
+import StationeryBox from '../../../components/stationery/StationeryBox';
+import { getStationery } from '../../../lib/stationery';
 import { supabaseRest } from '../../../lib/supabaseRest';
 
 export const dynamic = 'force-dynamic';
@@ -173,12 +170,6 @@ export default async function PostPage({ params }) {
     post.category_slug === 'free' &&
     (post.subcategory === 'featured' || post.is_featured || Boolean(post.stationery_id));
   const letterTheme = isLetterPost ? getStationery(post.stationery_id) : null;
-  const letterPaperClass = isLetterPost
-    ? stationeryClassName(post.stationery_id || 'classic-notes')
-    : '';
-  const letterPaperStyle = isLetterPost
-    ? stationeryBackgroundStyle(post.stationery_id || 'classic-notes')
-    : null;
   const marketTagLabel = isMarket ? getMarketTagLabel(post.subcategory) : '';
   const jobTagLabel = isJobs ? getJobTagLabel(post.subcategory) : '';
   const housingTagLabel = isHousing ? getHousingTagLabel(post.subcategory) : '';
@@ -480,22 +471,32 @@ export default async function PostPage({ params }) {
             {post.body}
           </div>
         )
+      ) : !isMarket && isLetterPost ? (
+        <div style={{ marginBottom: 24 }}>
+          <StationeryBox stationeryId={post.stationery_id} className="card">
+            {letterTheme ? (
+              <div className="letter-paper-label" aria-hidden="true">
+                {letterTheme.name || letterTheme.nameKo}
+              </div>
+            ) : null}
+            {htmlBody ? (
+              <div
+                className="post-body-html"
+                dangerouslySetInnerHTML={{ __html: sanitizePostHtml(post.body) }}
+              />
+            ) : (
+              <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{post.body}</p>
+            )}
+          </StationeryBox>
+        </div>
       ) : !isMarket && htmlBody ? (
         <div
-          className={`card post-body-html${letterPaperClass ? ` ${letterPaperClass}` : ''}`}
-          style={{ marginBottom: 24, ...(letterPaperStyle || {}) }}
+          className="card post-body-html"
+          style={{ marginBottom: 24 }}
           dangerouslySetInnerHTML={{ __html: sanitizePostHtml(post.body) }}
         />
       ) : !isMarket ? (
-        <div
-          className={`card${letterPaperClass ? ` ${letterPaperClass}` : ''}`}
-          style={{ whiteSpace: 'pre-wrap', marginBottom: 24, ...(letterPaperStyle || {}) }}
-        >
-          {letterTheme ? (
-            <div className="letter-paper-label" aria-hidden="true">
-              {letterTheme.nameKo || letterTheme.name}
-            </div>
-          ) : null}
+        <div className="card" style={{ whiteSpace: 'pre-wrap', marginBottom: 24 }}>
           {post.body}
         </div>
       ) : null}

@@ -4475,7 +4475,7 @@ main:has(.home-page) {
   cursor: pointer;
   box-shadow: 0 1px 2px rgba(40, 30, 20, 0.06);
   overflow: hidden;
-  background-color: #fffaf3;
+  background-color: #fefdf9;
   background-repeat: no-repeat;
   background-size: contain;
   background-position: top center;
@@ -4516,6 +4516,40 @@ main:has(.home-page) {
     currentColor 9px
   );
   opacity: 0.22;
+}
+
+
+.stationery-option-preview {
+  min-height: 120px;
+  pointer-events: none;
+}
+
+.stationery-option .stationery-option-name {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 650;
+  background: rgba(255,255,255,0.85);
+}
+
+.stationery-option {
+  padding: 0;
+  background-image: none !important;
+}
+
+.letter-compose .letter-compose-textarea,
+.letter-compose-textarea {
+  width: 100%;
+  min-height: 220px;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  resize: vertical;
+  line-height: 1.75;
+  font-size: 15px;
+  padding: 0 !important;
 }
 
 .stationery-option.is-selected {
@@ -4579,14 +4613,14 @@ main:has(.home-page) {
 .letter-paper {
   --letter-ink: #2a261f;
   color: var(--letter-ink);
-  background-color: #f7f1e4;
+  background-color: #fefdf9;
   background-repeat: no-repeat;
   background-size: contain;
   background-position: top center;
 }
 
 .letter-paper--svg {
-  background-color: #fffaf3;
+  background-color: #fefdf9;
 }
 
 .letter-paper-label {

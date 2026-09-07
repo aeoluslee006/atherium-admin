@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAdminOrModeratorFromRequest } from '../../../../lib/adminAuth';
-import { tryAdminSupabase } from '../../../../lib/apiAuth';
+import { getWriteDbFromRequest } from '../../../../lib/apiAuth';
 import { buildComposedPageSlots, groupSlotsByPage } from '../../../../lib/directorySlots';
 
 export async function GET(request) {
@@ -8,9 +8,9 @@ export async function GET(request) {
     const auth = await requireAdminOrModeratorFromRequest(request);
     if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const db = tryAdminSupabase();
+    const { db } = await getWriteDbFromRequest(request);
     if (!db) {
-      return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY가 필요합니다.' }, { status: 500 });
+      return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
     }
 
     const { data: slots, error } = await db
@@ -37,9 +37,9 @@ export async function POST(request) {
     const auth = await requireAdminOrModeratorFromRequest(request);
     if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const db = tryAdminSupabase();
+    const { db, mode } = await getWriteDbFromRequest(request);
     if (!db) {
-      return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY가 필요합니다.' }, { status: 500 });
+      return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
     }
 
     const body = await request.json();
@@ -66,12 +66,19 @@ export async function POST(request) {
       }
 
       const { data, error } = await db.from('directory_slots').insert(rows).select('*');
-      if (error) throw error;
+      if (error) {
+        const hint =
+          mode !== 'service'
+            ? ' (Supabase에 directory_slots_manager_rls.sql 실행이 필요할 수 있습니다)'
+            : '';
+        throw new Error(`${error.message || 'insert failed'}${hint}`);
+      }
 
       return NextResponse.json({
         ok: true,
         page_number: nextPage,
         slots: data || [],
+        mode,
       });
     }
 

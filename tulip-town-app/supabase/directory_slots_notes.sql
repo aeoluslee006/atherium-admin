@@ -6,5 +6,7 @@
 -- Black (is_moderator) + admin compose free layouts via
 -- /directory last "+" tab (drag slots → SUBMIT) or /mypage/directory-pages
 -- → POST /api/directory-pages/compose
+-- If SUPABASE_SERVICE_ROLE_KEY is unset on Vercel, run
+-- directory_slots_manager_rls.sql so managers can insert with their login JWT.
 -- Presets: small 2×2, medium 4×2, medium_vertical 2×4, large 6×5 (half page)
 -- on a 6×10 canvas (lib/directorySlots.js SLOT_SIZE_PRESETS).

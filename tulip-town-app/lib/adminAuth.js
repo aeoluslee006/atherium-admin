@@ -1,5 +1,4 @@
 import { createServerSupabase } from './supabaseServer';
-import { createAdminSupabase } from './supabaseAdmin';
 import { tryAdminSupabase } from './apiAuth';
 
 export async function getSessionUser() {
@@ -11,11 +10,7 @@ export async function getSessionUser() {
 export async function getProfile(userId) {
   const admin = tryAdminSupabase();
   if (!admin) {
-    // Fallback: still try hard create for clearer error in non-API contexts.
-    const db = createAdminSupabase();
-    const { data, error } = await db.from('profiles').select('*').eq('id', userId).maybeSingle();
-    if (error) throw error;
-    return data;
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY가 필요합니다.');
   }
   const { data, error } = await admin.from('profiles').select('*').eq('id', userId).maybeSingle();
   if (error) throw error;

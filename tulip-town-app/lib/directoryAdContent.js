@@ -83,10 +83,10 @@ export function writingGuide(sizeTier) {
     return `전면 소개 문단 (${limit}자 이내). 상호·강점·영업시간·연락처를 나눠 적어도 됩니다.`;
   }
   if (sizeTier === 'large') {
-    return `소개 2~4문장 (${limit}자 이내). 예: "홀랜드 한식당 · 점심특선 · 주차 가능 · 예약 환영"`;
+    return `소개 2~4문장 (${limit}자 이내).`;
   }
   if (sizeTier === 'medium') {
-    return `핵심 한두 줄 (${limit}자 이내). 예: "이사/청소 당일예약 · 616-xxx-xxxx"`;
+    return `핵심 한두 줄 (${limit}자 이내).`;
   }
-  return `한 줄 문구 (${limit}자 이내). 예: "오늘 배달 가능 · 첫 주문 10%"`;
+  return `한 줄 문구 (${limit}자 이내).`;
 }

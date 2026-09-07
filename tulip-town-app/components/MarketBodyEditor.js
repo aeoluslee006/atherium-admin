@@ -173,7 +173,6 @@ export default function MarketBodyEditor({
         role="textbox"
         aria-multiline="true"
         aria-label={ariaLabel}
-        data-placeholder="내용을 입력하세요. 사진은 Ctrl+V로 바로 붙일 수 있습니다."
         onInput={emitChange}
         onPaste={handlePaste}
         onDrop={handleDrop}

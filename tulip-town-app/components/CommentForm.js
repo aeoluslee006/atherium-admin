@@ -54,7 +54,6 @@ export default function CommentForm({ postId }) {
         value={body}
         onChange={(e) => setBody(e.target.value)}
         required
-        placeholder="댓글을 입력하세요"
       />
       {error ? <div className="error-text">{error}</div> : null}
       <button className="btn" type="submit" disabled={saving}>

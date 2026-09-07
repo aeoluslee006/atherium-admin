@@ -203,7 +203,6 @@ export default function ShopNewPage() {
           id="title"
           value={form.title}
           onChange={(e) => update('title', e.target.value)}
-          placeholder="예: 수제 쿠키 박스"
           required
           disabled={atLimit}
         />
@@ -216,7 +215,6 @@ export default function ShopNewPage() {
           step="0.01"
           value={form.price_usd}
           onChange={(e) => update('price_usd', e.target.value)}
-          placeholder="15"
           required
           disabled={atLimit}
         />
@@ -226,7 +224,6 @@ export default function ShopNewPage() {
           id="image_url"
           value={form.image_url}
           onChange={(e) => update('image_url', e.target.value)}
-          placeholder="https://..."
           disabled={atLimit}
         />
 
@@ -235,7 +232,6 @@ export default function ShopNewPage() {
           id="description"
           value={form.description}
           onChange={(e) => update('description', e.target.value)}
-          placeholder="상태, 구성, 픽업/배송 안내 등"
           required
           disabled={atLimit}
         />

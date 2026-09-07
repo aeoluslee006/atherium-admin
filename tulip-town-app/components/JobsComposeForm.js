@@ -169,7 +169,6 @@ export default function JobsComposeForm({
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="예: 서버/홀 스태프 모집 · Full-time"
               maxLength={120}
               required
             />
@@ -185,7 +184,6 @@ export default function JobsComposeForm({
             <input
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
-              placeholder="예: Holland Bakery"
               required={subcategory === 'hire'}
             />
             <div className="jobs-compose-logo-block">
@@ -201,7 +199,6 @@ export default function JobsComposeForm({
             <input
               value={payText}
               onChange={(e) => setPayText(e.target.value)}
-              placeholder="예: $15+/hr · 팁 별도 · 주 5일"
             />
           </div>
         </div>
@@ -244,7 +241,6 @@ export default function JobsComposeForm({
                 <input
                   value={addressText}
                   onChange={(e) => setAddressText(e.target.value)}
-                  placeholder="예: 123 Main St, Holland, MI"
                 />
               </div>
             </div>
@@ -260,7 +256,6 @@ export default function JobsComposeForm({
                 <input
                   value={contactName}
                   onChange={(e) => setContactName(e.target.value)}
-                  placeholder="이름"
                 />
               </div>
               <div>
@@ -268,7 +263,6 @@ export default function JobsComposeForm({
                 <input
                   value={contactPhone}
                   onChange={(e) => setContactPhone(e.target.value)}
-                  placeholder="예: 616-555-0100"
                 />
               </div>
               <div>
@@ -277,7 +271,6 @@ export default function JobsComposeForm({
                   type="email"
                   value={contactEmail}
                   onChange={(e) => setContactEmail(e.target.value)}
-                  placeholder="선택"
                 />
               </div>
             </div>

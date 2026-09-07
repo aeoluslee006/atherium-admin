@@ -519,7 +519,6 @@ export default function NewPostPage() {
                   id="rentPriceText"
                   value={rentPriceText}
                   onChange={(e) => setRentPriceText(e.target.value)}
-                  placeholder="예: $1,200/mo · $285,000"
                 />
               </div>
               <div>
@@ -528,16 +527,15 @@ export default function NewPostPage() {
                   id="depositText"
                   value={depositText}
                   onChange={(e) => setDepositText(e.target.value)}
-                  placeholder="예: 1개월 · $1,200"
                 />
               </div>
               <div>
                 <label htmlFor="beds">침실</label>
-                <input id="beds" value={beds} onChange={(e) => setBeds(e.target.value)} placeholder="예: 2" />
+                <input id="beds" value={beds} onChange={(e) => setBeds(e.target.value)} />
               </div>
               <div>
                 <label htmlFor="baths">욕실</label>
-                <input id="baths" value={baths} onChange={(e) => setBaths(e.target.value)} placeholder="예: 1.5" />
+                <input id="baths" value={baths} onChange={(e) => setBaths(e.target.value)} />
               </div>
             </div>
             <label htmlFor="addressText">주소/위치</label>
@@ -545,21 +543,18 @@ export default function NewPostPage() {
               id="addressText"
               value={addressText}
               onChange={(e) => setAddressText(e.target.value)}
-              placeholder="예: 123 Main St, Holland, MI"
             />
             <label htmlFor="availableText">입주 가능일</label>
             <input
               id="availableText"
               value={availableText}
               onChange={(e) => setAvailableText(e.target.value)}
-              placeholder="예: 즉시 · 9/1부터"
             />
             <label htmlFor="contactText">연락처</label>
             <input
               id="contactText"
               value={contactText}
               onChange={(e) => setContactText(e.target.value)}
-              placeholder="휴대폰 / 카톡 / 이메일"
             />
             <label>매물 사진</label>
             <HousingPhotosField
@@ -577,14 +572,12 @@ export default function NewPostPage() {
               id="marketPriceText"
               value={marketPriceText}
               onChange={(e) => setMarketPriceText(e.target.value)}
-              placeholder="예: $50 · 협의 · 나눔"
             />
             <label htmlFor="marketContactText">연락처</label>
             <input
               id="marketContactText"
               value={contactText}
               onChange={(e) => setContactText(e.target.value)}
-              placeholder="휴대폰 / 카톡 / 이메일"
             />
             <label>상품 사진</label>
             <HousingPhotosField
@@ -602,15 +595,6 @@ export default function NewPostPage() {
           id="title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder={
-            isHousing
-              ? '예: Holland 2BR 렌트 · No fee'
-              : isMarket
-                ? '예: IKEA 소파 팝니다'
-                : isClasses
-                  ? '예: SAT Math / 고등 수학 과외 (Holland · Online)'
-                  : undefined
-          }
           required
         />
         <label htmlFor="city">지역</label>
@@ -632,14 +616,12 @@ export default function NewPostPage() {
               id="classesAddressText"
               value={addressText}
               onChange={(e) => setAddressText(e.target.value)}
-              placeholder="예: Holland / Online · 도서관 스터디룸"
             />
             <label htmlFor="classesContactText">연락처</label>
             <input
               id="classesContactText"
               value={contactText}
               onChange={(e) => setContactText(e.target.value)}
-              placeholder="휴대폰 / 카톡 / 이메일"
             />
           </>
         ) : null}
@@ -667,7 +649,6 @@ export default function NewPostPage() {
               className="letter-compose-textarea"
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              placeholder="편지지 위에 마음을 적어 보세요…"
               required
             />
           </div>

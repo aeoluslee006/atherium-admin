@@ -240,7 +240,6 @@ function ApplyInner() {
           value={form.business_name}
           onChange={(e) => update('business_name', e.target.value)}
           required
-          placeholder="광고에 표시될 업체명"
           maxLength={80}
         />
 
@@ -264,7 +263,6 @@ function ApplyInner() {
           value={form.ad_phone}
           onChange={(e) => update('ad_phone', e.target.value)}
           required
-          placeholder="616-555-0100"
         />
 
         <label htmlFor="ad_body">광고 문구 (선택)</label>
@@ -275,7 +273,6 @@ function ApplyInner() {
           onChange={(e) => update('ad_body', e.target.value.slice(0, bodyMax))}
           rows={slot?.size_tier === 'ultra' ? 8 : slot?.size_tier === 'large' ? 5 : 3}
           maxLength={bodyMax}
-          placeholder="짧은 소개 문구"
         />
         <p className="hint-text">{form.ad_body.length}/{bodyMax}자</p>
 

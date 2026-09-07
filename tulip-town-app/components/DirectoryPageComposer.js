@@ -127,14 +127,37 @@ export default function DirectoryPageComposer({
     }
     setBusy(true);
     setError('');
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timeoutId = controller
+      ? setTimeout(() => controller.abort(), 25000)
+      : null;
     try {
-      const { data } = await supabase.auth.getSession();
+      // Avoid awaiting supabase.auth.getSession() here — it can hang on navigator locks
+      // while DirectoryPagesView also reads the session. Cookie auth on the API is enough.
+      let token = '';
+      try {
+        const sessionPromise = supabase.auth.getSession();
+        const timed = await Promise.race([
+          sessionPromise,
+          new Promise((resolve) => {
+            setTimeout(() => resolve({ data: { session: null }, timedOut: true }), 2500);
+          }),
+        ]);
+        if (!timed?.timedOut) {
+          token = timed?.data?.session?.access_token || '';
+        }
+      } catch {
+        token = '';
+      }
+
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers.Authorization = `Bearer ${token}`;
+
       const res = await fetch('/api/directory-pages/compose', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${data.session?.access_token || ''}`,
-        },
+        headers,
+        credentials: 'same-origin',
+        signal: controller?.signal,
         body: JSON.stringify({
           action: 'create_composed_page',
           placements: placements.map(({ presetId: pid, row, col, base_price_cents }) => ({
@@ -145,14 +168,30 @@ export default function DirectoryPageComposer({
           })),
         }),
       });
-      const payload = await res.json();
-      if (!res.ok) throw new Error(payload.error || '페이지 추가 실패');
+
+      const text = await res.text();
+      let payload = {};
+      try {
+        payload = text ? JSON.parse(text) : {};
+      } catch {
+        throw new Error(
+          res.ok ? '서버 응답을 읽을 수 없습니다.' : `페이지 추가 실패 (${res.status})`
+        );
+      }
+      if (!res.ok) {
+        throw new Error(payload.error || `페이지 추가 실패 (${res.status})`);
+      }
       setPlacements([]);
       setStarted(false);
       onCreated?.(payload);
     } catch (err) {
-      setError(err.message || '페이지 추가 실패');
+      const msg =
+        err?.name === 'AbortError'
+          ? '저장 시간이 초과되었습니다. 다시 시도해 주세요.'
+          : err.message || '페이지 추가 실패';
+      setError(msg);
     } finally {
+      if (timeoutId) clearTimeout(timeoutId);
       setBusy(false);
     }
   }

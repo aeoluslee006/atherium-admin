@@ -1,5 +1,6 @@
 import { createServerSupabase } from './supabaseServer';
 import { createAdminSupabase } from './supabaseAdmin';
+import { tryAdminSupabase } from './apiAuth';
 
 export async function getSessionUser() {
   const supabase = createServerSupabase();
@@ -8,7 +9,14 @@ export async function getSessionUser() {
 }
 
 export async function getProfile(userId) {
-  const admin = createAdminSupabase();
+  const admin = tryAdminSupabase();
+  if (!admin) {
+    // Fallback: still try hard create for clearer error in non-API contexts.
+    const db = createAdminSupabase();
+    const { data, error } = await db.from('profiles').select('*').eq('id', userId).maybeSingle();
+    if (error) throw error;
+    return data;
+  }
   const { data, error } = await admin.from('profiles').select('*').eq('id', userId).maybeSingle();
   if (error) throw error;
   return data;
@@ -31,7 +39,8 @@ export async function requireAdminOrModeratorFromRequest(request) {
 
 async function resolveUserProfileFromRequest(request) {
   const authHeader = request.headers.get('authorization') || '';
-  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  const rawToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+  const token = rawToken || null;
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://lyikgkjhkmppvciicxfm.supabase.co';
   const anon =
@@ -46,12 +55,20 @@ async function resolveUserProfileFromRequest(request) {
 
   let user = null;
   if (token) {
-    const { data } = await userClient.auth.getUser(token);
-    user = data.user;
-  } else {
-    const server = createServerSupabase();
-    const { data } = await server.auth.getUser();
-    user = data.user;
+    const { data, error } = await userClient.auth.getUser(token);
+    if (error) {
+      console.warn('auth.getUser failed', error.message);
+    }
+    user = data?.user || null;
+  }
+  if (!user) {
+    try {
+      const server = createServerSupabase();
+      const { data } = await server.auth.getUser();
+      user = data.user;
+    } catch (err) {
+      console.warn('cookie auth failed', err?.message || err);
+    }
   }
 
   if (!user) return null;

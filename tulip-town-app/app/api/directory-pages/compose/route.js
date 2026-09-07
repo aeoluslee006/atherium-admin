@@ -46,12 +46,13 @@ export async function POST(request) {
     const action = body.action || 'create_composed_page';
 
     if (action === 'create_composed_page') {
-      const { data: maxRow } = await db
+      const { data: maxRows, error: maxErr } = await db
         .from('directory_slots')
         .select('page_number')
         .order('page_number', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .limit(1);
+      if (maxErr) throw maxErr;
+      const maxRow = Array.isArray(maxRows) && maxRows.length ? maxRows[0] : null;
       const nextPage = Number(body.page_number) || (Number(maxRow?.page_number) || 0) + 1;
       if (!Number.isFinite(nextPage) || nextPage < 1) {
         return NextResponse.json({ error: 'Invalid page_number' }, { status: 400 });

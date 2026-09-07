@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { tryAdminSupabase } from '../../../../lib/apiAuth';
-import { supabaseRest } from '../../../../lib/supabaseRest';
+import { tryAdminSupabase } from '../../../lib/apiAuth';
+import { supabaseRest } from '../../../lib/supabaseRest';
 import {
   SPECIAL_AD_CAPACITY,
   SPECIAL_AD_EXTRA_CENTS,
   countLiveSpecialAds,
-} from '../../../../lib/directorySpecialAds';
+} from '../../../lib/directorySpecialAds';
 
 /** Public status for apply form + slider. */
 export async function GET() {

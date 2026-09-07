@@ -40,6 +40,19 @@ export async function PATCH(request) {
       .select('*')
       .single();
     if (error) throw error;
+
+    // Keep slot base prices in sync for directory tier keys
+    if (
+      'amount_cents' in body &&
+      ['directory_small', 'directory_medium', 'directory_large', 'directory_ultra'].includes(body.key)
+    ) {
+      const tier = body.key.replace('directory_', '');
+      await supabase
+        .from('directory_slots')
+        .update({ base_price_cents: Number(body.amount_cents) })
+        .eq('size_tier', tier);
+    }
+
     return NextResponse.json({ setting: data });
   } catch (err) {
     return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 });

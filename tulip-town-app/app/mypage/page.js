@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import MemberTierBadge from '../../components/MemberTierBadge';
 import MyPageAccountPanel from '../../components/MyPageAccountPanel';
+import MyPageAdminContact from '../../components/MyPageAdminContact';
 import { CATEGORIES } from '../../lib/categories';
 import {
   PRODUCT_LABELS,
@@ -11,6 +12,7 @@ import {
   formatJoinedDate,
   resolveMemberTier,
 } from '../../lib/memberTier';
+import { isLoginBlocked } from '../../lib/memberStatus';
 import { createServerSupabase } from '../../lib/supabaseServer';
 
 export const dynamic = 'force-dynamic';
@@ -44,7 +46,7 @@ export default async function MyPage() {
     const full = await supabase
       .from('profiles')
       .select(
-        'id, display_name, username, first_name, last_name, email, is_admin, is_moderator, account_type, post_count, last_post_at, created_at'
+        'id, display_name, username, first_name, last_name, email, is_admin, is_moderator, account_type, post_count, last_post_at, created_at, status, promo_end_date'
       )
       .eq('id', user.id)
       .maybeSingle();
@@ -60,6 +62,10 @@ export default async function MyPage() {
     } else {
       profile = full.data;
     }
+  }
+
+  if (profile && isLoginBlocked(profile)) {
+    redirect('/login?error=account_deleted');
   }
 
   // New columns may be missing until SQL migration is applied.
@@ -171,6 +177,8 @@ export default async function MyPage() {
         firstName={safeProfile.first_name || ''}
         lastName={safeProfile.last_name || ''}
       />
+
+      <MyPageAdminContact />
 
       {safeProfile.is_admin || safeProfile.is_moderator ? (
         <section className="mypage-section card" aria-labelledby="mypage-dir-title">

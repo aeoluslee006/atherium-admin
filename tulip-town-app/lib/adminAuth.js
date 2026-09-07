@@ -1,5 +1,6 @@
 import { createServerSupabase } from './supabaseServer';
 import { getBearerToken, tryAdminSupabase, userClientFromToken } from './apiAuth';
+import { isWriteBlockedByStatus, MEMBER_STATUS, resolveMemberStatus } from './memberStatus';
 
 export async function getSessionUser() {
   const supabase = createServerSupabase();
@@ -74,6 +75,17 @@ async function resolveUserProfileFromRequest(request) {
 
 export function isWriteBlocked(profile) {
   if (!profile) return { blocked: true, reason: '프로필을 찾을 수 없습니다.' };
+
+  // New source of truth: profiles.status
+  const status = resolveMemberStatus(profile);
+  if (status === MEMBER_STATUS.HOLD || status === MEMBER_STATUS.DELETED) {
+    return isWriteBlockedByStatus(profile);
+  }
+  if (profile.status) {
+    return { blocked: false, reason: '' };
+  }
+
+  // Legacy read-only fallback when status not migrated
   if (profile.is_banned) {
     return {
       blocked: true,

@@ -47,9 +47,16 @@ export function displayCellLabel(displayRow, displayCol) {
   return `${letter}-${(Number(displayCol) || 0) + 1}`;
 }
 
-/** Dense board pages (2+) show 2×2 slot groups as one cell for readability. */
+/** Cover (large-block) pages: currently 1면 and 3면. */
+export function isCoverPage(pageNumber) {
+  const page = Number(pageNumber) || 0;
+  return page === 1 || page === 3;
+}
+
+/** Dense board pages show 2×2 slot groups as one cell for readability. */
 export function getDisplayMergeFactor(pageNumber, cols, rows) {
   const page = Number(pageNumber) || 1;
+  if (isCoverPage(page)) return 1;
   if (page >= 2 && cols >= 6 && rows >= 8) return 2;
   return 1;
 }
@@ -133,16 +140,16 @@ function boardPageSpecs() {
 
 /**
  * Default slot template when admin adds a new page.
- * Page 1 = 3 large stacked ads; later pages = 6×10 small classifieds.
+ * Cover pages (1, 3) = 3 large stacked ads; other pages = 6×10 small classifieds.
  */
 export function buildDefaultPageSlots(pageNumber) {
   const page = Number(pageNumber);
-  const page1Premium = page === 1;
-  const prices = page1Premium
-    ? { small: 2500, medium: 7000, large: 14000 }
+  const cover = isCoverPage(page);
+  const prices = cover
+    ? { small: 2500, medium: 7000, large: 9000 }
     : { small: 1800, medium: 5000, large: 10000 };
 
-  const specs = page === 1 ? coverPageSpecs() : boardPageSpecs();
+  const specs = cover ? coverPageSpecs() : boardPageSpecs();
 
   return specs.map((s) => ({
     page_number: page,

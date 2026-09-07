@@ -36,6 +36,7 @@ function redirectToLogin(request) {
 export async function middleware(request) {
   const path = request.nextUrl.pathname;
   const isAdminRoute = path.startsWith('/admin');
+  const isMyPageRoute = path === '/mypage' || path.startsWith('/mypage/');
   const isMemberWriteRoute =
     /^\/board\/[^/]+\/new\/?$/.test(path) ||
     /^\/directory\/new\/?$/.test(path) ||
@@ -45,7 +46,7 @@ export async function middleware(request) {
     path.startsWith('/seller');
 
   // Board/directory browse pages stay public
-  if (!isAdminRoute && !isMemberWriteRoute) {
+  if (!isAdminRoute && !isMemberWriteRoute && !isMyPageRoute) {
     return passThrough(request);
   }
 
@@ -77,7 +78,7 @@ export async function middleware(request) {
     return redirectToLogin(request);
   }
 
-  if (isMemberWriteRoute && !isAdminRoute) {
+  if ((isMemberWriteRoute || isMyPageRoute) && !isAdminRoute) {
     return response;
   }
 
@@ -97,5 +98,13 @@ export async function middleware(request) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/board/:path*', '/directory/:path*', '/seller/:path*', '/shop/new'],
+  matcher: [
+    '/admin/:path*',
+    '/board/:path*',
+    '/directory/:path*',
+    '/seller/:path*',
+    '/shop/new',
+    '/mypage',
+    '/mypage/:path*',
+  ],
 };

@@ -41,20 +41,37 @@ function EditInner() {
   useEffect(() => {
     let cancelled = false;
     async function boot() {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
-        router.replace(`/login?next=${encodeURIComponent(`/directory/pages/edit?ad=${adId}`)}`);
-        return;
-      }
       if (!adId) {
         setError('광고가 지정되지 않았습니다.');
         setLoading(false);
         return;
       }
       try {
-        const token = data.session.access_token;
+        let token = '';
+        try {
+          const timed = await Promise.race([
+            supabase.auth.getSession(),
+            new Promise((resolve) => {
+              setTimeout(() => resolve({ data: { session: null }, timedOut: true }), 2500);
+            }),
+          ]);
+          if (!timed?.timedOut) token = timed?.data?.session?.access_token || '';
+        } catch {
+          token = '';
+        }
+        if (!token) {
+          const { data: userData } = await supabase.auth.getUser();
+          if (!userData?.user) {
+            router.replace(`/login?next=${encodeURIComponent(`/directory/pages/edit?ad=${adId}`)}`);
+            return;
+          }
+        }
+
+        const headers = { cache: 'no-store' };
+        if (token) headers.Authorization = `Bearer ${token}`;
         const res = await fetch(`/api/directory-slot/ad?id=${encodeURIComponent(adId)}`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers,
+          credentials: 'same-origin',
           cache: 'no-store',
         });
         const json = await res.json().catch(() => ({}));
@@ -69,12 +86,10 @@ function EditInner() {
           ad_body: ad.ad_body || '',
           ad_image_urls: normalizeAdImageUrls(ad.ad_image_urls, ad.ad_image_url),
         });
-        setLoading(false);
       } catch (err) {
-        if (!cancelled) {
-          setError(err.message || '불러오기 실패');
-          setLoading(false);
-        }
+        if (!cancelled) setError(err.message || '불러오기 실패');
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     }
     boot();

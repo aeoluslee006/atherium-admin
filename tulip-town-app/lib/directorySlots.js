@@ -8,11 +8,12 @@ export const SIZE_TIER_LABEL = {
   small: '소형',
   medium: '중형',
   large: '대형',
+  ultra: '울트라',
 };
 
 /**
  * Slot size presets for free-form page composition (6×10 canvas).
- * Large = full width × 4 rows.
+ * Large = full width × 4 rows. Ultra = entire page.
  * Medium has landscape + vertical variants (same size_tier).
  */
 export const SLOT_SIZE_PRESETS = {
@@ -52,6 +53,15 @@ export const SLOT_SIZE_PRESETS = {
     hint: '6×4',
     defaultPriceCents: 9000,
   },
+  ultra: {
+    id: 'ultra',
+    sizeTier: 'ultra',
+    spanCols: 6,
+    spanRows: 10,
+    label: '울트라(전면)',
+    hint: '6×10 · 페이지 전체',
+    defaultPriceCents: 18000,
+  },
 };
 
 export const SLOT_SIZE_PRESET_LIST = [
@@ -59,6 +69,7 @@ export const SLOT_SIZE_PRESET_LIST = [
   SLOT_SIZE_PRESETS.medium,
   SLOT_SIZE_PRESETS.medium_vertical,
   SLOT_SIZE_PRESETS.large,
+  SLOT_SIZE_PRESETS.ultra,
 ];
 
 export function formatSlotPrice(cents) {

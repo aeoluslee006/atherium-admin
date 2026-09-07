@@ -40,34 +40,54 @@ function ApplyInner() {
   useEffect(() => {
     let cancelled = false;
     async function boot() {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
-        router.replace(`/login?next=${encodeURIComponent(`/directory/pages/apply?slot=${slotId}`)}`);
-        return;
-      }
       if (!slotId) {
         setError('슬롯이 지정되지 않았습니다.');
         setLoading(false);
         return;
       }
       try {
-        const { data: row, error: slotErr } = await supabase
-          .from('directory_slots')
-          .select('*')
-          .eq('id', slotId)
-          .maybeSingle();
-        if (slotErr) throw slotErr;
+        // Auth with timeout — getSession can hang on navigator locks.
+        let session = null;
+        try {
+          const timed = await Promise.race([
+            supabase.auth.getSession(),
+            new Promise((resolve) => {
+              setTimeout(() => resolve({ data: { session: null }, timedOut: true }), 2500);
+            }),
+          ]);
+          if (!timed?.timedOut) session = timed?.data?.session || null;
+        } catch {
+          session = null;
+        }
+        if (!session) {
+          const { data: userData } = await supabase.auth.getUser();
+          if (!userData?.user) {
+            router.replace(
+              `/login?next=${encodeURIComponent(`/directory/pages/apply?slot=${slotId}`)}`
+            );
+            return;
+          }
+        }
+
+        // Load slot via public API (avoids client RLS / session issues).
+        const res = await fetch(`/api/directory-slot/meta?id=${encodeURIComponent(slotId)}`, {
+          credentials: 'same-origin',
+        });
+        const payload = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(payload.error || '슬롯을 불러오지 못했습니다.');
+        const row = payload.slot;
         if (!row) throw new Error('슬롯을 찾을 수 없습니다.');
         if (row.status !== 'available') throw new Error('이미 판매된 자리입니다.');
         if (!cancelled) {
           setSlot(row);
-          setLoading(false);
+          setError('');
         }
       } catch (err) {
         if (!cancelled) {
           setError(err.message || '슬롯을 불러오지 못했습니다.');
-          setLoading(false);
         }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     }
     boot();
@@ -179,6 +199,19 @@ function ApplyInner() {
     );
   }
 
+  if (error && !slot) {
+    return (
+      <div className="container">
+        <div className="card empty-state">
+          <p className="error-text">{error}</p>
+          <Link href="/directory" className="btn btn-outline" style={{ marginTop: 12 }}>
+            지면으로
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container">
       <div className="row-between">
@@ -240,7 +273,7 @@ function ApplyInner() {
           id="ad_body"
           value={form.ad_body}
           onChange={(e) => update('ad_body', e.target.value.slice(0, bodyMax))}
-          rows={3}
+          rows={slot?.size_tier === 'ultra' ? 8 : slot?.size_tier === 'large' ? 5 : 3}
           maxLength={bodyMax}
           placeholder="짧은 소개 문구"
         />

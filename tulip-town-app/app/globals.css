@@ -6137,6 +6137,20 @@ main:has(.home-page) {
   background: #f0e2cf;
 }
 
+.dir-composer-cell.is-filled.tier-ultra {
+  background: #e4d4f0;
+}
+
+.dir-cell.tier-ultra .dir-slot-position {
+  font-size: 13px;
+}
+
+.dir-cell.tier-ultra .dir-ad-copy {
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-line-clamp: 8;
+}
+
 .dir-composer-slot-label {
   display: flex;
   flex-direction: column;

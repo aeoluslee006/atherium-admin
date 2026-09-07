@@ -35,7 +35,7 @@ export default async function MyPageDirectoryPages() {
           </p>
           <h1 className="mypage-title">지면 페이지 추가</h1>
           <p className="mypage-meta">
-            블랙 레벨 · 소형 / 중형 / 중형(세로) / 대형(6×4)을 자유롭게 조합해 새 면을 만듭니다.
+            블랙 레벨 · 소형 / 중형 / 중형(세로) / 대형(6×4) / 울트라(전면)을 자유롭게 조합해 새 면을 만듭니다.
           </p>
         </div>
       </header>

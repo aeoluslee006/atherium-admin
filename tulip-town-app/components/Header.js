@@ -176,7 +176,6 @@ export default function Header() {
                 >
                   마이페이지
                 </Link>
-                <span className="auth-email">{session.user.email}</span>
                 <button type="button" onClick={handleLogout}>
                   로그아웃
                 </button>

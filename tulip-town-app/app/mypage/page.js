@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import MemberTierBadge from '../../components/MemberTierBadge';
+import MyPageAccountPanel from '../../components/MyPageAccountPanel';
 import { CATEGORIES } from '../../lib/categories';
 import {
   PRODUCT_LABELS,
@@ -140,6 +141,14 @@ export default async function MyPage() {
         <MemberTierBadge tier={tier} />
       </header>
 
+      <MyPageAccountPanel
+        initialNickname={safeProfile.display_name || name || ''}
+        email={safeProfile.email || user.email || ''}
+        username={safeProfile.username || ''}
+        firstName={safeProfile.first_name || ''}
+        lastName={safeProfile.last_name || ''}
+      />
+
       <section className="mypage-section card" aria-labelledby="mypage-subs-title">
         <div className="mypage-section-head">
           <h2 id="mypage-subs-title">구독 현황</h2>
@@ -235,7 +244,7 @@ export default async function MyPage() {
       </section>
 
       <p className="mypage-footnote">
-        이번 화면은 조회 전용입니다. 글·댓글 수정은 각 게시글 화면에서 해 주세요.
+        닉네임·비밀번호는 이 페이지에서 변경할 수 있습니다. 글·댓글 수정은 각 게시글 화면에서 해 주세요.
       </p>
     </div>
   );

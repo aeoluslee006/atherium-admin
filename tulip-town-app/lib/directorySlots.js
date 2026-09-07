@@ -12,7 +12,7 @@ export const SIZE_TIER_LABEL = {
 
 /**
  * Slot size presets for free-form page composition (6×10 canvas).
- * Large = half page (full width × half height).
+ * Large = full width × 4 rows.
  * Medium has landscape + vertical variants (same size_tier).
  */
 export const SLOT_SIZE_PRESETS = {
@@ -47,9 +47,9 @@ export const SLOT_SIZE_PRESETS = {
     id: 'large',
     sizeTier: 'large',
     spanCols: 6,
-    spanRows: 5,
-    label: '대형(반면)',
-    hint: '6×5 · 페이지 절반',
+    spanRows: 4,
+    label: '대형',
+    hint: '6×4',
     defaultPriceCents: 9000,
   },
 };

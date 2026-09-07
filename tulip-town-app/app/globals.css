@@ -6309,3 +6309,137 @@ main:has(.home-page) {
     min-height: 340px;
   }
 }
+/* Directory first-page special ads slider */
+.dir-special-slider {
+  margin: 0 0 16px;
+  padding: 12px 14px 14px;
+  border: 1px solid var(--border, #d5d8de);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #f7f9fc 0%, #eef2f7 100%);
+}
+
+.dir-special-slider-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.dir-special-slider-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.dir-special-slider-meta {
+  font-size: 12px;
+  color: #667085;
+}
+
+.dir-special-slide {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
+  min-height: 160px;
+}
+
+.dir-special-slide-image {
+  width: 100%;
+  height: 100%;
+  min-height: 160px;
+  max-height: 220px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #d9dee7;
+}
+
+.dir-special-slide-image--empty {
+  min-height: 160px;
+}
+
+.dir-special-slide-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: center;
+}
+
+.dir-special-slide-name {
+  font-size: 18px;
+  line-height: 1.3;
+}
+
+.dir-special-slide-cat,
+.dir-special-slide-phone {
+  font-size: 13px;
+  color: #52606d;
+}
+
+.dir-special-slide-link {
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #2f5b8a;
+  text-decoration: none;
+}
+
+.dir-special-dots {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.dir-special-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 0;
+  padding: 0;
+  background: #c5cad3;
+  cursor: pointer;
+}
+
+.dir-special-dot.is-active {
+  background: #2f5b8a;
+}
+
+.dir-special-opt {
+  margin: 16px 0 8px;
+  padding: 12px;
+  border: 1px solid #d5d8de;
+  border-radius: 10px;
+}
+
+.dir-special-opt-legend {
+  padding: 0 4px;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.dir-special-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.dir-special-opt-body {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+@media (max-width: 720px) {
+  .dir-special-slide {
+    grid-template-columns: 1fr;
+  }
+
+  .dir-special-slide-image {
+    max-height: 180px;
+  }
+}

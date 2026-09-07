@@ -24,7 +24,7 @@ export const SLOT_SIZE_PRESETS = {
     spanRows: 2,
     label: '소형',
     hint: '2×2',
-    defaultPriceCents: 1800,
+    defaultPriceCents: 300,
   },
   medium: {
     id: 'medium',
@@ -33,7 +33,7 @@ export const SLOT_SIZE_PRESETS = {
     spanRows: 2,
     label: '중형',
     hint: '4×2 가로',
-    defaultPriceCents: 5000,
+    defaultPriceCents: 500,
   },
   medium_vertical: {
     id: 'medium_vertical',
@@ -42,7 +42,7 @@ export const SLOT_SIZE_PRESETS = {
     spanRows: 4,
     label: '중형(세로)',
     hint: '2×4 세로',
-    defaultPriceCents: 5000,
+    defaultPriceCents: 500,
   },
   large: {
     id: 'large',
@@ -51,7 +51,7 @@ export const SLOT_SIZE_PRESETS = {
     spanRows: 4,
     label: '대형',
     hint: '6×4',
-    defaultPriceCents: 9000,
+    defaultPriceCents: 900,
   },
   ultra: {
     id: 'ultra',
@@ -60,7 +60,7 @@ export const SLOT_SIZE_PRESETS = {
     spanRows: 10,
     label: '울트라(전면)',
     hint: '6×10 · 페이지 전체',
-    defaultPriceCents: 18000,
+    defaultPriceCents: 1800,
   },
 };
 
@@ -308,9 +308,7 @@ function boardPageSpecs() {
 export function buildDefaultPageSlots(pageNumber) {
   const page = Number(pageNumber);
   const cover = isCoverPage(page);
-  const prices = cover
-    ? { small: 2500, medium: 7000, large: 9000, ultra: 18000 }
-    : { small: 1800, medium: 5000, large: 10000, ultra: 18000 };
+  const prices = { small: 300, medium: 500, large: 900, ultra: 1800 };
 
   const specs = cover ? coverPageSpecs() : boardPageSpecs();
 

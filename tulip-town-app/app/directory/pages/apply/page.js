@@ -13,6 +13,11 @@ import {
 } from '../../../../lib/directoryAdContent';
 import { listDirectoryCategories, isValidDirectoryCategory } from '../../../../lib/directoryCategories';
 import { formatSlotPrice, sizeTierLabel } from '../../../../lib/directorySlots';
+import {
+  SPECIAL_AD_EXTRA_CENTS,
+  SPECIAL_AD_IMAGE_GUIDE,
+  canAddSpecialAd,
+} from '../../../../lib/directorySpecialAds';
 import { supabase } from '../../../../lib/supabaseClient';
 
 function ApplyInner() {
@@ -25,17 +30,23 @@ function ApplyInner() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [slot, setSlot] = useState(null);
+  const [specialFull, setSpecialFull] = useState(false);
   const [form, setForm] = useState({
     business_name: '',
     category_slug: 'restaurant',
     ad_phone: '',
     ad_body: '',
     ad_image_urls: [],
+    is_special: false,
+    special_image_url: '',
   });
 
   const categories = useMemo(() => listDirectoryCategories(), []);
   const bodyMax = adBodyLimit(slot?.size_tier);
   const imageGuide = adImageGuide(slot?.size_tier);
+  const specialEligible = canAddSpecialAd(slot?.size_tier);
+  const monthlyTotal =
+    (Number(slot?.base_price_cents) || 0) + (form.is_special ? SPECIAL_AD_EXTRA_CENTS : 0);
 
   useEffect(() => {
     let cancelled = false;
@@ -81,6 +92,16 @@ function ApplyInner() {
         if (!cancelled) {
           setSlot(row);
           setError('');
+        }
+
+        try {
+          const specialRes = await fetch('/api/directory-special', { credentials: 'same-origin' });
+          const specialPayload = await specialRes.json().catch(() => ({}));
+          if (!cancelled && specialRes.ok) {
+            setSpecialFull(Boolean(specialPayload.full));
+          }
+        } catch {
+          /* ignore */
         }
       } catch (err) {
         if (!cancelled) {
@@ -143,6 +164,40 @@ function ApplyInner() {
     );
   }
 
+  async function uploadOneImage(file, prefix) {
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData?.user?.id;
+    if (!userId) throw new Error('로그인이 필요합니다.');
+    if (file.size > DIR_AD_MAX_IMAGE_BYTES) {
+      throw new Error('각 사진은 2MB 이하여야 합니다.');
+    }
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+    const path = `${userId}/${prefix}-${Date.now()}.${ext}`;
+    const { error: upErr } = await supabase.storage.from('post-images').upload(path, file, {
+      upsert: false,
+      contentType: file.type || undefined,
+    });
+    if (upErr) throw upErr;
+    const { data: pub } = supabase.storage.from('post-images').getPublicUrl(path);
+    return pub?.publicUrl || '';
+  }
+
+  async function handleSpecialImage(fileList) {
+    const file = Array.from(fileList || [])[0];
+    if (!file) return;
+    setUploading(true);
+    setError('');
+    try {
+      const url = await uploadOneImage(file, 'dir-special');
+      if (!url) throw new Error('특별광고 이미지 업로드 실패');
+      update('special_image_url', url);
+    } catch (err) {
+      setError(err.message || '특별광고 이미지 업로드 실패');
+    } finally {
+      setUploading(false);
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
@@ -155,17 +210,34 @@ function ApplyInner() {
       if (bodyText.length > bodyMax) {
         throw new Error(`광고 문구는 ${bodyMax}자 이내로 작성해 주세요.`);
       }
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-      if (!token) throw new Error('로그인이 필요합니다.');
+      if (form.is_special && !form.special_image_url) {
+        throw new Error('특별광고용 배너 이미지를 올려 주세요.');
+      }
+
+      let token = '';
+      try {
+        const timed = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise((resolve) => {
+            setTimeout(() => resolve({ data: { session: null }, timedOut: true }), 2500);
+          }),
+        ]);
+        if (!timed?.timedOut) token = timed?.data?.session?.access_token || '';
+      } catch {
+        token = '';
+      }
+      if (!token) {
+        const { data: userData } = await supabase.auth.getUser();
+        if (!userData?.user) throw new Error('로그인이 필요합니다.');
+      }
 
       const urls = normalizeAdImageUrls(form.ad_image_urls);
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers.Authorization = `Bearer ${token}`;
       const res = await fetch('/api/directory-slot/checkout', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
+        credentials: 'same-origin',
         body: JSON.stringify({
           slot_id: slotId,
           business_name: form.business_name.trim(),
@@ -175,6 +247,8 @@ function ApplyInner() {
           ad_image_urls: urls,
           ad_image_url: urls[0] || null,
           ad_title: form.business_name.trim(),
+          is_special: Boolean(form.is_special && specialEligible),
+          special_image_url: form.is_special ? form.special_image_url : null,
         }),
       });
       const payload = await res.json();
@@ -230,6 +304,12 @@ function ApplyInner() {
             {slot.page_number}면 · {slot.position_label} · {sizeTierLabel(slot.size_tier)} ·{' '}
             {formatSlotPrice(slot.base_price_cents)}
           </strong>
+          {form.is_special ? (
+            <p className="hint-text" style={{ marginTop: 6 }}>
+              특별광고 포함 합계 {formatSlotPrice(monthlyTotal)}
+              {specialFull ? ' · 특별광고는 대기 등록' : ''}
+            </p>
+          ) : null}
         </div>
       ) : null}
 
@@ -312,6 +392,65 @@ function ApplyInner() {
               </div>
             ))}
           </div>
+        ) : null}
+
+        {specialEligible ? (
+          <fieldset className="dir-special-opt">
+            <legend className="dir-special-opt-legend">첫 페이지 특별광고</legend>
+            <label className="dir-special-check">
+              <input
+                type="checkbox"
+                checked={form.is_special}
+                onChange={(e) => update('is_special', e.target.checked)}
+              />
+              <span>첫 페이지 특별광고 슬라이드 추가 (+$2/월)</span>
+            </label>
+            {form.is_special ? (
+              <div className="dir-special-opt-body">
+                <p className="hint-text">
+                  {specialFull
+                    ? '지금은 특별광고 자리가 모두 찼습니다. 자리가 나면 순서대로 자동 노출됩니다. (체크 시 대기열에 등록됩니다.)'
+                    : '6초마다 자동으로 돌아가는 첫 페이지 슬라이드에 노출됩니다.'}
+                </p>
+                <div className="dir-ad-guide-box">
+                  <p>
+                    <strong>특별광고 이미지 가이드</strong>
+                  </p>
+                  <ul>
+                    <li>{SPECIAL_AD_IMAGE_GUIDE.size}</li>
+                    <li>{SPECIAL_AD_IMAGE_GUIDE.formats}</li>
+                    <li>{SPECIAL_AD_IMAGE_GUIDE.tip}</li>
+                  </ul>
+                </div>
+                <label htmlFor="special_image">특별광고 배너 이미지 *</label>
+                <input
+                  id="special_image"
+                  type="file"
+                  accept="image/*"
+                  disabled={uploading || saving}
+                  onChange={(e) => {
+                    handleSpecialImage(e.target.files);
+                    e.target.value = '';
+                  }}
+                />
+                {form.special_image_url ? (
+                  <div className="dir-ad-thumbs">
+                    <div className="dir-ad-thumb">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={form.special_image_url} alt="" />
+                      <button
+                        type="button"
+                        className="btn btn-outline"
+                        onClick={() => update('special_image_url', '')}
+                      >
+                        삭제
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </fieldset>
         ) : null}
 
         {error ? <div className="error-text">{error}</div> : null}

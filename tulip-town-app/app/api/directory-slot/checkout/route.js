@@ -1,15 +1,29 @@
 import { NextResponse } from 'next/server';
-import { getUserFromRequest, tryAdminSupabase } from '../../../../lib/apiAuth';
+import { getUserFromRequest, tryAdminSupabase, getWriteDbFromRequest } from '../../../../lib/apiAuth';
 import {
   adBodyLimit,
   normalizeAdImageUrls,
 } from '../../../../lib/directoryAdContent';
 import { isValidDirectoryCategory } from '../../../../lib/directoryCategories';
+import {
+  SPECIAL_AD_EXTRA_CENTS,
+  SPECIAL_AD_CAPACITY,
+  canAddSpecialAd,
+  countLiveSpecialAds,
+  nextSpecialQueuePosition,
+} from '../../../../lib/directorySpecialAds';
 import { getAppUrl, getStripe } from '../../../../lib/stripe';
 
 export async function POST(request) {
   try {
-    const { user, db } = await getUserFromRequest(request);
+    let { user, db } = await getUserFromRequest(request);
+    if (!user || !db) {
+      const fallback = await getWriteDbFromRequest(request);
+      if (fallback.user && fallback.db) {
+        user = fallback.user;
+        db = fallback.db;
+      }
+    }
     if (!user || !db) {
       return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
     }
@@ -23,6 +37,8 @@ export async function POST(request) {
     const adBody = String(body.ad_body || '').trim() || null;
     const imageUrls = normalizeAdImageUrls(body.ad_image_urls, body.ad_image_url);
     const adImageUrl = imageUrls[0] || null;
+    const wantSpecial = Boolean(body.is_special);
+    const specialImageUrl = String(body.special_image_url || '').trim() || null;
 
     if (!slotId || !businessName || !adPhone) {
       return NextResponse.json({ error: '슬롯, 업체명, 전화번호는 필수입니다.' }, { status: 400 });
@@ -45,6 +61,19 @@ export async function POST(request) {
       return NextResponse.json({ error: '이미 판매된 자리입니다.' }, { status: 409 });
     }
 
+    if (wantSpecial && !canAddSpecialAd(slot.size_tier)) {
+      return NextResponse.json(
+        { error: '소형 슬롯은 첫 페이지 특별광고를 추가할 수 없습니다.' },
+        { status: 400 }
+      );
+    }
+    if (wantSpecial && !specialImageUrl) {
+      return NextResponse.json(
+        { error: '특별광고용 배너 이미지(800×400 권장)를 올려 주세요.' },
+        { status: 400 }
+      );
+    }
+
     const bodyMax = adBodyLimit(slot.size_tier);
     if (adBody && adBody.length > bodyMax) {
       return NextResponse.json(
@@ -53,7 +82,21 @@ export async function POST(request) {
       );
     }
 
-    // Soft-hold: mark occupied so two checkouts don't race; webhook/cancel restores if needed.
+    let specialQueued = false;
+    let specialQueuePosition = null;
+    if (wantSpecial) {
+      try {
+        const live = await countLiveSpecialAds(reader);
+        if (live >= SPECIAL_AD_CAPACITY) {
+          specialQueued = true;
+          specialQueuePosition = await nextSpecialQueuePosition(reader);
+        }
+      } catch (err) {
+        // Columns may be missing until SQL migration — still allow checkout without queue.
+        console.warn('special capacity check', err.message);
+      }
+    }
+
     if (admin) {
       const { data: held, error: holdErr } = await admin
         .from('directory_slots')
@@ -81,6 +124,9 @@ export async function POST(request) {
         ad_body: adBody,
         ad_image_urls: imageUrls,
         status: 'pending',
+        is_special: wantSpecial,
+        special_image_url: wantSpecial ? specialImageUrl : null,
+        special_queue_position: wantSpecial ? specialQueuePosition : null,
       };
 
       let inserted;
@@ -91,8 +137,26 @@ export async function POST(request) {
           .select('id')
           .single();
         if (error) {
-          // Fallback if new columns not migrated yet.
-          if (String(error.message || '').includes('ad_body') || String(error.message || '').includes('ad_image_urls')) {
+          const msg = String(error.message || '');
+          if (msg.includes('is_special') || msg.includes('special_')) {
+            const { data: withoutSpecial, error: e2 } = await writer
+              .from('directory_slot_ads')
+              .insert({
+                slot_id: slotId,
+                submitted_by: user.id,
+                category_slug: categorySlug,
+                ad_title: adTitle,
+                ad_phone: adPhone,
+                ad_image_url: adImageUrl,
+                ad_body: adBody,
+                ad_image_urls: imageUrls,
+                status: 'pending',
+              })
+              .select('id')
+              .single();
+            if (e2) throw e2;
+            inserted = withoutSpecial;
+          } else if (msg.includes('ad_body') || msg.includes('ad_image_urls')) {
             const { data: legacy, error: legacyErr } = await writer
               .from('directory_slot_ads')
               .insert({
@@ -108,8 +172,7 @@ export async function POST(request) {
               .single();
             if (legacyErr) throw legacyErr;
             inserted = legacy;
-          } else if (String(error.message || '').toLowerCase().includes('pending')) {
-            // status check may not allow pending yet — keep Stripe metadata path only
+          } else if (msg.toLowerCase().includes('pending')) {
             inserted = null;
           } else {
             throw error;
@@ -122,8 +185,12 @@ export async function POST(request) {
 
       const stripe = getStripe();
       const appUrl = getAppUrl();
-      const amountCents = Number(slot.base_price_cents) || 1800;
-      const label = `지면 광고 ${slot.page_number}면 ${slot.position_label} (${slot.size_tier})`;
+      const baseCents = Number(slot.base_price_cents) || 300;
+      const specialCents = wantSpecial ? SPECIAL_AD_EXTRA_CENTS : 0;
+      const amountCents = baseCents + specialCents;
+      const label = wantSpecial
+        ? `지면 광고 ${slot.page_number}면 ${slot.position_label} (${slot.size_tier}) + 특별광고`
+        : `지면 광고 ${slot.page_number}면 ${slot.position_label} (${slot.size_tier})`;
 
       const meta = {
         kind: 'directory_slot',
@@ -136,23 +203,46 @@ export async function POST(request) {
         ad_image_url: (adImageUrl || '').slice(0, 450),
         ad_body: (adBody || '').slice(0, 450),
         amount_cents: String(amountCents),
+        is_special: wantSpecial ? '1' : '0',
+        special_image_url: (specialImageUrl || '').slice(0, 450),
+        special_queued: specialQueued ? '1' : '0',
+        special_queue_position: specialQueuePosition != null ? String(specialQueuePosition) : '',
       };
       if (pendingAdId) meta.pending_ad_id = pendingAdId;
+
+      const lineItems = [
+        {
+          price_data: {
+            currency: 'usd',
+            unit_amount: baseCents,
+            recurring: { interval: 'month' },
+            product_data: {
+              name: `지면 광고 ${slot.page_number}면 ${slot.position_label} (${slot.size_tier})`,
+            },
+          },
+          quantity: 1,
+        },
+      ];
+      if (wantSpecial) {
+        lineItems.push({
+          price_data: {
+            currency: 'usd',
+            unit_amount: SPECIAL_AD_EXTRA_CENTS,
+            recurring: { interval: 'month' },
+            product_data: {
+              name: specialQueued
+                ? '첫 페이지 특별광고 슬라이드 (대기열)'
+                : '첫 페이지 특별광고 슬라이드',
+            },
+          },
+          quantity: 1,
+        });
+      }
 
       const session = await stripe.checkout.sessions.create({
         mode: 'subscription',
         customer_email: user.email,
-        line_items: [
-          {
-            price_data: {
-              currency: 'usd',
-              unit_amount: amountCents,
-              recurring: { interval: 'month' },
-              product_data: { name: label },
-            },
-            quantity: 1,
-          },
-        ],
+        line_items: lineItems,
         success_url: `${appUrl}/directory?checkout=success&session_id={CHECKOUT_SESSION_ID}&page=${slot.page_number}`,
         cancel_url: `${appUrl}/directory/pages/apply?slot=${encodeURIComponent(slotId)}&checkout=cancel`,
         metadata: meta,
@@ -161,12 +251,19 @@ export async function POST(request) {
             kind: 'directory_slot',
             slot_id: slotId,
             user_id: user.id,
+            is_special: wantSpecial ? '1' : '0',
             ...(pendingAdId ? { pending_ad_id: pendingAdId } : {}),
           },
         },
       });
 
-      return NextResponse.json({ url: session.url, session_id: session.id });
+      return NextResponse.json({
+        url: session.url,
+        session_id: session.id,
+        special_queued: specialQueued,
+        amount_cents: amountCents,
+        label,
+      });
     } catch (err) {
       if (admin) {
         if (pendingAdId) {

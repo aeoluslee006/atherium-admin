@@ -8,6 +8,8 @@
 -- → POST /api/directory-pages/compose
 -- If SUPABASE_SERVICE_ROLE_KEY is unset on Vercel, run
 -- directory_slots_manager_rls.sql so managers can insert with their login JWT.
+-- Pricing + special slider: run directory_special_ads.sql
+-- (prices: ultra $18 / large $9 / medium $5 / small $3; special +$2).
 -- Presets: small 2×2, medium 4×2, medium_vertical 2×4, large 6×4, ultra 6×10
 -- For ultra inserts, also run directory_slots_ultra_tier.sql if size_tier check rejects it.
 -- on a 6×10 canvas (lib/directorySlots.js SLOT_SIZE_PRESETS).

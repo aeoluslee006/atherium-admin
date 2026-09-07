@@ -36,7 +36,7 @@ export default async function handler(req, res) {
 
   let query = ttkc
     .from('profiles')
-    .select('id, display_name, is_admin, is_banned, banned_reason, suspended_until, created_at')
+    .select('id, display_name, email, phone, is_admin, is_moderator, status, is_banned, banned_reason, suspended_until, created_at')
     .order('created_at', { ascending: false })
     .limit(500)
 
@@ -45,21 +45,27 @@ export default async function handler(req, res) {
 
   let members = (profiles || []).map((p) => ({
     ...p,
-    email: '',
-    phone: '',
-    points_purchased: 0,
-    points_balance: 0,
+    email: p.email || '',
+    phone: p.phone || '',
+    tier: p.is_admin ? 'super_admin' : p.is_moderator ? 'black' : 'bronze',
+    unread_messages: 0,
+    promotions: [],
   }))
 
   if (q) {
     const needle = q.toLowerCase()
-    members = members.filter((m) => (m.display_name || '').toLowerCase().includes(needle))
+    members = members.filter(
+      (m) =>
+        (m.display_name || '').toLowerCase().includes(needle) ||
+        (m.email || '').toLowerCase().includes(needle) ||
+        (m.phone || '').includes(needle)
+    )
   }
 
   return sendJson(res, 200, {
     members,
     schemaReady: false,
     setupHint:
-      '회원 이메일·전화·포인트를 보려면 atherium_admin_schema.sql 을 Supabase에서 실행하세요.',
+      '등급·프로모션·메시지를 보려면 atherium_admin_ttkc_fix.sql 을 Supabase에서 실행하세요.',
   })
 }

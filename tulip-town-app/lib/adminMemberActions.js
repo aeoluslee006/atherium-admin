@@ -3,9 +3,21 @@ import {
   DEFAULT_PROMO_DAYS,
   MEMBER_STATUS,
   datePlusDays,
+  isPromoActive,
+  promoTrialEndUnix,
   resolveMemberStatus,
 } from './memberStatus';
 import { getStripe, isStripeConfigured } from './stripe';
+
+export const PROMO_PRODUCT = {
+  DIRECTORY: 'directory_listing',
+  TULIP_SHOP: 'tulip_shop',
+};
+
+export const PROMO_DEFAULT_DAYS = {
+  directory_listing: 20,
+  tulip_shop: 30,
+};
 
 async function logAction(db, { actorId, targetId, action, detail }) {
   try {
@@ -20,7 +32,72 @@ async function logAction(db, { actorId, targetId, action, detail }) {
   }
 }
 
-/** Collect Stripe subscription ids owned by this member. */
+export async function getMemberPromoEndDate(db, profileId, productKey) {
+  const { data, error } = await db
+    .from('member_promotions')
+    .select('promo_end_date')
+    .eq('profile_id', profileId)
+    .eq('product_key', productKey)
+    .maybeSingle();
+  if (error) {
+    // Fallback to legacy profiles.promo_end_date for directory only
+    if (productKey === PROMO_PRODUCT.DIRECTORY) {
+      const { data: profile } = await db
+        .from('profiles')
+        .select('promo_end_date')
+        .eq('id', profileId)
+        .maybeSingle();
+      return profile?.promo_end_date || null;
+    }
+    throw error;
+  }
+  return data?.promo_end_date || null;
+}
+
+/**
+ * On first paid checkout for a product: grant default promo days if none set.
+ */
+export async function ensureFirstPaidPromo(db, profileId, productKey = PROMO_PRODUCT.DIRECTORY) {
+  const existing = await getMemberPromoEndDate(db, profileId, productKey);
+  if (existing) {
+    return { promo_end_date: existing, granted: false };
+  }
+
+  const days = PROMO_DEFAULT_DAYS[productKey] || DEFAULT_PROMO_DAYS;
+  const promo_end_date = datePlusDays(days);
+
+  const { error } = await db.from('member_promotions').upsert(
+    {
+      profile_id: profileId,
+      product_key: productKey,
+      promo_end_date,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'profile_id,product_key' }
+  );
+
+  if (error) {
+    // Legacy fallback
+    if (productKey === PROMO_PRODUCT.DIRECTORY) {
+      const { error: upErr } = await db
+        .from('profiles')
+        .update({ promo_end_date })
+        .eq('id', profileId)
+        .is('promo_end_date', null);
+      if (upErr) throw upErr;
+      return { promo_end_date, granted: true };
+    }
+    throw error;
+  }
+
+  return { promo_end_date, granted: true };
+}
+
+export function trialEndForPromo(promoEndDate) {
+  if (!isPromoActive(promoEndDate)) return null;
+  return promoTrialEndUnix(promoEndDate);
+}
+
 export async function collectMemberSubscriptionIds(db, profileId) {
   const ids = new Set();
 
@@ -107,10 +184,6 @@ async function cancelStripeSubs(subscriptionIds) {
   return { ok, failed };
 }
 
-/**
- * Hide member paid directory ads, free slots, clear special + drain queue.
- * Same for hold and soft-delete.
- */
 export async function hideMemberPaidContent(db, profileId) {
   const { data: ads, error } = await db
     .from('directory_slot_ads')
@@ -149,14 +222,12 @@ export async function hideMemberPaidContent(db, profileId) {
   return { expiredAds: (ads || []).length, freedSlots: slotIds.length, promoted };
 }
 
-/**
- * Apply hold / unhold / soft-delete. status is sole write target.
- */
 export async function applyMemberStatusChange(db, {
   actorId,
   targetId,
   nextStatus,
   promoEndDate,
+  productKey,
 }) {
   const { data: before, error: beforeErr } = await db
     .from('profiles')
@@ -170,11 +241,32 @@ export async function applyMemberStatusChange(db, {
   const prevStatus = resolveMemberStatus(before);
   const result = { prevStatus, nextStatus: prevStatus, stripe: null, content: null, promo: null };
 
-  // Promo-only update
-  if (promoEndDate !== undefined && nextStatus === undefined) {
-    const patch = {
-      promo_end_date: promoEndDate || null,
-    };
+  // Per-product promo update
+  if (productKey && promoEndDate !== undefined && nextStatus === undefined) {
+    const { error } = await db.from('member_promotions').upsert(
+      {
+        profile_id: targetId,
+        product_key: productKey,
+        promo_end_date: promoEndDate || null,
+        updated_by: actorId || null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'profile_id,product_key' }
+    );
+    if (error) throw error;
+    await logAction(db, {
+      actorId,
+      targetId,
+      action: 'promo_update',
+      detail: { product_key: productKey, after: promoEndDate || null },
+    });
+    result.promo = { product_key: productKey, promo_end_date: promoEndDate || null };
+    return { member: before, ...result };
+  }
+
+  // Legacy single promo on profiles (compat)
+  if (promoEndDate !== undefined && nextStatus === undefined && !productKey) {
+    const patch = { promo_end_date: promoEndDate || null };
     const { data, error } = await db
       .from('profiles')
       .update(patch)
@@ -186,7 +278,7 @@ export async function applyMemberStatusChange(db, {
       actorId,
       targetId,
       action: 'promo_update',
-      detail: { before: before.promo_end_date, after: patch.promo_end_date },
+      detail: { before: before.promo_end_date, after: patch.promo_end_date, legacy: true },
     });
     result.promo = data.promo_end_date;
     result.nextStatus = resolveMemberStatus(data);
@@ -198,11 +290,6 @@ export async function applyMemberStatusChange(db, {
   }
 
   const patch = { status: nextStatus };
-  if (promoEndDate !== undefined) {
-    patch.promo_end_date = promoEndDate || null;
-  }
-
-  // Do not write legacy columns (read-only compat)
 
   if (nextStatus === MEMBER_STATUS.HOLD || nextStatus === MEMBER_STATUS.DELETED) {
     result.content = await hideMemberPaidContent(db, targetId);
@@ -222,7 +309,6 @@ export async function applyMemberStatusChange(db, {
   if (nextStatus === MEMBER_STATUS.ACTIVE && prevStatus === MEMBER_STATUS.HOLD) {
     const subIds = await collectMemberSubscriptionIds(db, targetId);
     result.stripe = { action: 'resume', ...(await resumeStripeSubs(subIds)) };
-    // Special ads / listings are NOT auto-restored after hold (must re-apply)
   }
 
   const { data, error } = await db
@@ -247,8 +333,8 @@ export async function applyMemberStatusChange(db, {
     targetId,
     action,
     detail: {
-      before: { status: prevStatus, promo_end_date: before.promo_end_date },
-      after: { status: data.status, promo_end_date: data.promo_end_date },
+      before: { status: prevStatus },
+      after: { status: data.status },
       stripe: result.stripe,
       content: result.content,
     },
@@ -256,28 +342,4 @@ export async function applyMemberStatusChange(db, {
 
   result.nextStatus = resolveMemberStatus(data);
   return { member: data, ...result };
-}
-
-export async function ensureFirstPaidPromo(db, profileId) {
-  const { data: profile, error } = await db
-    .from('profiles')
-    .select('id,promo_end_date,status')
-    .eq('id', profileId)
-    .maybeSingle();
-  if (error) throw error;
-  if (!profile) throw new Error('프로필을 찾을 수 없습니다.');
-
-  if (profile.promo_end_date) {
-    return { promo_end_date: profile.promo_end_date, granted: false };
-  }
-
-  const promo_end_date = datePlusDays(DEFAULT_PROMO_DAYS);
-  const { error: upErr } = await db
-    .from('profiles')
-    .update({ promo_end_date })
-    .eq('id', profileId)
-    .is('promo_end_date', null);
-  if (upErr) throw upErr;
-
-  return { promo_end_date, granted: true };
 }

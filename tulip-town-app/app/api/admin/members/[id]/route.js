@@ -23,7 +23,7 @@ export async function PATCH(request, { params }) {
       return NextResponse.json(
         {
           error:
-            'is_banned/suspended_until은 읽기 전용입니다. status(active|hold|deleted) 또는 promo_end_date를 사용하세요.',
+            'is_banned/suspended_until은 읽기 전용입니다. status(active|hold|deleted) 또는 product_key+promo_end_date를 사용하세요.',
         },
         { status: 400 }
       );
@@ -41,9 +41,13 @@ export async function PATCH(request, { params }) {
     if ('promo_end_date' in body) {
       promoEndDate = body.promo_end_date ? String(body.promo_end_date).slice(0, 10) : null;
     }
+    const productKey = body.product_key ? String(body.product_key) : undefined;
 
     if (nextStatus === undefined && promoEndDate === undefined) {
-      return NextResponse.json({ error: 'status 또는 promo_end_date가 필요합니다.' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'status 또는 promo_end_date(+product_key)가 필요합니다.' },
+        { status: 400 }
+      );
     }
 
     const result = await applyMemberStatusChange(supabase, {
@@ -51,6 +55,7 @@ export async function PATCH(request, { params }) {
       targetId: id,
       nextStatus,
       promoEndDate,
+      productKey,
     });
 
     return NextResponse.json(result);

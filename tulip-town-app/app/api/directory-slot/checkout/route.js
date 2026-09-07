@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { isWriteBlocked } from '../../../../lib/adminAuth';
-import { ensureFirstPaidPromo } from '../../../../lib/adminMemberActions';
+import {
+  ensureFirstPaidPromo,
+  PROMO_PRODUCT,
+  trialEndForPromo,
+} from '../../../../lib/adminMemberActions';
 import { getUserFromRequest, tryAdminSupabase, getWriteDbFromRequest } from '../../../../lib/apiAuth';
 import {
   adBodyLimit,
@@ -14,7 +18,6 @@ import {
   countLiveSpecialAds,
   nextSpecialQueuePosition,
 } from '../../../../lib/directorySpecialAds';
-import { isPromoActive, promoTrialEndUnix } from '../../../../lib/memberStatus';
 import { directoryPriceKey, getPricingAmountCents, PRICING_KEYS } from '../../../../lib/pricingKeys';
 import { getAppUrl, getStripe } from '../../../../lib/stripe';
 
@@ -96,16 +99,15 @@ export async function POST(request) {
       );
     }
 
-    // First paid checkout grants +20 day promo if none yet
-    let promoEndDate = profile?.promo_end_date || null;
+    // First paid checkout for directory grants +20 day promo if none yet
+    let promoEndDate = null;
     try {
-      const granted = await ensureFirstPaidPromo(admin || db, user.id);
+      const granted = await ensureFirstPaidPromo(admin || db, user.id, PROMO_PRODUCT.DIRECTORY);
       promoEndDate = granted.promo_end_date;
     } catch (err) {
       console.warn('ensureFirstPaidPromo', err.message);
     }
-    const useTrial = isPromoActive(promoEndDate);
-    const trialEnd = useTrial ? promoTrialEndUnix(promoEndDate) : null;
+    const trialEnd = trialEndForPromo(promoEndDate);
 
     let specialQueued = false;
     let specialQueuePosition = null;

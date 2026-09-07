@@ -1,6 +1,6 @@
 /** Helpers for directory_slots newspaper grid. */
 
-/** CSS fallbacks only — actual tracks come from computePageGridSize(). */
+/** Standard compose canvas (and dense board pages). */
 export const DIRECTORY_GRID_COLS = 6;
 export const DIRECTORY_GRID_ROWS = 10;
 
@@ -9,6 +9,57 @@ export const SIZE_TIER_LABEL = {
   medium: '중형',
   large: '대형',
 };
+
+/**
+ * Slot size presets for free-form page composition (6×10 canvas).
+ * Large = half page (full width × half height).
+ * Medium has landscape + vertical variants (same size_tier).
+ */
+export const SLOT_SIZE_PRESETS = {
+  small: {
+    id: 'small',
+    sizeTier: 'small',
+    spanCols: 2,
+    spanRows: 2,
+    label: '소형',
+    hint: '2×2',
+    defaultPriceCents: 1800,
+  },
+  medium: {
+    id: 'medium',
+    sizeTier: 'medium',
+    spanCols: 4,
+    spanRows: 2,
+    label: '중형',
+    hint: '4×2 가로',
+    defaultPriceCents: 5000,
+  },
+  medium_vertical: {
+    id: 'medium_vertical',
+    sizeTier: 'medium',
+    spanCols: 2,
+    spanRows: 4,
+    label: '중형(세로)',
+    hint: '2×4 세로',
+    defaultPriceCents: 5000,
+  },
+  large: {
+    id: 'large',
+    sizeTier: 'large',
+    spanCols: 6,
+    spanRows: 5,
+    label: '대형(반면)',
+    hint: '6×5 · 페이지 절반',
+    defaultPriceCents: 9000,
+  },
+};
+
+export const SLOT_SIZE_PRESET_LIST = [
+  SLOT_SIZE_PRESETS.small,
+  SLOT_SIZE_PRESETS.medium,
+  SLOT_SIZE_PRESETS.medium_vertical,
+  SLOT_SIZE_PRESETS.large,
+];
 
 export function formatSlotPrice(cents) {
   const n = Number(cents);
@@ -19,6 +70,10 @@ export function formatSlotPrice(cents) {
 
 export function sizeTierLabel(tier) {
   return SIZE_TIER_LABEL[tier] || tier || '—';
+}
+
+export function getSlotSizePreset(presetId) {
+  return SLOT_SIZE_PRESETS[presetId] || null;
 }
 
 /**
@@ -47,10 +102,29 @@ export function displayCellLabel(displayRow, displayCol) {
   return `${letter}-${(Number(displayCol) || 0) + 1}`;
 }
 
-/** Dense board pages (2+) show 2×2 slot groups as one cell for readability. */
-export function getDisplayMergeFactor(pageNumber, cols, rows) {
-  const page = Number(pageNumber) || 1;
-  if (page >= 2 && cols >= 6 && rows >= 8) return 2;
+/** Legacy cover template: only original page 1 (1×3 large stack). */
+export function isCoverPage(pageNumber) {
+  return Number(pageNumber) === 1;
+}
+
+/** True when every slot is a 1×1 small cell (legacy dense board). */
+export function pageUsesDenseSmallCells(slots = []) {
+  if (!slots?.length) return false;
+  return slots.every(
+    (s) =>
+      (Number(s.span_cols) || 1) === 1 &&
+      (Number(s.span_rows) || 1) === 1 &&
+      (s.size_tier || 'small') === 'small'
+  );
+}
+
+/**
+ * Dense 6×10 small boards show 2×2 groups as one cell.
+ * Composed pages (spans / mixed tiers) render true spans — no merge.
+ */
+export function getDisplayMergeFactor(pageNumber, cols, rows, slots = []) {
+  if (!pageUsesDenseSmallCells(slots)) return 1;
+  if (cols >= 6 && rows >= 8) return 2;
   return 1;
 }
 
@@ -62,10 +136,12 @@ export function mergeSlotsForDisplay(slots = [], mergeFactor = 1) {
   const factor = Math.max(1, Number(mergeFactor) || 1);
   if (factor <= 1) {
     return (slots || []).map((slot) => ({
-      key: slot.id,
+      key: slot.id || `${slot.row_index}-${slot.col_index}`,
       slots: [slot],
       displayCol: Number(slot.col_index) || 0,
       displayRow: Number(slot.row_index) || 0,
+      spanCols: Number(slot.span_cols) || 1,
+      spanRows: Number(slot.span_rows) || 1,
       primary: slot,
       label: slot.position_label || '—',
     }));
@@ -98,14 +174,97 @@ export function mergeSlotsForDisplay(slots = [], mergeFactor = 1) {
         slots: sorted,
         displayCol: Number(key.split('-')[1]),
         displayRow: Number(key.split('-')[0]),
+        spanCols: 1,
+        spanRows: 1,
         primary: occupied || sorted[0],
         label: displayCellLabel(Number(key.split('-')[0]), Number(key.split('-')[1])),
       };
     });
 }
 
+function rectsOverlap(a, b) {
+  return !(
+    a.col + a.spanCols <= b.col ||
+    b.col + b.spanCols <= a.col ||
+    a.row + a.spanRows <= b.row ||
+    b.row + b.spanRows <= a.row
+  );
+}
+
+export function canPlaceSlot(existing = [], row, col, spanCols, spanRows, {
+  cols = DIRECTORY_GRID_COLS,
+  rows = DIRECTORY_GRID_ROWS,
+} = {}) {
+  const r = Number(row);
+  const c = Number(col);
+  const sc = Number(spanCols);
+  const sr = Number(spanRows);
+  if (![r, c, sc, sr].every((n) => Number.isFinite(n) && n >= 0)) return false;
+  if (sc < 1 || sr < 1) return false;
+  if (c + sc > cols || r + sr > rows) return false;
+  const next = { row: r, col: c, spanCols: sc, spanRows: sr };
+  return !existing.some((p) =>
+    rectsOverlap(next, {
+      row: Number(p.row ?? p.row_index) || 0,
+      col: Number(p.col ?? p.col_index) || 0,
+      spanCols: Number(p.spanCols ?? p.span_cols) || 1,
+      spanRows: Number(p.spanRows ?? p.span_rows) || 1,
+    })
+  );
+}
+
+/**
+ * Normalize composer placements → DB slot rows.
+ * placement: { presetId, row, col, base_price_cents? }
+ */
+export function buildComposedPageSlots(pageNumber, placements = []) {
+  const page = Number(pageNumber);
+  if (!Number.isFinite(page) || page < 1) {
+    throw new Error('Invalid page number');
+  }
+  if (!Array.isArray(placements) || !placements.length) {
+    throw new Error('슬롯을 하나 이상 배치해 주세요.');
+  }
+
+  const normalized = [];
+  for (const raw of placements) {
+    const preset = getSlotSizePreset(raw.presetId || raw.preset_id);
+    if (!preset) {
+      throw new Error(`알 수 없는 슬롯 크기: ${raw.presetId || raw.preset_id}`);
+    }
+    const row = Number(raw.row);
+    const col = Number(raw.col);
+    if (!canPlaceSlot(normalized, row, col, preset.spanCols, preset.spanRows)) {
+      throw new Error(`슬롯을 배치할 수 없습니다 (${preset.label} @ ${row},${col}).`);
+    }
+    const price = Number(raw.base_price_cents);
+    normalized.push({
+      presetId: preset.id,
+      row,
+      col,
+      spanCols: preset.spanCols,
+      spanRows: preset.spanRows,
+      sizeTier: preset.sizeTier,
+      base_price_cents: Number.isFinite(price) && price >= 0 ? Math.round(price) : preset.defaultPriceCents,
+      label: displayCellLabel(row, col),
+    });
+  }
+
+  return normalized.map((s) => ({
+    page_number: page,
+    row_index: s.row,
+    col_index: s.col,
+    span_cols: s.spanCols,
+    span_rows: s.spanRows,
+    position_label: s.label,
+    size_tier: s.sizeTier,
+    base_price_cents: s.base_price_cents,
+    status: 'available',
+  }));
+}
+
 function coverPageSpecs() {
-  // Page 1: 1×3 stack of large ads
+  // Legacy page 1: 1×3 stack of large ads
   return [
     { row: 0, col: 0, spanCols: 1, spanRows: 1, tier: 'large', label: 'A-1' },
     { row: 1, col: 0, spanCols: 1, spanRows: 1, tier: 'large', label: 'B-1' },
@@ -114,10 +273,10 @@ function coverPageSpecs() {
 }
 
 function boardPageSpecs() {
-  // Pages 2+: 6×10 classifieds board (60 small cells)
+  // Dense 6×10 classifieds board (60 small cells)
   const specs = [];
-  for (let r = 0; r < 10; r += 1) {
-    for (let c = 0; c < 6; c += 1) {
+  for (let r = 0; r < DIRECTORY_GRID_ROWS; r += 1) {
+    for (let c = 0; c < DIRECTORY_GRID_COLS; c += 1) {
       specs.push({
         row: r,
         col: c,
@@ -132,17 +291,17 @@ function boardPageSpecs() {
 }
 
 /**
- * Default slot template when admin adds a new page.
+ * Default slot template when admin uses quick "페이지 추가" (legacy fill).
  * Page 1 = 3 large stacked ads; later pages = 6×10 small classifieds.
  */
 export function buildDefaultPageSlots(pageNumber) {
   const page = Number(pageNumber);
-  const page1Premium = page === 1;
-  const prices = page1Premium
-    ? { small: 2500, medium: 7000, large: 14000 }
+  const cover = isCoverPage(page);
+  const prices = cover
+    ? { small: 2500, medium: 7000, large: 9000 }
     : { small: 1800, medium: 5000, large: 10000 };
 
-  const specs = page === 1 ? coverPageSpecs() : boardPageSpecs();
+  const specs = cover ? coverPageSpecs() : boardPageSpecs();
 
   return specs.map((s) => ({
     page_number: page,

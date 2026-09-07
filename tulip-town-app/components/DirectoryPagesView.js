@@ -7,6 +7,8 @@ import { listDirectoryCategories, getDirectoryCategoryLabel } from '../lib/direc
 import {
   buildDirectorySpreads,
   computePageGridSize,
+  DIRECTORY_GRID_COLS,
+  DIRECTORY_GRID_ROWS,
   directorySpreadLabel,
   displayCellLabel,
   formatSlotPrice,
@@ -71,13 +73,26 @@ function DirectoryPaper({ pageData, category, currentUserId }) {
   const pageNumber = pageData?.pageNumber || 1;
   const slots = pageData?.slots || [];
   const rawSize = computePageGridSize(slots);
-  const mergeFactor = getDisplayMergeFactor(pageNumber, rawSize.cols, rawSize.rows);
+  const mergeFactor = getDisplayMergeFactor(pageNumber, rawSize.cols, rawSize.rows, slots);
   const displayCells = useMemo(
     () => mergeSlotsForDisplay(slots, mergeFactor),
     [slots, mergeFactor]
   );
-  const displayCols = Math.ceil(rawSize.cols / mergeFactor);
-  const displayRows = Math.ceil(rawSize.rows / mergeFactor);
+  const usesSpans = slots.some(
+    (s) => (Number(s.span_cols) || 1) > 1 || (Number(s.span_rows) || 1) > 1
+  );
+  const displayCols =
+    mergeFactor > 1
+      ? Math.ceil(rawSize.cols / mergeFactor)
+      : usesSpans
+        ? Math.max(rawSize.cols, DIRECTORY_GRID_COLS)
+        : Math.max(rawSize.cols, 1);
+  const displayRows =
+    mergeFactor > 1
+      ? Math.ceil(rawSize.rows / mergeFactor)
+      : usesSpans
+        ? Math.max(rawSize.rows, DIRECTORY_GRID_ROWS)
+        : Math.max(rawSize.rows, 1);
 
   return (
     <div className="dir-spread-paper">
@@ -134,8 +149,8 @@ function DirectoryPaper({ pageData, category, currentUserId }) {
                   .filter(Boolean)
                   .join(' ')}
                 style={{
-                  gridColumn: `${cell.displayCol + 1} / span 1`,
-                  gridRow: `${cell.displayRow + 1} / span 1`,
+                  gridColumn: `${cell.displayCol + 1} / span ${cell.spanCols || 1}`,
+                  gridRow: `${cell.displayRow + 1} / span ${cell.spanRows || 1}`,
                 }}
               >
                 {occupied ? (

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { getDirectoryCategoryLabel } from '../../../lib/directoryCategories';
 import {
@@ -128,11 +129,19 @@ export default function AdminDirectoryPages() {
       <div className="row-between" style={{ marginBottom: 14 }}>
         <div>
           <h3 className="section-title">지면 광고 관리</h3>
-          <p className="hint-text">점유/빈자리 현황, 가격 조정, 페이지 추가, 부적절 광고 강제 삭제</p>
+          <p className="hint-text">
+            점유/빈자리 현황, 가격 조정, 소형 보드 페이지 추가, 부적절 광고 강제 삭제. 자유 조합 페이지는{' '}
+            <Link href="/mypage/directory-pages">마이페이지 지면 페이지 추가</Link>에서.
+          </p>
         </div>
-        <button type="button" className="btn" disabled={busy === 'add'} onClick={addPage}>
-          {busy === 'add' ? '추가 중…' : '페이지 추가'}
-        </button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <Link href="/mypage/directory-pages" className="btn btn-outline">
+            자유 조합 추가
+          </Link>
+          <button type="button" className="btn" disabled={busy === 'add'} onClick={addPage}>
+            {busy === 'add' ? '추가 중…' : '소형 보드 페이지 추가'}
+          </button>
+        </div>
       </div>
 
       {error ? <div className="error-text">{error}</div> : null}

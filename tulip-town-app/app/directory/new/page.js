@@ -92,7 +92,6 @@ function NewBusinessForm() {
         id="category"
         value={category}
         onChange={(e) => setCategory(e.target.value)}
-        placeholder="식당, 미용실, 보험 등"
       />
       <label htmlFor="city">지역</label>
       <select id="city" value={city} onChange={(e) => setCity(e.target.value)}>

@@ -41,20 +41,37 @@ function EditInner() {
   useEffect(() => {
     let cancelled = false;
     async function boot() {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
-        router.replace(`/login?next=${encodeURIComponent(`/directory/pages/edit?ad=${adId}`)}`);
-        return;
-      }
       if (!adId) {
         setError('광고가 지정되지 않았습니다.');
         setLoading(false);
         return;
       }
       try {
-        const token = data.session.access_token;
+        let token = '';
+        try {
+          const timed = await Promise.race([
+            supabase.auth.getSession(),
+            new Promise((resolve) => {
+              setTimeout(() => resolve({ data: { session: null }, timedOut: true }), 2500);
+            }),
+          ]);
+          if (!timed?.timedOut) token = timed?.data?.session?.access_token || '';
+        } catch {
+          token = '';
+        }
+        if (!token) {
+          const { data: userData } = await supabase.auth.getUser();
+          if (!userData?.user) {
+            router.replace(`/login?next=${encodeURIComponent(`/directory/pages/edit?ad=${adId}`)}`);
+            return;
+          }
+        }
+
+        const headers = { cache: 'no-store' };
+        if (token) headers.Authorization = `Bearer ${token}`;
         const res = await fetch(`/api/directory-slot/ad?id=${encodeURIComponent(adId)}`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers,
+          credentials: 'same-origin',
           cache: 'no-store',
         });
         const json = await res.json().catch(() => ({}));
@@ -69,12 +86,10 @@ function EditInner() {
           ad_body: ad.ad_body || '',
           ad_image_urls: normalizeAdImageUrls(ad.ad_image_urls, ad.ad_image_url),
         });
-        setLoading(false);
       } catch (err) {
-        if (!cancelled) {
-          setError(err.message || '불러오기 실패');
-          setLoading(false);
-        }
+        if (!cancelled) setError(err.message || '불러오기 실패');
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     }
     boot();
@@ -210,7 +225,6 @@ function EditInner() {
           value={form.business_name}
           onChange={(e) => update('business_name', e.target.value)}
           required
-          placeholder="광고에 표시될 업체명"
           maxLength={80}
         />
 
@@ -234,7 +248,6 @@ function EditInner() {
           value={form.ad_phone}
           onChange={(e) => update('ad_phone', e.target.value)}
           required
-          placeholder="616-555-0100"
         />
 
         <label htmlFor="ad_body">광고 문구 (선택)</label>
@@ -243,9 +256,8 @@ function EditInner() {
           id="ad_body"
           value={form.ad_body}
           onChange={(e) => update('ad_body', e.target.value.slice(0, bodyMax))}
-          rows={3}
+          rows={slot?.size_tier === 'ultra' ? 8 : slot?.size_tier === 'large' ? 5 : 3}
           maxLength={bodyMax}
-          placeholder="짧은 소개 문구"
         />
         <p className="hint-text">{form.ad_body.length}/{bodyMax}자</p>
 

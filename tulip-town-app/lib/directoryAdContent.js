@@ -2,17 +2,25 @@
 
 export const DIR_AD_MAX_IMAGES = 5;
 export const DIR_AD_MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 2MB
+
+/** Body length by size_tier (composed large=6×4, ultra=full page). */
 export const DIR_AD_BODY_MAX = {
-  large: 120,
+  ultra: 400,
+  large: 220,
   medium: 80,
   small: 48,
 };
 
 export const DIR_AD_IMAGE_GUIDE = {
+  ultra: {
+    label: '울트라(전면)',
+    size: '가로 1080×세로 1620px (2:3) 권장 · 페이지 전체',
+    tip: '전면 광고처럼 메인 비주얼 + 로고 + 연락처가 한 장에 들어오게',
+  },
   large: {
-    label: '대형',
-    size: '가로 800×세로 600px (4:3) 권장',
-    tip: '가게 외관·대표 메뉴처럼 한눈에 들어오는 사진',
+    label: '대형(6×4)',
+    size: '가로 1080×세로 720px (3:2) 권장',
+    tip: '가게 외관·대표 메뉴처럼 한눈에 들어오는 가로형 사진',
   },
   medium: {
     label: '중형',
@@ -71,11 +79,14 @@ export function primaryAdImage(ad) {
 
 export function writingGuide(sizeTier) {
   const limit = adBodyLimit(sizeTier);
+  if (sizeTier === 'ultra') {
+    return `전면 소개 문단 (${limit}자 이내). 상호·강점·영업시간·연락처를 나눠 적어도 됩니다.`;
+  }
   if (sizeTier === 'large') {
-    return `짧은 소개 2~3문장 (${limit}자 이내). 예: "홀랜드 한식당 · 점심특선 · 주차 가능"`;
+    return `소개 2~4문장 (${limit}자 이내).`;
   }
   if (sizeTier === 'medium') {
-    return `핵심 한두 줄 (${limit}자 이내). 예: "이사/청소 당일예약 · 616-xxx-xxxx"`;
+    return `핵심 한두 줄 (${limit}자 이내).`;
   }
-  return `한 줄 문구 (${limit}자 이내). 예: "오늘 배달 가능 · 첫 주문 10%"`;
+  return `한 줄 문구 (${limit}자 이내).`;
 }

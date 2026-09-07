@@ -91,7 +91,6 @@ export default function AdminMembersPage() {
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="이메일 / 닉네임 검색"
           style={{ marginBottom: 0 }}
         />
         <button className="btn" type="submit">

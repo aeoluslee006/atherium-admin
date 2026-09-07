@@ -127,6 +127,13 @@ async function activateDirectorySlotAd(admin, meta, subscription) {
   const adBody = String(meta.ad_body || '').trim() || null;
   const pendingAdId = String(meta.pending_ad_id || '').trim() || null;
   const subscriptionId = subscription?.id || null;
+  const isSpecial = meta.is_special === '1' || meta.is_special === true;
+  const specialImageUrl = String(meta.special_image_url || '').trim() || null;
+  let specialQueuePosition =
+    meta.special_queue_position !== undefined && meta.special_queue_position !== ''
+      ? Number(meta.special_queue_position)
+      : null;
+  if (!Number.isFinite(specialQueuePosition)) specialQueuePosition = null;
 
   const periodStart = subscription?.current_period_start
     ? new Date(subscription.current_period_start * 1000).toISOString()
@@ -185,7 +192,26 @@ async function activateDirectorySlotAd(admin, meta, subscription) {
     .eq('slot_id', slotId)
     .eq('status', 'active');
 
-  // Prefer activating the checkout draft (keeps multi-image + body).
+  // Recompute special queue at activation time (race-safe).
+  if (isSpecial) {
+    try {
+      const { countLiveSpecialAds, nextSpecialQueuePosition, SPECIAL_AD_CAPACITY } = await import(
+        '../../../lib/directorySpecialAds'
+      );
+      const live = await countLiveSpecialAds(admin);
+      if (live >= SPECIAL_AD_CAPACITY) {
+        if (specialQueuePosition == null) {
+          specialQueuePosition = await nextSpecialQueuePosition(admin);
+        }
+      } else {
+        specialQueuePosition = null;
+      }
+    } catch (err) {
+      console.warn('special queue recompute', err.message);
+    }
+  }
+
+  // Prefer activating the checkout draft (keeps multi-image + body + special).
   if (pendingAdId) {
     const activatePatch = {
       sponsor_id: sponsorId,
@@ -199,6 +225,9 @@ async function activateDirectorySlotAd(admin, meta, subscription) {
       ad_image_url: adImageUrl,
     };
     if (adBody != null) activatePatch.ad_body = adBody;
+    activatePatch.is_special = Boolean(isSpecial);
+    activatePatch.special_image_url = isSpecial ? specialImageUrl : null;
+    activatePatch.special_queue_position = isSpecial ? specialQueuePosition : null;
 
     const { data: activated, error: actErr } = await admin
       .from('directory_slot_ads')
@@ -207,8 +236,36 @@ async function activateDirectorySlotAd(admin, meta, subscription) {
       .eq('submitted_by', userId)
       .select('id')
       .maybeSingle();
-    if (actErr) throw actErr;
-    if (activated?.id) {
+    if (actErr) {
+      // Retry without special columns if migration missing.
+      if (String(actErr.message || '').includes('special') || String(actErr.message || '').includes('is_special')) {
+        const { data: activatedLegacy, error: actErr2 } = await admin
+          .from('directory_slot_ads')
+          .update({
+            sponsor_id: sponsorId,
+            period_start: periodStart,
+            period_end: periodEnd,
+            stripe_subscription_id: subscriptionId,
+            status: 'active',
+            category_slug: categorySlug,
+            ad_title: adTitle,
+            ad_phone: adPhone,
+            ad_image_url: adImageUrl,
+            ...(adBody != null ? { ad_body: adBody } : {}),
+          })
+          .eq('id', pendingAdId)
+          .eq('submitted_by', userId)
+          .select('id')
+          .maybeSingle();
+        if (actErr2) throw actErr2;
+        if (activatedLegacy?.id) {
+          await admin.from('directory_slots').update({ status: 'occupied' }).eq('id', slotId);
+          return true;
+        }
+      } else {
+        throw actErr;
+      }
+    } else if (activated?.id) {
       await admin.from('directory_slots').update({ status: 'occupied' }).eq('id', slotId);
       return true;
     }
@@ -226,13 +283,15 @@ async function activateDirectorySlotAd(admin, meta, subscription) {
     period_end: periodEnd,
     stripe_subscription_id: subscriptionId,
     status: 'active',
+    is_special: Boolean(isSpecial),
+    special_image_url: isSpecial ? specialImageUrl : null,
+    special_queue_position: isSpecial ? specialQueuePosition : null,
   };
   if (adBody) insertRow.ad_body = adBody;
   if (adImageUrl) insertRow.ad_image_urls = [adImageUrl];
 
   const { error: adErr } = await admin.from('directory_slot_ads').insert(insertRow);
   if (adErr) {
-    // Retry without new columns if migration not applied.
     const { error: legacyErr } = await admin.from('directory_slot_ads').insert({
       slot_id: slotId,
       sponsor_id: sponsorId,
@@ -291,6 +350,13 @@ async function releaseDirectorySlot(admin, subscriptionOrMeta) {
       await admin.from('directory_slots').update({ status: 'available' }).eq('id', ad.slot_id);
     }
   }
+
+  try {
+    const { drainSpecialQueue } = await import('../../../lib/directorySpecialAds');
+    await drainSpecialQueue(admin);
+  } catch (err) {
+    console.warn('promote special queue', err.message);
+  }
   return true;
 }
 
@@ -306,6 +372,14 @@ async function expireDueDirectoryAds(admin) {
     await admin.from('directory_slot_ads').update({ status: 'expired' }).eq('id', ad.id);
     if (ad.slot_id) {
       await admin.from('directory_slots').update({ status: 'available' }).eq('id', ad.slot_id);
+    }
+  }
+  if ((due || []).length) {
+    try {
+      const { drainSpecialQueue } = await import('../../../lib/directorySpecialAds');
+      await drainSpecialQueue(admin);
+    } catch (err) {
+      console.warn('promote special queue after expire', err.message);
     }
   }
   return (due || []).length;

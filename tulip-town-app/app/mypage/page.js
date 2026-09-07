@@ -127,6 +127,29 @@ export default async function MyPage() {
     }
   }
 
+  let myDirectoryAds = [];
+  {
+    const fullAds = await supabase
+      .from('directory_slot_ads')
+      .select(
+        'id,ad_title,status,period_end,is_special,special_queue_position,directory_slots(page_number,position_label,size_tier)'
+      )
+      .eq('submitted_by', user.id)
+      .order('created_at', { ascending: false })
+      .limit(30);
+    if (fullAds.error) {
+      const basicAds = await supabase
+        .from('directory_slot_ads')
+        .select('id,ad_title,status,period_end,directory_slots(page_number,position_label,size_tier)')
+        .eq('submitted_by', user.id)
+        .order('created_at', { ascending: false })
+        .limit(30);
+      myDirectoryAds = Array.isArray(basicAds.data) ? basicAds.data : [];
+    } else {
+      myDirectoryAds = Array.isArray(fullAds.data) ? fullAds.data : [];
+    }
+  }
+
   const name = displayNameFromProfile(safeProfile, user.email);
   const activeSubs = subscriptions.filter((s) => s.status === 'active');
 
@@ -156,13 +179,74 @@ export default async function MyPage() {
             <span className="mypage-count">블랙</span>
           </div>
           <p className="mypage-list-sub" style={{ marginBottom: 12 }}>
-            새 페이지를 추가하고 소형·중형·중형(세로)·대형(반면) 슬롯을 자유롭게 조합할 수 있습니다.
+            업체 디렉토리 맨 끝 <strong>+</strong> 탭에서 슬롯을 드래그해 새 페이지를 만들 수 있습니다.
           </p>
-          <Link href="/mypage/directory-pages" className="btn">
-            지면 페이지 추가
-          </Link>
+          <div className="mypage-empty-actions">
+            <Link href="/directory" className="btn">
+              디렉토리에서 추가
+            </Link>
+            <Link href="/mypage/directory-pages" className="btn btn-outline">
+              배치 화면 열기
+            </Link>
+          </div>
         </section>
       ) : null}
+
+      <section className="mypage-section card" aria-labelledby="mypage-dir-ads-title">
+        <div className="mypage-section-head">
+          <h2 id="mypage-dir-ads-title">내 지면 광고</h2>
+          <span className="mypage-count">{myDirectoryAds.length}건</span>
+        </div>
+        {myDirectoryAds.length ? (
+          <ul className="mypage-list">
+            {myDirectoryAds.map((ad) => {
+              const slot = ad.directory_slots;
+              const pageLabel =
+                slot?.page_number != null
+                  ? `${slot.page_number}면 ${slot.position_label || ''}`.trim()
+                  : '슬롯';
+              const specialQueued =
+                ad.is_special &&
+                ad.special_queue_position != null &&
+                Number(ad.special_queue_position) > 0;
+              const specialLive = ad.is_special && !specialQueued;
+              return (
+                <li key={ad.id} className="mypage-list-row">
+                  <div>
+                    <strong>{ad.ad_title || pageLabel}</strong>
+                    <p className="mypage-list-sub">
+                      {pageLabel}
+                      {slot?.size_tier ? ` · ${slot.size_tier}` : ''}
+                      {ad.period_end ? ` · 만료 ${formatJoinedDate(ad.period_end)}` : ''}
+                      {specialLive ? ' · 특별광고 슬라이드 노출 중' : ''}
+                      {specialQueued
+                        ? ` · 특별광고 대기 순번 ${ad.special_queue_position}`
+                        : ''}
+                    </p>
+                  </div>
+                  <div className="mypage-empty-actions" style={{ gap: 8 }}>
+                    <span className={`mypage-status mypage-status--${ad.status || 'expired'}`}>
+                      {STATUS_LABELS[ad.status] || ad.status}
+                    </span>
+                    {ad.status === 'active' ? (
+                      <Link href={`/directory/pages/edit?ad=${ad.id}`} className="btn btn-outline">
+                        수정
+                      </Link>
+                    ) : null}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <div className="mypage-empty">
+            <p>신청한 지면 광고가 없습니다.</p>
+            <Link href="/directory" className="btn btn-outline">
+              업체 디렉토리
+            </Link>
+          </div>
+        )}
+      </section>
 
       <section className="mypage-section card" aria-labelledby="mypage-subs-title">
         <div className="mypage-section-head">

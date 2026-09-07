@@ -8,11 +8,12 @@ export const SIZE_TIER_LABEL = {
   small: '소형',
   medium: '중형',
   large: '대형',
+  ultra: '울트라',
 };
 
 /**
  * Slot size presets for free-form page composition (6×10 canvas).
- * Large = half page (full width × half height).
+ * Large = full width × 4 rows. Ultra = entire page.
  * Medium has landscape + vertical variants (same size_tier).
  */
 export const SLOT_SIZE_PRESETS = {
@@ -23,7 +24,7 @@ export const SLOT_SIZE_PRESETS = {
     spanRows: 2,
     label: '소형',
     hint: '2×2',
-    defaultPriceCents: 1800,
+    defaultPriceCents: 300,
   },
   medium: {
     id: 'medium',
@@ -32,7 +33,7 @@ export const SLOT_SIZE_PRESETS = {
     spanRows: 2,
     label: '중형',
     hint: '4×2 가로',
-    defaultPriceCents: 5000,
+    defaultPriceCents: 500,
   },
   medium_vertical: {
     id: 'medium_vertical',
@@ -41,16 +42,25 @@ export const SLOT_SIZE_PRESETS = {
     spanRows: 4,
     label: '중형(세로)',
     hint: '2×4 세로',
-    defaultPriceCents: 5000,
+    defaultPriceCents: 500,
   },
   large: {
     id: 'large',
     sizeTier: 'large',
     spanCols: 6,
-    spanRows: 5,
-    label: '대형(반면)',
-    hint: '6×5 · 페이지 절반',
-    defaultPriceCents: 9000,
+    spanRows: 4,
+    label: '대형',
+    hint: '6×4',
+    defaultPriceCents: 900,
+  },
+  ultra: {
+    id: 'ultra',
+    sizeTier: 'ultra',
+    spanCols: 6,
+    spanRows: 10,
+    label: '울트라(전면)',
+    hint: '6×10 · 페이지 전체',
+    defaultPriceCents: 1800,
   },
 };
 
@@ -59,6 +69,7 @@ export const SLOT_SIZE_PRESET_LIST = [
   SLOT_SIZE_PRESETS.medium,
   SLOT_SIZE_PRESETS.medium_vertical,
   SLOT_SIZE_PRESETS.large,
+  SLOT_SIZE_PRESETS.ultra,
 ];
 
 export function formatSlotPrice(cents) {
@@ -297,9 +308,7 @@ function boardPageSpecs() {
 export function buildDefaultPageSlots(pageNumber) {
   const page = Number(pageNumber);
   const cover = isCoverPage(page);
-  const prices = cover
-    ? { small: 2500, medium: 7000, large: 9000 }
-    : { small: 1800, medium: 5000, large: 10000 };
+  const prices = { small: 300, medium: 500, large: 900, ultra: 1800 };
 
   const specs = cover ? coverPageSpecs() : boardPageSpecs();
 

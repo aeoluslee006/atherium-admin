@@ -159,7 +159,6 @@ export default function SellerApplyPage() {
           id="business_name"
           value={form.business_name}
           onChange={(e) => update('business_name', e.target.value)}
-          placeholder="예: Mina Bake LLC"
           required
         />
 
@@ -168,7 +167,6 @@ export default function SellerApplyPage() {
           id="business_address"
           value={form.business_address}
           onChange={(e) => update('business_address', e.target.value)}
-          placeholder="Street, City, MI ZIP"
           required
         />
 
@@ -177,7 +175,6 @@ export default function SellerApplyPage() {
           id="ein"
           value={form.ein}
           onChange={(e) => update('ein', e.target.value)}
-          placeholder="12-3456789"
           pattern="\d{2}-\d{7}"
           required
         />
@@ -216,7 +213,6 @@ export default function SellerApplyPage() {
           id="description"
           value={form.description}
           onChange={(e) => update('description', e.target.value)}
-          placeholder="판매 품목, 픽업/배송 안내 등"
         />
 
         <label className="seller-agree">

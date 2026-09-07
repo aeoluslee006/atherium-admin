@@ -16,6 +16,20 @@ export async function getProfile(userId) {
 
 /** Verify request bearer/session is an admin. Returns { user, profile } or null. */
 export async function requireAdminFromRequest(request) {
+  const auth = await resolveUserProfileFromRequest(request);
+  if (!auth?.profile?.is_admin) return null;
+  return auth;
+}
+
+/** Admin or black-level moderator. */
+export async function requireAdminOrModeratorFromRequest(request) {
+  const auth = await resolveUserProfileFromRequest(request);
+  if (!auth?.profile) return null;
+  if (!auth.profile.is_admin && !auth.profile.is_moderator) return null;
+  return auth;
+}
+
+async function resolveUserProfileFromRequest(request) {
   const authHeader = request.headers.get('authorization') || '';
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
@@ -42,7 +56,6 @@ export async function requireAdminFromRequest(request) {
 
   if (!user) return null;
   const profile = await getProfile(user.id);
-  if (!profile?.is_admin) return null;
   return { user, profile };
 }
 

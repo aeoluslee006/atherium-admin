@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { getDirectoryCategoryLabel } from '../../../lib/directoryCategories';
 import {
@@ -84,33 +85,6 @@ export default function AdminDirectoryPages() {
     }
   }
 
-  async function insertLargePage3() {
-    if (
-      !window.confirm(
-        '1면과 같은 대형 슬롯 3면을 삽입하고, 기존 3면 이상을 한 면씩 뒤로 밀까요? (기존 3면 → 4면)'
-      )
-    ) {
-      return;
-    }
-    setBusy('cover3');
-    setError('');
-    try {
-      const res = await fetch('/api/admin/directory-pages', {
-        method: 'POST',
-        headers: await headers(),
-        body: JSON.stringify({ action: 'insert_large_page3' }),
-      });
-      const payload = await res.json();
-      if (!res.ok) throw new Error(payload.error || '대형 3면 삽입 실패');
-      await load();
-      setPage(3);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setBusy('');
-    }
-  }
-
   async function updatePrice(slotId, cents) {
     setBusy(slotId);
     setError('');
@@ -155,14 +129,17 @@ export default function AdminDirectoryPages() {
       <div className="row-between" style={{ marginBottom: 14 }}>
         <div>
           <h3 className="section-title">지면 광고 관리</h3>
-          <p className="hint-text">점유/빈자리 현황, 가격 조정, 페이지 추가, 부적절 광고 강제 삭제</p>
+          <p className="hint-text">
+            점유/빈자리 현황, 가격 조정, 소형 보드 페이지 추가, 부적절 광고 강제 삭제. 자유 조합 페이지는{' '}
+            <Link href="/mypage/directory-pages">마이페이지 지면 페이지 추가</Link>에서.
+          </p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button type="button" className="btn btn-outline" disabled={!!busy} onClick={insertLargePage3}>
-            {busy === 'cover3' ? '삽입 중…' : '대형 3면 삽입'}
-          </button>
+          <Link href="/mypage/directory-pages" className="btn btn-outline">
+            자유 조합 추가
+          </Link>
           <button type="button" className="btn" disabled={busy === 'add'} onClick={addPage}>
-            {busy === 'add' ? '추가 중…' : '페이지 추가'}
+            {busy === 'add' ? '추가 중…' : '소형 보드 페이지 추가'}
           </button>
         </div>
       </div>

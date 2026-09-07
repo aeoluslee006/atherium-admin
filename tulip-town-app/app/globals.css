@@ -6153,9 +6153,145 @@ main:has(.home-page) {
   color: #52606d;
 }
 
+.dir-pages-tab--plus {
+  min-width: 40px;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.dir-paper--compose-plus {
+  min-height: 420px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #f7f8fa 0%, #eef1f5 100%);
+}
+
+.dir-compose-plus-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 28px 32px;
+  border: 2px dashed #9aa4b2;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  min-width: min(280px, 80vw);
+}
+
+.dir-compose-plus-btn:hover,
+.dir-compose-plus-btn:focus-visible {
+  border-color: #2f5b8a;
+  background: #fff;
+}
+
+.dir-compose-plus-icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #2f5b8a;
+  color: #fff;
+  font-size: 40px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.dir-compose-plus-text {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.dir-compose-plus-sub {
+  font-size: 13px;
+  color: #667085;
+}
+
+.dir-paper--compose {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  min-height: 420px;
+}
+
+.dir-compose-palette {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 6px;
+}
+
+.dir-compose-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  padding: 8px 10px;
+  border: 1px solid #d5d8de;
+  border-radius: 8px;
+  background: #fff;
+  cursor: grab;
+  font: inherit;
+  color: inherit;
+}
+
+.dir-compose-chip:active {
+  cursor: grabbing;
+}
+
+.dir-compose-chip.is-active {
+  border-color: #2f5b8a;
+  box-shadow: inset 0 0 0 1px #2f5b8a;
+  background: #f3f7fb;
+}
+
+.dir-compose-chip strong {
+  font-size: 13px;
+}
+
+.dir-compose-chip span {
+  font-size: 11px;
+  color: #667085;
+}
+
+.dir-compose-inline-hint {
+  margin: 0;
+  font-size: 12px;
+  color: #667085;
+}
+
+.dir-composer-grid--inline {
+  min-height: 280px;
+  flex: 1;
+}
+
+.dir-compose-submit-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.dir-compose-submit {
+  min-width: 120px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
 @media (max-width: 640px) {
   .dir-composer-grid {
     min-height: 320px;
     grid-template-rows: repeat(var(--dir-rows, 10), minmax(28px, 1fr));
+  }
+
+  .dir-paper--compose-plus,
+  .dir-paper--compose {
+    min-height: 340px;
   }
 }

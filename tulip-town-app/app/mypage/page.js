@@ -156,11 +156,16 @@ export default async function MyPage() {
             <span className="mypage-count">블랙</span>
           </div>
           <p className="mypage-list-sub" style={{ marginBottom: 12 }}>
-            새 페이지를 추가하고 소형·중형·중형(세로)·대형(반면) 슬롯을 자유롭게 조합할 수 있습니다.
+            업체 디렉토리 맨 끝 <strong>+</strong> 탭에서 슬롯을 드래그해 새 페이지를 만들 수 있습니다.
           </p>
-          <Link href="/mypage/directory-pages" className="btn">
-            지면 페이지 추가
-          </Link>
+          <div className="mypage-empty-actions">
+            <Link href="/directory" className="btn">
+              디렉토리에서 추가
+            </Link>
+            <Link href="/mypage/directory-pages" className="btn btn-outline">
+              배치 화면 열기
+            </Link>
+          </div>
         </section>
       ) : null}
 

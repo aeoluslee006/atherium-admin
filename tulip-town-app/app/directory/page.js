@@ -18,6 +18,7 @@ export default async function DirectoryPage({ searchParams }) {
         <>
           <p className="dir-pages-hint">
             빈 자리는 누구나 신청할 수 있고, 이미 올라간 광고는 올린 본인만 수정할 수 있습니다.
+            블랙 레벨은 맨 끝 <strong>+</strong> 면에서 슬롯을 드래그해 새 페이지를 추가할 수 있습니다.
           </p>
           <DirectoryPagesView pages={pages} initialPage={initialPage} />
         </>

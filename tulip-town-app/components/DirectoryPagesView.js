@@ -1,8 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import DirectoryAdSlider from './DirectoryAdSlider';
+import DirectoryPageComposer from './DirectoryPageComposer';
 import { listDirectoryCategories, getDirectoryCategoryLabel } from '../lib/directoryCategories';
 import {
   buildDirectorySpreads,
@@ -21,6 +23,7 @@ import { supabase } from '../lib/supabaseClient';
 const ZOOM_MIN = 0.75;
 const ZOOM_MAX = 2.5;
 const ZOOM_STEP = 0.25;
+const COMPOSE_SPREAD_KEY = '__compose__';
 
 function clampZoom(value) {
   const n = Number(value);
@@ -44,7 +47,9 @@ function SideMenu({ side, categories, category, onSelect, showAll, showList }) {
           onClick={() => onSelect('all')}
           title="전체"
         >
-          <span className="dir-side-cat-icon" aria-hidden="true">📋</span>
+          <span className="dir-side-cat-icon" aria-hidden="true">
+            📋
+          </span>
           <span className="dir-side-cat-label">전체</span>
         </button>
       ) : null}
@@ -56,7 +61,9 @@ function SideMenu({ side, categories, category, onSelect, showAll, showList }) {
           onClick={() => onSelect(c.slug)}
           title={c.nameKo}
         >
-          <span className="dir-side-cat-icon" aria-hidden="true">{c.icon}</span>
+          <span className="dir-side-cat-icon" aria-hidden="true">
+            {c.icon}
+          </span>
           <span className="dir-side-cat-label">{c.nameKo}</span>
         </button>
       ))}
@@ -205,13 +212,40 @@ function DirectoryPaper({ pageData, category, currentUserId }) {
 }
 
 /** Empty slots link to /directory/pages/apply for image upload + checkout. */
-export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
-  const pageNumbers = pages.map((p) => p.pageNumber);
+export default function DirectoryPagesView({ pages: initialPages = [], initialPage = 1 }) {
+  const router = useRouter();
+  const [livePages, setLivePages] = useState(initialPages);
+  const [canCompose, setCanCompose] = useState(false);
+  const [composeMode, setComposeMode] = useState(false);
+
+  useEffect(() => {
+    setLivePages(initialPages);
+  }, [initialPages]);
+
+  const pageNumbers = livePages.map((p) => p.pageNumber);
   const spreads = useMemo(() => buildDirectorySpreads(pageNumbers), [pageNumbers]);
   const pageByNumber = useMemo(
-    () => new Map(pages.map((p) => [p.pageNumber, p])),
-    [pages]
+    () => new Map(livePages.map((p) => [p.pageNumber, p])),
+    [livePages]
   );
+
+  const navItems = useMemo(() => {
+    const items = spreads.map((s, i) => ({
+      key: `${s.left}-${s.right ?? 'x'}`,
+      kind: 'spread',
+      index: i,
+      label: directorySpreadLabel(s),
+    }));
+    if (canCompose) {
+      items.push({
+        key: COMPOSE_SPREAD_KEY,
+        kind: 'compose',
+        index: spreads.length,
+        label: '+',
+      });
+    }
+    return items;
+  }, [spreads, canCompose]);
 
   const initialSpreadIndex = useMemo(() => {
     const n = Number(initialPage) || 1;
@@ -227,23 +261,48 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
 
   useEffect(() => {
     let cancelled = false;
+    async function loadComposePermission(userId) {
+      if (!userId) {
+        if (!cancelled) setCanCompose(false);
+        return;
+      }
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_admin,is_moderator')
+        .eq('id', userId)
+        .maybeSingle();
+      if (!cancelled) {
+        setCanCompose(Boolean(profile?.is_admin || profile?.is_moderator));
+      }
+    }
+
     (async () => {
       const { data } = await supabase.auth.getSession();
-      if (!cancelled) setCurrentUserId(data.session?.user?.id || '');
+      const user = data.session?.user;
+      if (!cancelled) setCurrentUserId(user?.id || '');
+      await loadComposePermission(user?.id);
     })();
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+
+    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setCurrentUserId(session?.user?.id || '');
+      if (!session?.user) {
+        setCanCompose(false);
+        setComposeMode(false);
+        return;
+      }
+      await loadComposePermission(session.user.id);
     });
+
     return () => {
       cancelled = true;
       sub?.subscription?.unsubscribe?.();
     };
   }, []);
 
-  const spread = spreads[spreadIndex] || spreads[0] || { left: 1, right: null };
-  const leftPage = pageByNumber.get(spread.left);
-  const rightPage = spread.right != null ? pageByNumber.get(spread.right) : null;
-  const isSingleSpread = rightPage == null;
+  const spread = (!composeMode && spreads[spreadIndex]) || spreads[0] || { left: 1, right: null };
+  const leftPage = composeMode ? null : pageByNumber.get(spread.left);
+  const rightPage = composeMode || spread.right == null ? null : pageByNumber.get(spread.right);
+  const isSingleSpread = composeMode || rightPage == null;
 
   const allCategories = listDirectoryCategories();
   const categoryHalf = Math.ceil(allCategories.length / 2);
@@ -251,6 +310,7 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
   const rightCategories = allCategories.slice(categoryHalf);
 
   const listSlots = useMemo(() => {
+    if (composeMode) return [];
     const nums = [spread.left, spread.right].filter((n) => n != null);
     const rows = [];
     for (const n of nums) {
@@ -258,18 +318,59 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
       for (const slot of p?.slots || []) rows.push(slot);
     }
     return rows;
-  }, [spread, pageByNumber]);
+  }, [spread, pageByNumber, composeMode]);
+
+  function selectNav(item) {
+    if (item.kind === 'compose') {
+      setComposeMode(true);
+      return;
+    }
+    setComposeMode(false);
+    setSpreadIndex(item.index);
+  }
 
   function goPrev() {
+    if (composeMode) {
+      setComposeMode(false);
+      setSpreadIndex(Math.max(0, spreads.length - 1));
+      return;
+    }
     if (spreadIndex > 0) setSpreadIndex(spreadIndex - 1);
   }
+
   function goNext() {
-    if (spreadIndex < spreads.length - 1) setSpreadIndex(spreadIndex + 1);
+    if (composeMode) return;
+    if (spreadIndex < spreads.length - 1) {
+      setSpreadIndex(spreadIndex + 1);
+      return;
+    }
+    if (canCompose) setComposeMode(true);
   }
+
+  function handlePageCreated(payload) {
+    const slots = payload?.slots || [];
+    const pageNumber = Number(payload?.page_number);
+    if (!pageNumber || !slots.length) {
+      router.refresh();
+      return;
+    }
+    const nums = [...new Set([...pageNumbers, pageNumber])].sort((a, b) => a - b);
+    setLivePages((prev) => {
+      const without = prev.filter((p) => p.pageNumber !== pageNumber);
+      return [...without, { pageNumber, slots }].sort((a, b) => a.pageNumber - b.pageNumber);
+    });
+    setComposeMode(false);
+    const rebuilt = buildDirectorySpreads(nums);
+    const idx = rebuilt.findIndex((s) => s.left === pageNumber || s.right === pageNumber);
+    setSpreadIndex(idx >= 0 ? idx : Math.max(0, rebuilt.length - 1));
+    router.refresh();
+  }
+
+  const atStart = !composeMode && spreadIndex <= 0;
+  const atEnd = composeMode || (!canCompose && spreadIndex >= spreads.length - 1);
 
   return (
     <div className={`dir-pages${mobileMode === 'list' ? ' is-list-mode' : ''}`}>
-      {/* Mobile: one compact horizontal rail so the newspaper stays above the fold */}
       <div className="dir-cat-rail" role="toolbar" aria-label="카테고리 필터">
         <button
           type="button"
@@ -309,8 +410,32 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
             className={`dir-spread-papers${isSingleSpread ? ' is-single' : ''}`}
             style={{ '--spread-page-count': isSingleSpread ? 1 : 2 }}
           >
-            {leftPage ? <DirectoryPaper pageData={leftPage} category={category} currentUserId={currentUserId} /> : null}
-            {rightPage ? <DirectoryPaper pageData={rightPage} category={category} currentUserId={currentUserId} /> : null}
+            {composeMode && canCompose ? (
+              <DirectoryPageComposer
+                onCreated={handlePageCreated}
+                onCancel={() => {
+                  setComposeMode(false);
+                  setSpreadIndex(Math.max(0, spreads.length - 1));
+                }}
+              />
+            ) : (
+              <>
+                {leftPage ? (
+                  <DirectoryPaper
+                    pageData={leftPage}
+                    category={category}
+                    currentUserId={currentUserId}
+                  />
+                ) : null}
+                {rightPage ? (
+                  <DirectoryPaper
+                    pageData={rightPage}
+                    category={category}
+                    currentUserId={currentUserId}
+                  />
+                ) : null}
+              </>
+            )}
           </div>
         </div>
 
@@ -325,26 +450,40 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
 
       <div className="dir-pages-controls">
         <div className="dir-pages-nav" role="tablist" aria-label="지면 페이지">
-          <button type="button" className="btn btn-outline dir-pages-arrow" onClick={goPrev} disabled={spreadIndex <= 0}>
+          <button
+            type="button"
+            className="btn btn-outline dir-pages-arrow"
+            onClick={goPrev}
+            disabled={atStart}
+          >
             ←
           </button>
-          {spreads.map((s, i) => (
+          {navItems.map((item) => (
             <button
-              key={`${s.left}-${s.right ?? 'x'}`}
+              key={item.key}
               type="button"
               role="tab"
-              aria-selected={i === spreadIndex}
-              className={`dir-pages-tab${i === spreadIndex ? ' is-active' : ''}`}
-              onClick={() => setSpreadIndex(i)}
+              aria-selected={
+                item.kind === 'compose' ? composeMode : !composeMode && item.index === spreadIndex
+              }
+              className={`dir-pages-tab${
+                item.kind === 'compose'
+                  ? ` dir-pages-tab--plus${composeMode ? ' is-active' : ''}`
+                  : !composeMode && item.index === spreadIndex
+                    ? ' is-active'
+                    : ''
+              }`}
+              onClick={() => selectNav(item)}
+              title={item.kind === 'compose' ? '새 페이지 추가 (블랙)' : undefined}
             >
-              {directorySpreadLabel(s)}
+              {item.label}
             </button>
           ))}
           <button
             type="button"
             className="btn btn-outline dir-pages-arrow"
             onClick={goNext}
-            disabled={spreadIndex >= spreads.length - 1}
+            disabled={atEnd}
           >
             →
           </button>
@@ -398,7 +537,7 @@ export default function DirectoryPagesView({ pages = [], initialPage = 1 }) {
         </div>
       </div>
 
-      {mobileMode === 'list' ? (
+      {mobileMode === 'list' && !composeMode ? (
         <div className="dir-mobile-list card" aria-label="현재 면 슬롯 리스트">
           {listSlots.map((slot) => {
             const ad = activeAd(slot);

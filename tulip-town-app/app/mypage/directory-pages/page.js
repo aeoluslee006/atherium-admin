@@ -44,10 +44,13 @@ export default async function MyPageDirectoryPages() {
         <div className="mypage-section-head">
           <h2 id="dir-compose-title">새 페이지 배치</h2>
           <Link href="/directory" className="btn btn-outline">
-            디렉토리 보기
+            디렉토리에서 + 로 추가
           </Link>
         </div>
-        <DirectoryPageComposer />
+        <p className="hint-text" style={{ marginBottom: 12 }}>
+          권장: 업체 디렉토리 맨 끝 <strong>+</strong> 탭에서 슬롯을 드래그한 뒤 SUBMIT 하세요.
+        </p>
+        <DirectoryPageComposer autoStart />
       </section>
     </div>
   );

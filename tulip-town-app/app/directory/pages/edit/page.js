@@ -258,7 +258,7 @@ function EditInner() {
           id="ad_body"
           value={form.ad_body}
           onChange={(e) => update('ad_body', e.target.value.slice(0, bodyMax))}
-          rows={3}
+          rows={slot?.size_tier === 'ultra' ? 8 : slot?.size_tier === 'large' ? 5 : 3}
           maxLength={bodyMax}
           placeholder="짧은 소개 문구"
         />

@@ -309,8 +309,8 @@ export function buildDefaultPageSlots(pageNumber) {
   const page = Number(pageNumber);
   const cover = isCoverPage(page);
   const prices = cover
-    ? { small: 2500, medium: 7000, large: 9000 }
-    : { small: 1800, medium: 5000, large: 10000 };
+    ? { small: 2500, medium: 7000, large: 9000, ultra: 18000 }
+    : { small: 1800, medium: 5000, large: 10000, ultra: 18000 };
 
   const specs = cover ? coverPageSpecs() : boardPageSpecs();
 

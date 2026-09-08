@@ -70,7 +70,7 @@ export async function POST(request) {
     if ((count || 0) >= limit) {
       return NextResponse.json(
         {
-          error: `상품 한도(${limit}개)에 도달했습니다. 확장 요금제로 업그레이드해 주세요.`,
+          error: `상품 한도(${limit}개)에 도달했습니다. 프로 셀러는 10개 추가(+ $8/월)를 구매해 주세요.`,
           code: 'PRODUCT_LIMIT',
           limit,
           upgrade: true,
@@ -87,11 +87,21 @@ export async function POST(request) {
         ? Math.round(Number(body.price_cents))
         : Math.round(Number(body.price_usd || 0) * 100);
     const imageUrl = String(body.image_url || '').trim() || null;
+    const category = String(body.category || 'other').trim() || 'other';
 
     if (!title || !description || !Number.isFinite(priceCents) || priceCents < 0) {
       return NextResponse.json({ error: '상품명, 설명, 가격을 확인해 주세요.' }, { status: 400 });
     }
 
+    const rowWithCategory = {
+      sponsor_id: sponsor.id,
+      title,
+      description,
+      price_cents: priceCents,
+      image_url: imageUrl,
+      category,
+      is_active: body.is_active !== false,
+    };
     const row = {
       sponsor_id: sponsor.id,
       title,
@@ -101,13 +111,26 @@ export async function POST(request) {
       is_active: body.is_active !== false,
     };
 
-    let { data, error } = await db.from('products').insert(row).select('*').single();
+    async function insertProduct(client, payload) {
+      return client.from('products').insert(payload).select('*').single();
+    }
+
+    let data;
+    let { data: inserted, error } = await insertProduct(db, rowWithCategory);
+    if (error && /category/i.test(error.message || '')) {
+      ({ data: inserted, error } = await insertProduct(db, row));
+    }
     if (error) {
       const admin = tryAdminSupabase();
       if (!admin) throw error;
-      const retry = await admin.from('products').insert(row).select('*').single();
+      let retry = await insertProduct(admin, rowWithCategory);
+      if (retry.error && /category/i.test(retry.error.message || '')) {
+        retry = await insertProduct(admin, row);
+      }
       if (retry.error) throw retry.error;
       data = retry.data;
+    } else {
+      data = inserted;
     }
     return NextResponse.json({ product: data });
   } catch (err) {
@@ -136,15 +159,26 @@ export async function PATCH(request) {
     if ('price_cents' in body) patch.price_cents = Math.round(Number(body.price_cents));
     if ('price_usd' in body) patch.price_cents = Math.round(Number(body.price_usd) * 100);
     if ('image_url' in body) patch.image_url = String(body.image_url || '').trim() || null;
+    if ('category' in body) patch.category = String(body.category || 'other').trim() || 'other';
     if ('is_active' in body) patch.is_active = !!body.is_active;
 
-    const { data, error } = await db
+    let { data, error } = await db
       .from('products')
       .update(patch)
       .eq('id', body.id)
       .eq('sponsor_id', sponsor.id)
       .select('*')
       .single();
+    if (error && patch.category && /category/i.test(error.message || '')) {
+      const { category: _ignored, ...withoutCategory } = patch;
+      ({ data, error } = await db
+        .from('products')
+        .update(withoutCategory)
+        .eq('id', body.id)
+        .eq('sponsor_id', sponsor.id)
+        .select('*')
+        .single());
+    }
     if (error) throw error;
     return NextResponse.json({ product: data });
   } catch (err) {

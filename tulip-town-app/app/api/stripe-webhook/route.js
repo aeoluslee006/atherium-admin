@@ -96,16 +96,34 @@ async function syncShopSponsorPlan(admin, subscriptionOrSession) {
   const kind = meta.kind;
   const sponsorId = meta.sponsor_id;
   if (!sponsorId) return false;
-  if (kind !== 'shop_upgrade' && kind !== 'shop_subscription') return false;
+  if (kind !== 'shop_upgrade' && kind !== 'shop_subscription' && kind !== 'shop_extra_pack') {
+    return false;
+  }
 
   const patch = {};
   if (kind === 'shop_upgrade') {
     patch.plan_tier = 'extended';
-    patch.product_limit = 30;
+    patch.product_limit = 20;
   } else if (kind === 'shop_subscription') {
     // Keep defaults; ensure basic tier if unset
     patch.plan_tier = 'basic';
     patch.product_limit = 6;
+  } else if (kind === 'shop_extra_pack') {
+    const next = Number(meta.next_product_limit);
+    const packSize = Number(meta.pack_size) || 10;
+    if (Number.isFinite(next) && next > 0) {
+      patch.product_limit = next;
+    } else {
+      const { data: sponsor } = await admin
+        .from('sponsors')
+        .select('product_limit,plan_tier')
+        .eq('id', sponsorId)
+        .maybeSingle();
+      const current = Number(sponsor?.product_limit) || 20;
+      patch.plan_tier = 'extended';
+      patch.product_limit = current + packSize;
+    }
+    patch.plan_tier = 'extended';
   }
 
   const { error } = await admin.from('sponsors').update(patch).eq('id', sponsorId).eq('listing_type', 'shop');
@@ -422,7 +440,8 @@ export async function POST(request) {
         }
         if (
           session.metadata?.kind === 'shop_upgrade' ||
-          session.metadata?.kind === 'shop_subscription'
+          session.metadata?.kind === 'shop_subscription' ||
+          session.metadata?.kind === 'shop_extra_pack'
         ) {
           await syncShopSponsorPlan(admin, session);
           if (session.subscription) {

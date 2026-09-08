@@ -1,12 +1,33 @@
 /** Tulip shop (sponsors listing_type=shop + products). */
 
 export const SHOP_BASIC_PRODUCT_LIMIT = 6;
-export const SHOP_EXTENDED_PRODUCT_LIMIT = 30;
+export const SHOP_EXTENDED_PRODUCT_LIMIT = 20;
+export const SHOP_EXTRA_PACK_SIZE = 10;
+export const SHOP_EXTRA_PACK_DEFAULT_CENTS = 800; // +$8 / 10 products
 export const SHOP_BASIC_PLAN = 'basic';
 export const SHOP_EXTENDED_PLAN = 'extended';
 
 export const SHOP_MONTHLY_KEY = 'shop_monthly';
+export const SHOP_YEARLY_KEY = 'shop_yearly';
 export const SHOP_UPGRADE_MONTHLY_KEY = 'shop_upgrade_monthly';
+export const SHOP_UPGRADE_YEARLY_KEY = 'shop_upgrade_yearly';
+export const SHOP_EXTRA_PACK_KEY = 'shop_extra_pack_monthly';
+
+/** Active subscription product_types that unlock shop management. */
+export const SHOP_SUBSCRIPTION_PRODUCT_TYPES = [
+  'shop_monthly',
+  'shop_yearly',
+  'shop_upgrade_monthly',
+  'shop_upgrade_yearly',
+  'tulip_shop',
+];
+
+export function hasActiveShopSubscription(subscriptions = []) {
+  return (subscriptions || []).some(
+    (s) =>
+      s?.status === 'active' && SHOP_SUBSCRIPTION_PRODUCT_TYPES.includes(String(s.product_type || ''))
+  );
+}
 
 export const SELLER_CITIES = ['Holland', 'Grand Rapids', 'Zeeland', 'Hudsonville', 'Other'];
 
@@ -53,6 +74,13 @@ export function shopProductLimit(sponsor) {
   return sponsor?.plan_tier === SHOP_EXTENDED_PLAN
     ? SHOP_EXTENDED_PRODUCT_LIMIT
     : SHOP_BASIC_PRODUCT_LIMIT;
+}
+
+/** Extra 10-product packs beyond the pro base (20). */
+export function shopExtraPackCount(sponsor) {
+  const limit = shopProductLimit(sponsor);
+  if (sponsor?.plan_tier !== SHOP_EXTENDED_PLAN) return 0;
+  return Math.max(0, Math.floor((limit - SHOP_EXTENDED_PRODUCT_LIMIT) / SHOP_EXTRA_PACK_SIZE));
 }
 
 export function canManageProducts(seller) {

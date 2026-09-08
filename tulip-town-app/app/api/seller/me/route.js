@@ -10,7 +10,7 @@ async function getShopSponsor(db, userId) {
   const { data, error } = await db
     .from('sponsors')
     .select(
-      'id,business_name,business_address,ein,sos_document_path,city,description,status,plan_tier,product_limit,review_notes,approved_at,created_at,listing_type,submitted_by'
+      'id,business_name,business_address,ein,sos_document_path,city,contact,description,status,plan_tier,product_limit,review_notes,approved_at,trial_ends_at,created_at,listing_type,submitted_by'
     )
     .eq('listing_type', 'shop')
     .eq('submitted_by', userId)
@@ -44,6 +44,7 @@ export async function POST(request) {
     const ein = String(body.ein || '').trim();
     const sosDocumentPath = String(body.sos_document_path || '').trim();
     const city = String(body.city || 'Holland').trim();
+    const contact = String(body.contact || '').trim() || null;
     const description = String(body.description || body.bio || '').trim() || null;
 
     if (!businessName || !businessAddress || !ein || !sosDocumentPath) {
@@ -79,6 +80,7 @@ export async function POST(request) {
       ein,
       sos_document_path: sosDocumentPath,
       city,
+      contact,
       description,
       listing_type: 'shop',
       status: 'pending',

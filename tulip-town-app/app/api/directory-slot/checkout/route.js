@@ -1,4 +1,10 @@
 import { NextResponse } from 'next/server';
+import { isWriteBlocked } from '../../../../lib/adminAuth';
+import {
+  ensureFirstPaidPromo,
+  PROMO_PRODUCT,
+  trialEndForPromo,
+} from '../../../../lib/adminMemberActions';
 import { getUserFromRequest, tryAdminSupabase, getWriteDbFromRequest } from '../../../../lib/apiAuth';
 import {
   adBodyLimit,
@@ -12,6 +18,7 @@ import {
   countLiveSpecialAds,
   nextSpecialQueuePosition,
 } from '../../../../lib/directorySpecialAds';
+import { directoryPriceKey, getPricingAmountCents, PRICING_KEYS } from '../../../../lib/pricingKeys';
 import { getAppUrl, getStripe } from '../../../../lib/stripe';
 
 export async function POST(request) {
@@ -26,6 +33,19 @@ export async function POST(request) {
     }
     if (!user || !db) {
       return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
+    }
+
+    const admin = tryAdminSupabase();
+    const reader = admin || db;
+
+    const { data: profile } = await reader
+      .from('profiles')
+      .select('id,status,promo_end_date,is_banned,suspended_until')
+      .eq('id', user.id)
+      .maybeSingle();
+    const blocked = isWriteBlocked(profile || {});
+    if (blocked.blocked) {
+      return NextResponse.json({ error: blocked.reason }, { status: 403 });
     }
 
     const body = await request.json();
@@ -46,9 +66,6 @@ export async function POST(request) {
     if (!isValidDirectoryCategory(categorySlug)) {
       return NextResponse.json({ error: '유효한 카테고리를 선택해 주세요.' }, { status: 400 });
     }
-
-    const admin = tryAdminSupabase();
-    const reader = admin || db;
 
     const { data: slot, error: slotErr } = await reader
       .from('directory_slots')
@@ -82,6 +99,16 @@ export async function POST(request) {
       );
     }
 
+    // First paid checkout for directory grants +20 day promo if none yet
+    let promoEndDate = null;
+    try {
+      const granted = await ensureFirstPaidPromo(admin || db, user.id, PROMO_PRODUCT.DIRECTORY);
+      promoEndDate = granted.promo_end_date;
+    } catch (err) {
+      console.warn('ensureFirstPaidPromo', err.message);
+    }
+    const trialEnd = trialEndForPromo(promoEndDate);
+
     let specialQueued = false;
     let specialQueuePosition = null;
     if (wantSpecial) {
@@ -92,7 +119,6 @@ export async function POST(request) {
           specialQueuePosition = await nextSpecialQueuePosition(reader);
         }
       } catch (err) {
-        // Columns may be missing until SQL migration — still allow checkout without queue.
         console.warn('special capacity check', err.message);
       }
     }
@@ -119,9 +145,9 @@ export async function POST(request) {
         submitted_by: user.id,
         category_slug: categorySlug,
         ad_title: adTitle,
+        ad_body: adBody,
         ad_phone: adPhone,
         ad_image_url: adImageUrl,
-        ad_body: adBody,
         ad_image_urls: imageUrls,
         status: 'pending',
         is_special: wantSpecial,
@@ -129,34 +155,16 @@ export async function POST(request) {
         special_queue_position: wantSpecial ? specialQueuePosition : null,
       };
 
-      let inserted;
+      let inserted = null;
       {
         const { data, error } = await writer
           .from('directory_slot_ads')
           .insert(draft)
           .select('id')
-          .single();
+          .maybeSingle();
         if (error) {
           const msg = String(error.message || '');
           if (msg.includes('is_special') || msg.includes('special_')) {
-            const { data: withoutSpecial, error: e2 } = await writer
-              .from('directory_slot_ads')
-              .insert({
-                slot_id: slotId,
-                submitted_by: user.id,
-                category_slug: categorySlug,
-                ad_title: adTitle,
-                ad_phone: adPhone,
-                ad_image_url: adImageUrl,
-                ad_body: adBody,
-                ad_image_urls: imageUrls,
-                status: 'pending',
-              })
-              .select('id')
-              .single();
-            if (e2) throw e2;
-            inserted = withoutSpecial;
-          } else if (msg.includes('ad_body') || msg.includes('ad_image_urls')) {
             const { data: legacy, error: legacyErr } = await writer
               .from('directory_slot_ads')
               .insert({
@@ -164,16 +172,32 @@ export async function POST(request) {
                 submitted_by: user.id,
                 category_slug: categorySlug,
                 ad_title: adTitle,
+                ad_body: adBody,
+                ad_phone: adPhone,
+                ad_image_url: adImageUrl,
+                ad_image_urls: imageUrls,
+                status: 'pending',
+              })
+              .select('id')
+              .maybeSingle();
+            if (legacyErr) throw legacyErr;
+            inserted = legacy;
+          } else if (msg.includes('ad_image_urls') || msg.includes('ad_body')) {
+            const { data: slim, error: slimErr } = await writer
+              .from('directory_slot_ads')
+              .insert({
+                slot_id: slotId,
+                submitted_by: user.id,
+                category_slug: categorySlug,
+                ad_title: adTitle,
                 ad_phone: adPhone,
                 ad_image_url: adImageUrl,
                 status: 'pending',
               })
               .select('id')
-              .single();
-            if (legacyErr) throw legacyErr;
-            inserted = legacy;
-          } else if (msg.toLowerCase().includes('pending')) {
-            inserted = null;
+              .maybeSingle();
+            if (slimErr) throw slimErr;
+            inserted = slim;
           } else {
             throw error;
           }
@@ -185,9 +209,28 @@ export async function POST(request) {
 
       const stripe = getStripe();
       const appUrl = getAppUrl();
-      const baseCents = Number(slot.base_price_cents) || 300;
-      const specialCents = wantSpecial ? SPECIAL_AD_EXTRA_CENTS : 0;
-      const amountCents = baseCents + specialCents;
+      const priceKey = directoryPriceKey(slot.size_tier);
+      const defaultTier = {
+        small: PRICING_KEYS.directory_small.defaultCents,
+        medium: PRICING_KEYS.directory_medium.defaultCents,
+        large: PRICING_KEYS.directory_large.defaultCents,
+        ultra: PRICING_KEYS.directory_ultra.defaultCents,
+      };
+      // Prefer pricing_settings catalog; slot row may be stale until SQL sync
+      const resolvedBase = await getPricingAmountCents(
+        reader,
+        priceKey,
+        Number(slot.base_price_cents) || defaultTier[slot.size_tier] || 300
+      );
+
+      const specialCents = wantSpecial
+        ? await getPricingAmountCents(
+            reader,
+            PRICING_KEYS.special_ad_addon.key,
+            SPECIAL_AD_EXTRA_CENTS
+          )
+        : 0;
+      const amountCents = resolvedBase + specialCents;
       const label = wantSpecial
         ? `지면 광고 ${slot.page_number}면 ${slot.position_label} (${slot.size_tier}) + 특별광고`
         : `지면 광고 ${slot.page_number}면 ${slot.position_label} (${slot.size_tier})`;
@@ -207,6 +250,8 @@ export async function POST(request) {
         special_image_url: (specialImageUrl || '').slice(0, 450),
         special_queued: specialQueued ? '1' : '0',
         special_queue_position: specialQueuePosition != null ? String(specialQueuePosition) : '',
+        promo_end_date: promoEndDate || '',
+        promo_trial: trialEnd ? '1' : '0',
       };
       if (pendingAdId) meta.pending_ad_id = pendingAdId;
 
@@ -214,7 +259,7 @@ export async function POST(request) {
         {
           price_data: {
             currency: 'usd',
-            unit_amount: baseCents,
+            unit_amount: resolvedBase,
             recurring: { interval: 'month' },
             product_data: {
               name: `지면 광고 ${slot.page_number}면 ${slot.position_label} (${slot.size_tier})`,
@@ -227,7 +272,7 @@ export async function POST(request) {
         lineItems.push({
           price_data: {
             currency: 'usd',
-            unit_amount: SPECIAL_AD_EXTRA_CENTS,
+            unit_amount: specialCents,
             recurring: { interval: 'month' },
             product_data: {
               name: specialQueued
@@ -247,6 +292,7 @@ export async function POST(request) {
         cancel_url: `${appUrl}/directory/pages/apply?slot=${encodeURIComponent(slotId)}&checkout=cancel`,
         metadata: meta,
         subscription_data: {
+          ...(trialEnd ? { trial_end: trialEnd } : {}),
           metadata: {
             kind: 'directory_slot',
             slot_id: slotId,
@@ -262,6 +308,8 @@ export async function POST(request) {
         session_id: session.id,
         special_queued: specialQueued,
         amount_cents: amountCents,
+        promo_end_date: promoEndDate,
+        promo_trial: Boolean(trialEnd),
         label,
       });
     } catch (err) {

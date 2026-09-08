@@ -33,9 +33,9 @@ function GiftShopNavInner() {
       active: pathname === '/gift' && cat === 'community',
     },
     {
-      href: '/seller',
+      href: '/mypage/shop',
       label: '판매자',
-      active: pathname.startsWith('/seller'),
+      active: pathname.startsWith('/mypage/shop') || pathname.startsWith('/seller'),
     },
   ];
 

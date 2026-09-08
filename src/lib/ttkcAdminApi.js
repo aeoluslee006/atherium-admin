@@ -37,3 +37,47 @@ export async function moderateTtkcMember(id, body) {
   })
   return parse(res)
 }
+
+export async function setTtkcMemberPromo(id, productKey, promoEndDate) {
+  const headers = await authHeaders()
+  const res = await fetch(`/api/ttkc/members/${id}`, {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify({
+      product_key: productKey,
+      promo_end_date: promoEndDate || null,
+    }),
+  })
+  return parse(res)
+}
+
+export async function fetchTtkcMemberMessages(id) {
+  const headers = await authHeaders()
+  const res = await fetch(`/api/ttkc/members/${id}/messages`, { headers })
+  return parse(res)
+}
+
+export async function markTtkcMemberMessagesRead(id) {
+  const headers = await authHeaders()
+  const res = await fetch(`/api/ttkc/members/${id}/messages`, {
+    method: 'PATCH',
+    headers,
+  })
+  return parse(res)
+}
+
+export async function fetchTtkcPricing() {
+  const headers = await authHeaders()
+  const res = await fetch('/api/ttkc/pricing', { headers })
+  return parse(res)
+}
+
+export async function saveTtkcPricing(row) {
+  const headers = await authHeaders()
+  const res = await fetch('/api/ttkc/pricing', {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify(row),
+  })
+  return parse(res)
+}

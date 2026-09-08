@@ -16,9 +16,9 @@ export default function AdminLayout({ children }) {
       <div className="row-between" style={{ marginBottom: 18 }}>
         <div>
           <h2 className="section-title" style={{ marginBottom: 4 }}>
-            관리자 · Admin
+            ATHERIUM · 튤립타운 관리
           </h2>
-          <div className="hint-text">TTKC 내장 관리 패널 (/admin)</div>
+          <div className="hint-text">최고관리자(is_admin) 전용 · /admin</div>
         </div>
         <Link href="/" className="btn btn-outline">
           사이트로

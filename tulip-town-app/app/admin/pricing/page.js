@@ -1,19 +1,34 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
+import {
+  centsToDollarInput,
+  displayLabelForPricingRow,
+  dollarsToCents,
+  groupPricingSettings,
+} from '../../../lib/pricingAdminUi';
 
 async function authHeaders() {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
-  return token ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+  return token
+    ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+    : { 'Content-Type': 'application/json' };
 }
 
 export default function AdminPricingPage() {
   const [rows, setRows] = useState([]);
+  const [dollarDraft, setDollarDraft] = useState({});
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [savingKey, setSavingKey] = useState('');
+  const [openGroups, setOpenGroups] = useState({
+    directory: true,
+    tulip: true,
+    legacy_seller: false,
+    other: false,
+  });
 
   async function load() {
     setError('');
@@ -22,7 +37,13 @@ export default function AdminPricingPage() {
       const res = await fetch('/api/admin/pricing', { headers });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '불러오기 실패');
-      setRows(data.settings || []);
+      const settings = data.settings || [];
+      setRows(settings);
+      const dollars = {};
+      for (const r of settings) {
+        dollars[r.key] = centsToDollarInput(r.amount_cents);
+      }
+      setDollarDraft(dollars);
     } catch (err) {
       setError(err.message);
     }
@@ -31,6 +52,8 @@ export default function AdminPricingPage() {
   useEffect(() => {
     load();
   }, []);
+
+  const groups = useMemo(() => groupPricingSettings(rows, { showInactiveLegacy: false }), [rows]);
 
   function updateLocal(key, patch) {
     setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
@@ -41,20 +64,22 @@ export default function AdminPricingPage() {
     setError('');
     setMessage('');
     try {
+      const cents = dollarsToCents(dollarDraft[row.key]);
+      if (cents == null) throw new Error('금액($)을 올바르게 입력해 주세요.');
       const headers = await authHeaders();
       const res = await fetch('/api/admin/pricing', {
         method: 'PATCH',
         headers,
         body: JSON.stringify({
           key: row.key,
-          amount_cents: Number(row.amount_cents),
+          amount_cents: cents,
           is_active: !!row.is_active,
           label: row.label,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '저장 실패');
-      setMessage('저장되었습니다.');
+      setMessage(`${displayLabelForPricingRow(row)} 저장됨 ($${centsToDollarInput(cents)})`);
       await load();
     } catch (err) {
       setError(err.message);
@@ -65,40 +90,83 @@ export default function AdminPricingPage() {
 
   return (
     <div>
-      <p className="hint-text" style={{ marginBottom: 14 }}>
-        최종 가격: 디렉토리 월 $10 · 특별광고 월 $30 · 튤립가게 월 $10(첫 3개월 무료). Stripe 결제는
-        보류 — 금액은 참고/추후 연동용입니다. (cents, $10 = 1000)
-      </p>
       {error ? <div className="error-text">{error}</div> : null}
       {message ? <div className="hint-text">{message}</div> : null}
 
-      {rows.map((row) => (
-        <div key={row.key} className="card form-card" style={{ marginBottom: 16 }}>
-          <div className="ko" style={{ fontWeight: 700, marginBottom: 8 }}>
-            {row.key}
-          </div>
-          <label>라벨</label>
-          <input value={row.label || ''} onChange={(e) => updateLocal(row.key, { label: e.target.value })} />
-          <label>금액 (cents) — $15 = 1500</label>
-          <input
-            type="number"
-            min="0"
-            value={row.amount_cents ?? 0}
-            onChange={(e) => updateLocal(row.key, { amount_cents: e.target.value })}
-          />
-          <label className="admin-check">
-            <input
-              type="checkbox"
-              checked={!!row.is_active}
-              onChange={(e) => updateLocal(row.key, { is_active: e.target.checked })}
-            />
-            활성화 (is_active)
-          </label>
-          <button className="btn" type="button" disabled={savingKey === row.key} onClick={() => save(row)}>
-            {savingKey === row.key ? '저장 중…' : '저장'}
-          </button>
-        </div>
-      ))}
+      {groups.map((group) => {
+        const open = openGroups[group.id] !== false;
+        return (
+          <section key={group.id} className="card" style={{ marginBottom: 16, padding: 0 }}>
+            <button
+              type="button"
+              className="row-between"
+              style={{
+                width: '100%',
+                padding: '14px 16px',
+                background: 'transparent',
+                border: 0,
+                cursor: 'pointer',
+                textAlign: 'left',
+              }}
+              onClick={() => setOpenGroups((prev) => ({ ...prev, [group.id]: !open }))}
+            >
+              <strong>{group.title}</strong>
+              <span className="hint-text">{open ? '접기' : '펼치기'} · {group.items.length}개</span>
+            </button>
+            {open ? (
+              <div
+                style={{
+                  padding: '0 16px 16px',
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                  gap: 12,
+                }}
+              >
+                {group.items.map((row) => {
+                  return (
+                    <div key={row.key} className="form-card" style={{ marginBottom: 0 }}>
+                      <div className="ko" style={{ fontWeight: 700, marginBottom: 8 }}>
+                        {displayLabelForPricingRow(row)}
+                      </div>
+                      <label>표시 라벨</label>
+                      <input
+                        value={row.label || ''}
+                        onChange={(e) => updateLocal(row.key, { label: e.target.value })}
+                      />
+                      <label>금액 ($)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={dollarDraft[row.key] ?? ''}
+                        onChange={(e) =>
+                          setDollarDraft((prev) => ({ ...prev, [row.key]: e.target.value }))
+                        }
+                      />
+                      <label className="admin-check">
+                        <input
+                          type="checkbox"
+                          checked={!!row.is_active}
+                          onChange={(e) => updateLocal(row.key, { is_active: e.target.checked })}
+                        />
+                        활성화
+                      </label>
+                      <button
+                        className="btn"
+                        type="button"
+                        disabled={savingKey === row.key}
+                        onClick={() => save(row)}
+                      >
+                        {savingKey === row.key ? '저장 중…' : '저장'}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
+          </section>
+        );
+      })}
 
       {!rows.length ? <div className="card empty-state">요금 설정이 없습니다.</div> : null}
     </div>

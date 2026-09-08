@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import MemberTierBadge from '../../components/MemberTierBadge';
 import MyPageAccountPanel from '../../components/MyPageAccountPanel';
 import MyPageAdminContact from '../../components/MyPageAdminContact';
+import MyPageTabs from '../../components/MyPageTabs';
 import { CATEGORIES } from '../../lib/categories';
 import {
   PRODUCT_LABELS,
@@ -56,7 +57,6 @@ export default async function MyPage() {
       .maybeSingle();
 
     if (full.error) {
-      // Migration not applied yet — fall back to existing columns only.
       const basic = await supabase
         .from('profiles')
         .select('id, display_name, username, first_name, last_name, email, is_admin, created_at')
@@ -72,7 +72,6 @@ export default async function MyPage() {
     redirect('/login?error=account_deleted');
   }
 
-  // New columns may be missing until SQL migration is applied.
   const safeProfile = {
     ...(profile || { id: user.id }),
     is_admin: !!profile?.is_admin,
@@ -160,8 +159,22 @@ export default async function MyPage() {
     }
   }
 
+  let adminMessages = [];
+  {
+    const { data: msgRows, error: msgErr } = await supabase
+      .from('admin_messages')
+      .select('id,message,is_read,created_at')
+      .eq('profile_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    if (!msgErr && Array.isArray(msgRows)) {
+      adminMessages = msgRows;
+    }
+  }
+
   const name = displayNameFromProfile(safeProfile, user.email);
   const activeSubs = subscriptions.filter((s) => s.status === 'active');
+  const canComposeDirectory = safeProfile.is_admin || safeProfile.is_moderator;
 
   let shopSponsor = null;
   {
@@ -179,17 +192,8 @@ export default async function MyPage() {
   const showShopManage =
     Boolean(shopSponsor) || hasActiveShopSubscription(subscriptions);
 
-  return (
-    <div className="container mypage">
-      <header className="mypage-hero">
-        <div className="mypage-hero-text">
-          <p className="mypage-kicker">My Page</p>
-          <h1 className="mypage-title">{name}</h1>
-          <p className="mypage-meta">가입일 {formatJoinedDate(safeProfile.created_at)}</p>
-        </div>
-        <MemberTierBadge tier={tier} />
-      </header>
-
+  const accountPanel = (
+    <>
       <MyPageAccountPanel
         initialNickname={safeProfile.display_name || name || ''}
         email={safeProfile.email || user.email || ''}
@@ -198,8 +202,108 @@ export default async function MyPage() {
         lastName={safeProfile.last_name || ''}
       />
 
-      <MyPageAdminContact />
+      <div className="mypage-stack">
+        <section className="mypage-section card" aria-labelledby="mypage-subs-title">
+          <div className="mypage-section-head">
+            <h2 id="mypage-subs-title">구독 현황</h2>
+            <span className="mypage-count">{activeSubs.length}건 이용 중</span>
+          </div>
+          {subscriptions.length ? (
+            <ul className="mypage-list">
+              {subscriptions.map((sub) => (
+                <li key={sub.id} className="mypage-list-row">
+                  <div>
+                    <strong>{PRODUCT_LABELS[sub.product_type] || sub.product_type}</strong>
+                    <p className="mypage-list-sub">
+                      {STATUS_LABELS[sub.status] || sub.status}
+                      {sub.period_end ? ` · 만료 ${formatJoinedDate(sub.period_end)}` : ''}
+                    </p>
+                  </div>
+                  <span className={`mypage-status mypage-status--${sub.status || 'expired'}`}>
+                    {STATUS_LABELS[sub.status] || sub.status}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="mypage-empty">
+              <p>구독 중인 상품이 없습니다.</p>
+              <div className="mypage-empty-actions">
+                <Link href="/shop" className="btn btn-outline">
+                  튤립가게 보기
+                </Link>
+                <Link href="/directory" className="btn btn-outline">
+                  업체 디렉토리
+                </Link>
+              </div>
+            </div>
+          )}
+        </section>
 
+        <div className="mypage-grid-2">
+          <section className="mypage-section card" aria-labelledby="mypage-posts-title">
+            <div className="mypage-section-head">
+              <h2 id="mypage-posts-title">내가 쓴 글</h2>
+              <span className="mypage-count">{posts.length}편</span>
+            </div>
+            {posts.length ? (
+              <ul className="mypage-list">
+                {posts.map((post) => (
+                  <li key={post.id} className="mypage-list-row">
+                    <div>
+                      <Link href={`/post/${post.id}`} className="mypage-post-link">
+                        {post.title || '(제목 없음)'}
+                      </Link>
+                      <p className="mypage-list-sub">
+                        {boardLabel(post.category_slug)} · {formatDateTime(post.created_at)}
+                        {typeof post.view_count === 'number' ? ` · 조회 ${post.view_count}` : ''}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="mypage-empty">
+                <p>아직 작성한 글이 없습니다.</p>
+                <Link href="/board/free/new" className="btn btn-outline">
+                  글쓰기
+                </Link>
+              </div>
+            )}
+          </section>
+
+          <section className="mypage-section card" aria-labelledby="mypage-comments-title">
+            <div className="mypage-section-head">
+              <h2 id="mypage-comments-title">내 글에 달린 댓글</h2>
+              <span className="mypage-count">{commentsOnMyPosts.length}개</span>
+            </div>
+            {commentsOnMyPosts.length ? (
+              <ul className="mypage-list">
+                {commentsOnMyPosts.map((c) => (
+                  <li key={c.id} className="mypage-list-row mypage-list-row--stack">
+                    <p className="mypage-comment-body">{excerpt(c.body, 120)}</p>
+                    <p className="mypage-list-sub">
+                      {authorNameById[c.author_id] || '회원'} · {formatDateTime(c.created_at)} ·{' '}
+                      <Link href={`/post/${c.post_id}`}>
+                        {postTitleById[c.post_id] || '원글 보기'}
+                      </Link>
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="mypage-empty">
+                <p>내 글에 달린 댓글이 아직 없습니다.</p>
+              </div>
+            )}
+          </section>
+        </div>
+      </div>
+    </>
+  );
+
+  const businessPanel = (
+    <div className="mypage-grid-2">
       <section className="mypage-section card" aria-labelledby="mypage-shop-title">
         <div className="mypage-section-head">
           <h2 id="mypage-shop-title">내 가게 관리</h2>
@@ -244,31 +348,32 @@ export default async function MyPage() {
         )}
       </section>
 
-      {safeProfile.is_admin || safeProfile.is_moderator ? (
-        <section className="mypage-section card" aria-labelledby="mypage-dir-title">
-          <div className="mypage-section-head">
-            <h2 id="mypage-dir-title">지면 광고 관리</h2>
-            <span className="mypage-count">블랙</span>
-          </div>
+      <section className="mypage-section card" aria-labelledby="mypage-dir-title">
+        <div className="mypage-section-head">
+          <h2 id="mypage-dir-title">지면 광고</h2>
+          <span className="mypage-count">{myDirectoryAds.length}건</span>
+        </div>
+        {canComposeDirectory ? (
           <p className="mypage-list-sub" style={{ marginBottom: 12 }}>
             업체 디렉토리 맨 끝 <strong>+</strong> 탭에서 슬롯을 드래그해 새 페이지를 만들 수 있습니다.
           </p>
-          <div className="mypage-empty-actions">
-            <Link href="/directory" className="btn">
-              디렉토리에서 추가
-            </Link>
+        ) : null}
+        <div className="mypage-empty-actions" style={{ marginBottom: 14 }}>
+          <Link href="/directory" className="btn">
+            디렉토리에서 추가
+          </Link>
+          {canComposeDirectory ? (
             <Link href="/mypage/directory-pages" className="btn btn-outline">
               배치 화면 열기
             </Link>
-          </div>
-        </section>
-      ) : null}
-
-      <section className="mypage-section card" aria-labelledby="mypage-dir-ads-title">
-        <div className="mypage-section-head">
-          <h2 id="mypage-dir-ads-title">내 지면 광고</h2>
-          <span className="mypage-count">{myDirectoryAds.length}건</span>
+          ) : (
+            <Link href="/directory" className="btn btn-outline">
+              업체 디렉토리
+            </Link>
+          )}
         </div>
+        <div className="mypage-divider" aria-hidden="true" />
+        <h3 className="mypage-subhead">내 지면 광고 목록</h3>
         {myDirectoryAds.length ? (
           <ul className="mypage-list">
             {myDirectoryAds.map((ad) => {
@@ -312,107 +417,25 @@ export default async function MyPage() {
           </ul>
         ) : (
           <div className="mypage-empty">
-            <p>신청한 지면 광고가 없습니다.</p>
-            <Link href="/directory" className="btn btn-outline">
-              업체 디렉토리
-            </Link>
+            <p>등록된 광고 없음</p>
           </div>
         )}
       </section>
+    </div>
+  );
 
-      <section className="mypage-section card" aria-labelledby="mypage-subs-title">
-        <div className="mypage-section-head">
-          <h2 id="mypage-subs-title">구독 현황</h2>
-          <span className="mypage-count">{activeSubs.length}건 이용 중</span>
+  return (
+    <div className="container mypage">
+      <header className="mypage-hero">
+        <div className="mypage-hero-text">
+          <p className="mypage-kicker">My Page</p>
+          <h1 className="mypage-title">{name}</h1>
+          <p className="mypage-meta">가입일 {formatJoinedDate(safeProfile.created_at)}</p>
         </div>
-        {subscriptions.length ? (
-          <ul className="mypage-list">
-            {subscriptions.map((sub) => (
-              <li key={sub.id} className="mypage-list-row">
-                <div>
-                  <strong>{PRODUCT_LABELS[sub.product_type] || sub.product_type}</strong>
-                  <p className="mypage-list-sub">
-                    {STATUS_LABELS[sub.status] || sub.status}
-                    {sub.period_end ? ` · 만료 ${formatJoinedDate(sub.period_end)}` : ''}
-                  </p>
-                </div>
-                <span className={`mypage-status mypage-status--${sub.status || 'expired'}`}>
-                  {STATUS_LABELS[sub.status] || sub.status}
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div className="mypage-empty">
-            <p>구독 중인 상품이 없습니다.</p>
-            <div className="mypage-empty-actions">
-              <Link href="/shop" className="btn btn-outline">
-                튤립가게 보기
-              </Link>
-              <Link href="/directory" className="btn btn-outline">
-                업체 디렉토리
-              </Link>
-            </div>
-          </div>
-        )}
-      </section>
+        <MemberTierBadge tier={tier} />
+      </header>
 
-      <section className="mypage-section card" aria-labelledby="mypage-posts-title">
-        <div className="mypage-section-head">
-          <h2 id="mypage-posts-title">내가 쓴 글</h2>
-          <span className="mypage-count">{posts.length}편</span>
-        </div>
-        {posts.length ? (
-          <ul className="mypage-list">
-            {posts.map((post) => (
-              <li key={post.id} className="mypage-list-row">
-                <div>
-                  <Link href={`/post/${post.id}`} className="mypage-post-link">
-                    {post.title || '(제목 없음)'}
-                  </Link>
-                  <p className="mypage-list-sub">
-                    {boardLabel(post.category_slug)} · {formatDateTime(post.created_at)}
-                    {typeof post.view_count === 'number' ? ` · 조회 ${post.view_count}` : ''}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div className="mypage-empty">
-            <p>아직 작성한 글이 없습니다.</p>
-            <Link href="/board/free/new" className="btn btn-outline">
-              글쓰기
-            </Link>
-          </div>
-        )}
-      </section>
-
-      <section className="mypage-section card" aria-labelledby="mypage-comments-title">
-        <div className="mypage-section-head">
-          <h2 id="mypage-comments-title">내 글에 달린 댓글</h2>
-          <span className="mypage-count">{commentsOnMyPosts.length}개</span>
-        </div>
-        {commentsOnMyPosts.length ? (
-          <ul className="mypage-list">
-            {commentsOnMyPosts.map((c) => (
-              <li key={c.id} className="mypage-list-row mypage-list-row--stack">
-                <p className="mypage-comment-body">{excerpt(c.body, 120)}</p>
-                <p className="mypage-list-sub">
-                  {authorNameById[c.author_id] || '회원'} · {formatDateTime(c.created_at)} ·{' '}
-                  <Link href={`/post/${c.post_id}`}>
-                    {postTitleById[c.post_id] || '원글 보기'}
-                  </Link>
-                </p>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div className="mypage-empty">
-            <p>내 글에 달린 댓글이 아직 없습니다.</p>
-          </div>
-        )}
-      </section>
+      <MyPageTabs account={accountPanel} business={businessPanel} contact={<MyPageAdminContact initialMessages={adminMessages} />} />
 
       <p className="mypage-footnote">
         닉네임·비밀번호는 이 페이지에서 변경할 수 있습니다. 글·댓글 수정은 각 게시글 화면에서 해 주세요.

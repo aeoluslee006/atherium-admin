@@ -248,7 +248,10 @@ export default function TtkcAdmin() {
     }
   }
 
-  const pricingGroups = useMemo(() => groupPricingSettings(pricingRows), [pricingRows])
+  const pricingGroups = useMemo(
+    () => groupPricingSettings(pricingRows, { showInactiveLegacy: false }),
+    [pricingRows]
+  )
 
   const cards = useMemo(
     () => [
@@ -340,13 +343,8 @@ export default function TtkcAdmin() {
                     <div style={s.priceGrid}>
                       {group.items.map((row) => (
                         <div key={row.key} style={s.priceItem}>
-                          <div style={{ fontWeight: 600, marginBottom: 4 }}>
+                          <div style={{ fontWeight: 600, marginBottom: 8 }}>
                             {displayLabelForPricingRow(row)}
-                          </div>
-                          <div style={s.reason}>
-                            {row.key}
-                            {row.key === 'directory_listing' ? ' · 레거시(미사용)' : ''}
-                            {group.hints?.[row.key] ? ` · ${group.hints[row.key]}` : ''}
                           </div>
                           <label style={s.fieldLabel}>표시 라벨</label>
                           <input
@@ -452,7 +450,6 @@ export default function TtkcAdmin() {
         <div style={s.panelHead}>
           <div>
             <div style={s.panelTitle}>회원 리스트</div>
-            <div style={s.panelSub}>등급 · 프로모션(서비스별) · 문의 · 홀드/해지</div>
           </div>
           <form
             style={s.searchRow}
@@ -464,7 +461,7 @@ export default function TtkcAdmin() {
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="이름 / 이메일 / 전화 검색"
+              placeholder="검색"
               style={s.searchInput}
             />
             <button type="submit" style={s.searchBtn}>검색</button>
@@ -504,11 +501,6 @@ export default function TtkcAdmin() {
                   const busy = busyId === row.id
                   const tier = row.tier || 'bronze'
                   const expanded = expandedId === row.id
-                  const promos = row.promotions || []
-                  const summary = PROMO_PRODUCTS.map((p) => {
-                    const found = promos.find((x) => x.product_key === p.key)
-                    return `${p.label} ${promoLabel(found?.promo_end_date)}`
-                  }).join(' · ')
                   return (
                     <React.Fragment key={row.id}>
                       <tr>
@@ -520,13 +512,12 @@ export default function TtkcAdmin() {
                           <span style={{ ...s.badge, ...s.badge_gold }}>{TIER_LABELS[tier] || tier}</span>
                         </td>
                         <td style={s.td}>
-                          <div style={s.reason}>{summary}</div>
                           <button
                             type="button"
                             style={s.btnGhost}
                             onClick={() => setExpandedId(expanded ? '' : row.id)}
                           >
-                            {expanded ? '닫기' : '서비스별 설정'}
+                            {expanded ? '닫기' : '설정'}
                           </button>
                         </td>
                         <td style={s.td}>
@@ -580,7 +571,7 @@ export default function TtkcAdmin() {
                         <tr>
                           <td colSpan={9} style={{ ...s.td, background: 'rgba(0,0,0,0.18)' }}>
                             <div style={{ display: 'grid', gap: 10, maxWidth: 520 }}>
-                              <div style={{ fontSize: 12, fontWeight: 600 }}>서비스별 프로모션 종료일</div>
+                              <div style={{ fontSize: 12, fontWeight: 600 }}>프로모션 종료일</div>
                               {PROMO_PRODUCTS.map((p) => (
                                 <div key={p.key} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                                   <span style={{ minWidth: 110, fontSize: 12 }}>{p.label}</span>

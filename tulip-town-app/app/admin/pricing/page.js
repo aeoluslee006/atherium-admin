@@ -53,7 +53,7 @@ export default function AdminPricingPage() {
     load();
   }, []);
 
-  const groups = useMemo(() => groupPricingSettings(rows), [rows]);
+  const groups = useMemo(() => groupPricingSettings(rows, { showInactiveLegacy: false }), [rows]);
 
   function updateLocal(key, patch) {
     setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
@@ -123,17 +123,10 @@ export default function AdminPricingPage() {
                 }}
               >
                 {group.items.map((row) => {
-                  const isLegacyListing = row.key === 'directory_listing';
-                  const hint = group.hints?.[row.key];
                   return (
                     <div key={row.key} className="form-card" style={{ marginBottom: 0 }}>
-                      <div className="ko" style={{ fontWeight: 700, marginBottom: 4 }}>
+                      <div className="ko" style={{ fontWeight: 700, marginBottom: 8 }}>
                         {displayLabelForPricingRow(row)}
-                      </div>
-                      <div className="hint-text" style={{ marginBottom: 8 }}>
-                        {row.key}
-                        {isLegacyListing ? ' · 레거시(미사용)' : ''}
-                        {hint ? ` · ${hint}` : ''}
                       </div>
                       <label>표시 라벨</label>
                       <input
@@ -156,7 +149,7 @@ export default function AdminPricingPage() {
                           checked={!!row.is_active}
                           onChange={(e) => updateLocal(row.key, { is_active: e.target.checked })}
                         />
-                        활성화 (is_active)
+                        활성화
                       </label>
                       <button
                         className="btn"

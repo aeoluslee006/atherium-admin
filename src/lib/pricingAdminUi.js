@@ -22,7 +22,7 @@ export const PRICING_DISPLAY_LABELS = {
   shop_monthly: '일반 셀러',
   shop_upgrade_monthly: '프로 셀러',
   shop_extra_pack_monthly: '상품 10개 추가',
-  tulip_shop: '레거시 키 (shop_monthly와 중복)',
+  tulip_shop: '레거시 키',
   seller_monthly: '셀러 월 구독 (레거시)',
 }
 
@@ -32,12 +32,11 @@ const DIRECTORY_ORDER = [
   'directory_large',
   'directory_ultra',
   'special_ad_addon',
-  'directory_listing',
 ]
 
 const TULIP_ORDER = ['shop_monthly', 'shop_upgrade_monthly', 'shop_extra_pack_monthly']
 
-export function groupPricingSettings(rows = []) {
+export function groupPricingSettings(rows = [], { showInactiveLegacy = false } = {}) {
   const byKey = new Map((rows || []).map((r) => [r.key, r]))
   const pickOrdered = (keys) =>
     keys
@@ -52,7 +51,7 @@ export function groupPricingSettings(rows = []) {
   const tulip = pickOrdered(TULIP_ORDER)
 
   const legacyItems = []
-  for (const k of ['tulip_shop', 'seller_monthly']) {
+  for (const k of ['tulip_shop', 'seller_monthly', 'directory_listing']) {
     if (byKey.has(k)) {
       legacyItems.push(byKey.get(k))
       byKey.delete(k)
@@ -62,28 +61,11 @@ export function groupPricingSettings(rows = []) {
 
   const groups = [
     { id: 'directory', title: '업체 디렉토리', items: directory },
-    {
-      id: 'tulip',
-      title: '튤립몰',
-      items: tulip,
-      hints: {
-        shop_monthly: '최대 6개 상품 등록',
-        shop_upgrade_monthly: '기본 최대 20개 · 이후 10개당 +$8',
-        shop_extra_pack_monthly: '프로 셀러 전용 · 상품 한도 +10',
-      },
-    },
+    { id: 'tulip', title: '튤립몰', items: tulip },
   ]
 
-  if (legacyItems.length) {
-    groups.push({
-      id: 'legacy_seller',
-      title: '레거시 (신규 판매 중단 / 중복 키)',
-      items: legacyItems,
-      hints: {
-        tulip_shop: '일반 셀러는 shop_monthly 사용 · 이 키는 미사용',
-        seller_monthly: '기존 구독만 유지 · 신규 노출 비활성',
-      },
-    })
+  if (showInactiveLegacy && legacyItems.length) {
+    groups.push({ id: 'legacy_seller', title: '레거시', items: legacyItems })
   }
   if (other.length) groups.push({ id: 'other', title: '기타', items: other })
   return groups.filter((g) => g.items.length > 0)

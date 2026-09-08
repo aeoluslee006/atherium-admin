@@ -33,7 +33,6 @@ const DIRECTORY_ORDER = [
   'directory_large',
   'directory_ultra',
   'special_ad_addon',
-  'directory_listing',
 ];
 
 /** Canonical tulip-mall keys only — hide duplicate tulip_shop. */
@@ -41,9 +40,9 @@ const TULIP_ORDER = ['shop_monthly', 'shop_upgrade_monthly', 'shop_extra_pack_mo
 
 /**
  * Group pricing_settings rows for admin UI.
- * Hides inactive seller_monthly / duplicate tulip_shop in legacy bucket.
+ * Legacy/unused keys omitted unless showInactiveLegacy=true.
  */
-export function groupPricingSettings(rows = [], { showInactiveLegacy = true } = {}) {
+export function groupPricingSettings(rows = [], { showInactiveLegacy = false } = {}) {
   const byKey = new Map((rows || []).map((r) => [r.key, r]));
 
   const pickOrdered = (keys) =>
@@ -55,7 +54,8 @@ export function groupPricingSettings(rows = [], { showInactiveLegacy = true } = 
   const directory = pickOrdered(DIRECTORY_ORDER);
   const tulip = pickOrdered(TULIP_ORDER);
 
-  const legacyKeys = ['tulip_shop', 'seller_monthly'];
+  // Always remove known legacy keys from "other"
+  const legacyKeys = ['tulip_shop', 'seller_monthly', 'directory_listing'];
   const legacyItems = [];
   for (const k of legacyKeys) {
     if (byKey.has(k)) {
@@ -76,23 +76,14 @@ export function groupPricingSettings(rows = [], { showInactiveLegacy = true } = 
       id: 'tulip',
       title: '튤립몰',
       items: tulip,
-      hints: {
-        shop_monthly: '최대 6개 상품 등록',
-        shop_upgrade_monthly: '기본 최대 20개 · 이후 10개당 +$8',
-        shop_extra_pack_monthly: '프로 셀러 전용 · 상품 한도 +10',
-      },
     },
   ];
 
   if (showInactiveLegacy && legacyItems.length) {
     groups.push({
       id: 'legacy_seller',
-      title: '레거시 (신규 판매 중단 / 중복 키)',
+      title: '레거시',
       items: legacyItems,
-      hints: {
-        tulip_shop: '일반 셀러는 shop_monthly 사용 · 이 키는 미사용',
-        seller_monthly: '기존 구독만 유지 · 신규 노출 비활성 권장',
-      },
     });
   }
 

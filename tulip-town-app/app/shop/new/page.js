@@ -189,7 +189,7 @@ export default function ShopNewPage() {
         <div className="card" style={{ marginBottom: 16 }}>
           <strong>상품 한도에 도달했습니다.</strong>
           <p className="hint-text" style={{ marginTop: 8 }}>
-            확장 요금제(+$20, 최대 30개)로 업그레이드하면 더 등록할 수 있습니다.
+            확장 요금제(+$20, 최대 20개)로 업그레이드하면 더 등록할 수 있습니다.
           </p>
           <Link href="/seller" className="btn" style={{ marginTop: 12, display: 'inline-flex' }}>
             업그레이드하러 가기

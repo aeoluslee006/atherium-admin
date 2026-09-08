@@ -1,7 +1,7 @@
 /** Tulip shop (sponsors listing_type=shop + products). */
 
 export const SHOP_BASIC_PRODUCT_LIMIT = 6;
-export const SHOP_EXTENDED_PRODUCT_LIMIT = 30;
+export const SHOP_EXTENDED_PRODUCT_LIMIT = 20;
 export const SHOP_BASIC_PLAN = 'basic';
 export const SHOP_EXTENDED_PLAN = 'extended';
 

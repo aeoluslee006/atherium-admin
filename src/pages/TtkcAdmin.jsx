@@ -9,6 +9,12 @@ import {
   saveTtkcPricing,
   setTtkcMemberPromo,
 } from '../lib/ttkcAdminApi'
+import {
+  centsToDollarInput,
+  displayLabelForPricingRow,
+  dollarsToCents,
+  groupPricingSettings,
+} from '../lib/pricingAdminUi'
 
 const TTKC_SITE = 'https://www.ttkc.us'
 const SQL_EDITOR = 'https://supabase.com/dashboard/project/lyikgkjhkmppvciicxfm/sql/new'
@@ -79,8 +85,15 @@ export default function TtkcAdmin() {
   const [msgLoading, setMsgLoading] = useState(false)
   const [showPricing, setShowPricing] = useState(false)
   const [pricingRows, setPricingRows] = useState([])
+  const [dollarDraft, setDollarDraft] = useState({})
   const [pricingBusy, setPricingBusy] = useState('')
   const [pricingMsg, setPricingMsg] = useState('')
+  const [pricingOpen, setPricingOpen] = useState({
+    directory: true,
+    tulip: true,
+    legacy_seller: false,
+    other: false,
+  })
 
   const load = useCallback(async (query = '') => {
     setLoading(true)
@@ -199,7 +212,11 @@ export default function TtkcAdmin() {
     setError('')
     try {
       const data = await fetchTtkcPricing()
-      setPricingRows((data.settings || []).map((r) => ({ ...r })))
+      const settings = (data.settings || []).map((r) => ({ ...r }))
+      setPricingRows(settings)
+      const dollars = {}
+      for (const r of settings) dollars[r.key] = centsToDollarInput(r.amount_cents)
+      setDollarDraft(dollars)
     } catch (err) {
       setError(err.message)
     }
@@ -209,21 +226,29 @@ export default function TtkcAdmin() {
     setPricingBusy(row.key)
     setPricingMsg('')
     try {
+      const cents = dollarsToCents(dollarDraft[row.key])
+      if (cents == null) throw new Error('금액($)을 올바르게 입력해 주세요.')
       await saveTtkcPricing({
         key: row.key,
-        amount_cents: Number(row.amount_cents),
+        amount_cents: cents,
         label: row.label,
         is_active: !!row.is_active,
       })
-      setPricingMsg(`${row.key} 저장됨`)
+      setPricingMsg(`${displayLabelForPricingRow(row)} 저장됨 ($${centsToDollarInput(cents)})`)
       const data = await fetchTtkcPricing()
-      setPricingRows((data.settings || []).map((r) => ({ ...r })))
+      const settings = (data.settings || []).map((r) => ({ ...r }))
+      setPricingRows(settings)
+      const dollars = {}
+      for (const r of settings) dollars[r.key] = centsToDollarInput(r.amount_cents)
+      setDollarDraft(dollars)
     } catch (err) {
       setError(err.message)
     } finally {
       setPricingBusy('')
     }
   }
+
+  const pricingGroups = useMemo(() => groupPricingSettings(pricingRows), [pricingRows])
 
   const cards = useMemo(
     () => [
@@ -282,7 +307,9 @@ export default function TtkcAdmin() {
           <div style={s.panelHead}>
             <div>
               <div style={s.panelTitle}>단가 관리</div>
-              <div style={s.panelSub}>다음 결제부터 적용 · 기존 활성 구독 가격 유지 (cents, $9 = 900)</div>
+              <div style={s.panelSub}>
+                금액은 달러($) 입력 · DB는 cents 저장 · 다음 결제부터 적용
+              </div>
             </div>
             <button type="button" style={s.refreshBtn} onClick={() => setShowPricing(false)}>
               닫기
@@ -290,58 +317,112 @@ export default function TtkcAdmin() {
           </div>
           {pricingMsg ? <div style={s.okBanner}>{pricingMsg}</div> : null}
           <div style={{ display: 'grid', gap: 12 }}>
-            {pricingRows.map((row) => (
-              <div key={row.key} style={s.priceCard}>
-                <div style={{ fontWeight: 600, marginBottom: 8 }}>{row.key}</div>
-                <label style={s.fieldLabel}>라벨</label>
-                <input
-                  style={s.searchInput}
-                  value={row.label || ''}
-                  onChange={(e) =>
-                    setPricingRows((prev) =>
-                      prev.map((r) => (r.key === row.key ? { ...r, label: e.target.value } : r))
-                    )
-                  }
-                />
-                <label style={s.fieldLabel}>금액 (cents)</label>
-                <input
-                  type="number"
-                  min="0"
-                  style={s.searchInput}
-                  value={row.amount_cents ?? 0}
-                  onChange={(e) =>
-                    setPricingRows((prev) =>
-                      prev.map((r) =>
-                        r.key === row.key ? { ...r, amount_cents: e.target.value } : r
-                      )
-                    )
-                  }
-                />
-                <label style={{ ...s.fieldLabel, display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <input
-                    type="checkbox"
-                    checked={!!row.is_active}
-                    onChange={(e) =>
-                      setPricingRows((prev) =>
-                        prev.map((r) =>
-                          r.key === row.key ? { ...r, is_active: e.target.checked } : r
-                        )
-                      )
+            {pricingGroups.map((group) => {
+              const open = pricingOpen[group.id] !== false
+              return (
+                <div key={group.id} style={s.priceCard}>
+                  <button
+                    type="button"
+                    style={{
+                      ...s.refreshBtn,
+                      width: '100%',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      marginBottom: open ? 10 : 0,
+                    }}
+                    onClick={() =>
+                      setPricingOpen((prev) => ({ ...prev, [group.id]: !open }))
                     }
-                  />
-                  활성화
-                </label>
-                <button
-                  type="button"
-                  style={s.searchBtn}
-                  disabled={pricingBusy === row.key}
-                  onClick={() => savePrice(row)}
-                >
-                  {pricingBusy === row.key ? '저장 중…' : '저장'}
-                </button>
-              </div>
-            ))}
-            {!pricingRows.length ? <div style={s.empty}>요금 항목이 없습니다. SQL을 실행해 주세요.</div> : null}
+                  >
+                    <strong style={{ color: 'var(--bright)' }}>{group.title}</strong>
+                    <span>
+                      {open ? '접기' : '펼치기'} · {group.items.length}
+                    </span>
+                  </button>
+                  {open
+                    ? group.items.map((row) => (
+                        <div
+                          key={row.key}
+                          style={{
+                            borderTop: '1px solid var(--border)',
+                            paddingTop: 10,
+                            marginTop: 10,
+                          }}
+                        >
+                          <div style={{ fontWeight: 600, marginBottom: 4 }}>
+                            {displayLabelForPricingRow(row)}
+                          </div>
+                          <div style={s.reason}>
+                            {row.key}
+                            {row.key === 'directory_listing' ? ' · 레거시(미사용)' : ''}
+                            {group.hints?.[row.key] ? ` · ${group.hints[row.key]}` : ''}
+                          </div>
+                          <label style={s.fieldLabel}>표시 라벨</label>
+                          <input
+                            style={s.searchInput}
+                            value={row.label || ''}
+                            onChange={(e) =>
+                              setPricingRows((prev) =>
+                                prev.map((r) =>
+                                  r.key === row.key ? { ...r, label: e.target.value } : r
+                                )
+                              )
+                            }
+                          />
+                          <label style={s.fieldLabel}>금액 ($)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            style={s.searchInput}
+                            value={dollarDraft[row.key] ?? ''}
+                            onChange={(e) =>
+                              setDollarDraft((prev) => ({
+                                ...prev,
+                                [row.key]: e.target.value,
+                              }))
+                            }
+                          />
+                          <label
+                            style={{
+                              ...s.fieldLabel,
+                              display: 'flex',
+                              gap: 8,
+                              alignItems: 'center',
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={!!row.is_active}
+                              onChange={(e) =>
+                                setPricingRows((prev) =>
+                                  prev.map((r) =>
+                                    r.key === row.key
+                                      ? { ...r, is_active: e.target.checked }
+                                      : r
+                                  )
+                                )
+                              }
+                            />
+                            활성화
+                          </label>
+                          <button
+                            type="button"
+                            style={s.searchBtn}
+                            disabled={pricingBusy === row.key}
+                            onClick={() => savePrice(row)}
+                          >
+                            {pricingBusy === row.key ? '저장 중…' : '저장'}
+                          </button>
+                        </div>
+                      ))
+                    : null}
+                </div>
+              )
+            })}
+            {!pricingRows.length ? (
+              <div style={s.empty}>요금 항목이 없습니다. SQL을 실행해 주세요.</div>
+            ) : null}
           </div>
         </div>
       ) : null}

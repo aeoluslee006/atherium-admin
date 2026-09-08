@@ -188,7 +188,7 @@ function SellerDashboardInner() {
         <div className="card" style={{ marginBottom: 16 }}>
           <h3 className="section-title" style={{ fontSize: 16 }}>요금제</h3>
           <p className="hint-text">
-            기본 $10 / 상품 6개 · 확장 +$20 / 최대 30개. 승인 후 판매자가 구독을 시작합니다.
+            기본 $10 / 상품 6개 · 확장 +$20 / 최대 20개. 승인 후 판매자가 구독을 시작합니다.
           </p>
           <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
             <button

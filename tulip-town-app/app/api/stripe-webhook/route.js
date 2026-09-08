@@ -101,7 +101,7 @@ async function syncShopSponsorPlan(admin, subscriptionOrSession) {
   const patch = {};
   if (kind === 'shop_upgrade') {
     patch.plan_tier = 'extended';
-    patch.product_limit = 30;
+    patch.product_limit = 20;
   } else if (kind === 'shop_subscription') {
     // Keep defaults; ensure basic tier if unset
     patch.plan_tier = 'basic';

@@ -54,7 +54,7 @@ export default async function ShopPage() {
             </Link>
           </div>
           <p className="shop-pricing-note">
-            기본 월 $10 · 상품 6개 · 확장 +$20(최대 30개) · 최초 3개월 무료 안내 유지
+            기본 월 $10 · 상품 6개 · 확장 +$20(최대 20개) · 최초 3개월 무료 안내 유지
           </p>
         </div>
       </section>

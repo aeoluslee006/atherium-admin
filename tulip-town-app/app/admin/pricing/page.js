@@ -90,10 +90,6 @@ export default function AdminPricingPage() {
 
   return (
     <div>
-      <p className="hint-text" style={{ marginBottom: 14 }}>
-        금액은 <strong>달러($)</strong>로 입력합니다. DB에는 cents로 저장됩니다. 다음 결제부터 적용되며 기존
-        활성 구독 가격은 유지됩니다.
-      </p>
       {error ? <div className="error-text">{error}</div> : null}
       {message ? <div className="hint-text">{message}</div> : null}
 
@@ -118,12 +114,19 @@ export default function AdminPricingPage() {
               <span className="hint-text">{open ? '접기' : '펼치기'} · {group.items.length}개</span>
             </button>
             {open ? (
-              <div style={{ padding: '0 16px 16px' }}>
+              <div
+                style={{
+                  padding: '0 16px 16px',
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                  gap: 12,
+                }}
+              >
                 {group.items.map((row) => {
                   const isLegacyListing = row.key === 'directory_listing';
                   const hint = group.hints?.[row.key];
                   return (
-                    <div key={row.key} className="form-card" style={{ marginBottom: 12 }}>
+                    <div key={row.key} className="form-card" style={{ marginBottom: 0 }}>
                       <div className="ko" style={{ fontWeight: 700, marginBottom: 4 }}>
                         {displayLabelForPricingRow(row)}
                       </div>

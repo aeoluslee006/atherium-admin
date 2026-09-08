@@ -307,9 +307,6 @@ export default function TtkcAdmin() {
           <div style={s.panelHead}>
             <div>
               <div style={s.panelTitle}>단가 관리</div>
-              <div style={s.panelSub}>
-                금액은 달러($) 입력 · DB는 cents 저장 · 다음 결제부터 적용
-              </div>
             </div>
             <button type="button" style={s.refreshBtn} onClick={() => setShowPricing(false)}>
               닫기
@@ -339,16 +336,10 @@ export default function TtkcAdmin() {
                       {open ? '접기' : '펼치기'} · {group.items.length}
                     </span>
                   </button>
-                  {open
-                    ? group.items.map((row) => (
-                        <div
-                          key={row.key}
-                          style={{
-                            borderTop: '1px solid var(--border)',
-                            paddingTop: 10,
-                            marginTop: 10,
-                          }}
-                        >
+                  {open ? (
+                    <div style={s.priceGrid}>
+                      {group.items.map((row) => (
+                        <div key={row.key} style={s.priceItem}>
                           <div style={{ fontWeight: 600, marginBottom: 4 }}>
                             {displayLabelForPricingRow(row)}
                           </div>
@@ -415,8 +406,9 @@ export default function TtkcAdmin() {
                             {pricingBusy === row.key ? '저장 중…' : '저장'}
                           </button>
                         </div>
-                      ))
-                    : null}
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               )
             })}
@@ -812,6 +804,19 @@ const s = {
     borderRadius: 10,
     padding: 12,
     background: 'rgba(0,0,0,0.15)',
+  },
+  priceGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+    gap: 12,
+    marginTop: 4,
+  },
+  priceItem: {
+    border: '1px solid var(--border)',
+    borderRadius: 8,
+    padding: 12,
+    background: 'rgba(0,0,0,0.12)',
+    minWidth: 0,
   },
   fieldLabel: { display: 'block', fontSize: 11, color: 'var(--muted)', marginBottom: 4 },
   table: { width: '100%', borderCollapse: 'collapse', minWidth: 1080 },

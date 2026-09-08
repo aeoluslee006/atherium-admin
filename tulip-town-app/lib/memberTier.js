@@ -50,6 +50,11 @@ export const TIER_META = {
 
 export const PRODUCT_LABELS = {
   tulip_shop: '튤립가게',
+  shop_monthly: '일반 셀러 (월)',
+  shop_yearly: '일반 셀러 (연)',
+  shop_upgrade_monthly: '프로 셀러 (월)',
+  shop_upgrade_yearly: '프로 셀러 (연)',
+  shop_extra_pack_monthly: '상품 10개 추가',
   directory_listing: '업체 디렉토리',
 };
 

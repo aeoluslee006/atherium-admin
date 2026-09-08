@@ -3554,6 +3554,16 @@ main:has(.home-page) {
   opacity: 0.85;
 }
 
+.shop-notice-link {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.shop-notice-link:hover {
+  opacity: 1;
+}
+
 .shop-toolbar {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.8fr) minmax(0, 0.8fr);

@@ -89,7 +89,7 @@ export default function MyPageAccountPanel({
   }
 
   return (
-    <>
+    <div className="mypage-grid-2">
       <section className="mypage-section card" aria-labelledby="mypage-account-title">
         <div className="mypage-section-head">
           <h2 id="mypage-account-title">내 정보</h2>
@@ -123,7 +123,11 @@ export default function MyPageAccountPanel({
             />
           </label>
           {profileErr ? <p className="error-text">{profileErr}</p> : null}
-          {profileMsg ? <p className="hint-text" style={{ color: '#176b3a' }}>{profileMsg}</p> : null}
+          {profileMsg ? (
+            <p className="hint-text" style={{ color: '#176b3a' }}>
+              {profileMsg}
+            </p>
+          ) : null}
           <button type="submit" className="btn" disabled={savingProfile}>
             {savingProfile ? '저장 중…' : '닉네임 저장'}
           </button>
@@ -163,7 +167,11 @@ export default function MyPageAccountPanel({
             />
           </label>
           {pwErr ? <p className="error-text">{pwErr}</p> : null}
-          {pwMsg ? <p className="hint-text" style={{ color: '#176b3a' }}>{pwMsg}</p> : null}
+          {pwMsg ? (
+            <p className="hint-text" style={{ color: '#176b3a' }}>
+              {pwMsg}
+            </p>
+          ) : null}
           <div className="mypage-empty-actions">
             <button type="submit" className="btn" disabled={savingPw}>
               {savingPw ? '변경 중…' : '비밀번호 변경'}
@@ -179,6 +187,6 @@ export default function MyPageAccountPanel({
           </div>
         </form>
       </section>
-    </>
+    </div>
   );
 }

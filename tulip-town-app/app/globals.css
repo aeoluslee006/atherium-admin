@@ -5855,7 +5855,7 @@ main:has(.home-page) {
 
 /* —— My Page / member tiers (phase 1) —— */
 .mypage {
-  max-width: 860px;
+  max-width: 1120px;
   padding-bottom: 48px;
 }
 
@@ -5864,13 +5864,101 @@ main:has(.home-page) {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin: 8px 0 22px;
+  margin: 8px 0 18px;
   padding: 22px 24px;
   border-radius: 16px;
   background:
     radial-gradient(120% 90% at 0% 0%, rgba(217, 79, 140, 0.12), transparent 55%),
     linear-gradient(180deg, #fffafc 0%, #ffffff 100%);
   border: 1px solid rgba(217, 79, 140, 0.12);
+}
+
+.mypage-tabs {
+  margin-bottom: 8px;
+}
+
+.mypage-tablist-wrap {
+  margin-bottom: 16px;
+}
+
+.mypage-tablist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 12px;
+  background: #f4f6f8;
+  border: 1px solid var(--row-line, #e8ebef);
+}
+
+.mypage-tab {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  padding: 10px 16px;
+  border-radius: 9px;
+  cursor: pointer;
+  line-height: 1.2;
+}
+
+.mypage-tab:hover {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.mypage-tab.is-active {
+  color: var(--ink);
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.mypage-tab-select-wrap {
+  display: none;
+}
+
+.mypage-tab-select {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid var(--row-line, #e8ebef);
+  background: #fff;
+  font: inherit;
+  font-weight: 650;
+  padding: 10px 12px;
+}
+
+.mypage-tabpanel[hidden] {
+  display: none !important;
+}
+
+.mypage-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.mypage-stack {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.mypage-divider {
+  height: 1px;
+  background: var(--row-line, #e8ebef);
+  margin: 4px 0 12px;
+}
+
+.mypage-subhead {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-soft);
 }
 
 .mypage-kicker {
@@ -6119,6 +6207,34 @@ main:has(.home-page) {
 
 .auth-area .mypage-link.is-active {
   color: var(--accent-dark);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (min-width: 1024px) {
+  .mypage-grid-2 {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .mypage-tablist {
+    display: none;
+  }
+
+  .mypage-tab-select-wrap {
+    display: block;
+  }
 }
 
 @media (max-width: 640px) {

@@ -69,7 +69,8 @@ export default function AdminShopPage() {
         <div>
           <h3 className="section-title">튤립가게 승인</h3>
           <p className="hint-text">
-            승인 시 trial_ends_at = 승인일 + 3개월. 앱 결제 없음 · 입점 월 $10 (무료 기간 후).
+            승인 시 trial_ends_at = 승인일 + 3개월(입점 체험). 공개 배너에는 노출하지 않음.
+            회원 프로모션(member_promotions)과 별개. 앱 결제 없음 · 일반 월 $10/연 $100 · 프로 월 $20/연 $200.
           </p>
         </div>
         <Link href="/shop" className="btn btn-outline">

@@ -8,8 +8,26 @@ export const SHOP_BASIC_PLAN = 'basic';
 export const SHOP_EXTENDED_PLAN = 'extended';
 
 export const SHOP_MONTHLY_KEY = 'shop_monthly';
+export const SHOP_YEARLY_KEY = 'shop_yearly';
 export const SHOP_UPGRADE_MONTHLY_KEY = 'shop_upgrade_monthly';
+export const SHOP_UPGRADE_YEARLY_KEY = 'shop_upgrade_yearly';
 export const SHOP_EXTRA_PACK_KEY = 'shop_extra_pack_monthly';
+
+/** Active subscription product_types that unlock shop management. */
+export const SHOP_SUBSCRIPTION_PRODUCT_TYPES = [
+  'shop_monthly',
+  'shop_yearly',
+  'shop_upgrade_monthly',
+  'shop_upgrade_yearly',
+  'tulip_shop',
+];
+
+export function hasActiveShopSubscription(subscriptions = []) {
+  return (subscriptions || []).some(
+    (s) =>
+      s?.status === 'active' && SHOP_SUBSCRIPTION_PRODUCT_TYPES.includes(String(s.product_type || ''))
+  );
+}
 
 export const SELLER_CITIES = ['Holland', 'Grand Rapids', 'Zeeland', 'Hudsonville', 'Other'];
 

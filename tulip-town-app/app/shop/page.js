@@ -1,5 +1,4 @@
-import Link from 'next/link';
-import { formatPriceCents } from '../../lib/sellerConstants';
+import ShopCatalog from '../../components/ShopCatalog';
 import { supabaseRest } from '../../lib/supabaseRest';
 
 export const dynamic = 'force-dynamic';
@@ -9,109 +8,61 @@ export const metadata = {
   description: '승인된 사업자 판매자의 상품을 둘러보세요',
 };
 
-function placeholderImage(seed) {
-  return `https://images.unsplash.com/photo-1513885535751-8b9238bd345a?auto=format&fit=crop&w=800&q=80&sig=${encodeURIComponent(seed || 'shop')}`;
+async function loadShopProducts() {
+  try {
+    const rows = await supabaseRest(
+      'products?select=id,title,description,price_cents,image_url,category,created_at,sponsor:sponsors!inner(id,business_name,city,status,listing_type)&is_active=eq.true&sponsors.status=eq.approved&sponsors.listing_type=eq.shop&order=created_at.desc'
+    );
+    if (Array.isArray(rows)) return rows;
+  } catch {
+    // category column may be missing before SQL migration
+  }
+
+  try {
+    let items = await supabaseRest(
+      'products?select=id,title,description,price_cents,image_url,created_at,sponsor:sponsors!inner(id,business_name,city,status,listing_type)&is_active=eq.true&sponsors.status=eq.approved&sponsors.listing_type=eq.shop&order=created_at.desc'
+    );
+    if (Array.isArray(items)) return items;
+  } catch {
+    // fall through
+  }
+
+  try {
+    let items = await supabaseRest(
+      'products?select=id,title,description,price_cents,image_url,created_at,sponsor_id,sponsors(id,business_name,city,status,listing_type)&is_active=eq.true&order=created_at.desc'
+    );
+    if (Array.isArray(items)) {
+      return items.filter(
+        (p) => p.sponsors?.status === 'approved' && p.sponsors?.listing_type === 'shop'
+      );
+    }
+  } catch {
+    // ignore
+  }
+  return [];
 }
 
 export default async function ShopPage() {
-  let items = [];
-  try {
-    items = await supabaseRest(
-      'products?select=id,title,description,price_cents,image_url,created_at,sponsor:sponsors!inner(id,business_name,city,status,listing_type)&is_active=eq.true&sponsors.status=eq.approved&sponsors.listing_type=eq.shop&order=created_at.desc'
-    );
-  } catch {
-    // Fallback if embed filter syntax differs
-    try {
-      items = await supabaseRest(
-        'products?select=id,title,description,price_cents,image_url,created_at,sponsor_id,sponsors(id,business_name,city,status,listing_type)&is_active=eq.true&order=created_at.desc'
-      );
-      if (Array.isArray(items)) {
-        items = items.filter(
-          (p) => p.sponsors?.status === 'approved' && p.sponsors?.listing_type === 'shop'
-        );
-      }
-    } catch {
-      items = [];
-    }
-  }
-  if (!Array.isArray(items)) items = [];
+  const items = await loadShopProducts();
 
   return (
     <div className="shop-page">
-      <section className="shop-hero">
+      <section className="shop-hero shop-hero--compact">
         <div className="container shop-hero-inner">
           <p className="shop-kicker">Tulip Town Marketplace</p>
           <h1 className="shop-brand">튤립가게</h1>
           <p className="shop-lead">
             승인된 사업자 판매자의 상품입니다. 판매자에게 직접 연락해 거래하세요.
           </p>
-          <div className="shop-hero-cta">
-            <Link href="/shop/new" className="btn">
-              상품 등록
-            </Link>
-            <Link href="/seller/apply" className="btn btn-outline shop-hero-secondary">
-              사업자 입점
-            </Link>
-          </div>
           <p className="shop-pricing-note">
-            기본 월 $10 · 상품 6개 · 프로 +$20(기본 20개) · 이후 10개당 +$8 · 최초 3개월 무료 안내 유지
+            일반 셀러 월 $10 또는 연 $100(2개월 무료) · 최대 6개 · 프로 셀러 월 $20 또는 연
+            $200(2개월 무료) · 최대 20개 · 이후 10개당 +$8/월
           </p>
         </div>
       </section>
 
       <div className="container" id="shop-grid">
-        <div className="shop-section-head">
-          <h2 className="shop-section-title">지금 올라온 상품</h2>
-          <p className="shop-section-desc">사진 · 상품명 · 가격 · 판매자</p>
-        </div>
-
-        {items.length ? (
-          <div className="shop-grid">
-            {items.map((item) => {
-              const seller = item.sponsor || item.sponsors;
-              return (
-                <article key={item.id} className="shop-card">
-                  <Link href={`/shop/${item.id}`} className="shop-card-media-link">
-                    <div className="shop-card-media">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={item.image_url || placeholderImage(item.id)}
-                        alt=""
-                        loading="lazy"
-                      />
-                    </div>
-                  </Link>
-                  <div className="shop-card-body">
-                    <div className="shop-card-price">{formatPriceCents(item.price_cents)}</div>
-                    <Link href={`/shop/${item.id}`} className="shop-card-title">
-                      {item.title}
-                    </Link>
-                    {seller?.id ? (
-                      <Link href={`/shop/seller/${seller.id}`} className="shop-card-seller">
-                        {seller.business_name}
-                        {seller.city ? ` · ${seller.city}` : ''}
-                      </Link>
-                    ) : (
-                      <div className="shop-card-meta">판매자</div>
-                    )}
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="card empty-state">
-            아직 등록된 상품이 없습니다.
-            <div style={{ marginTop: 12, display: 'flex', gap: 10, justifyContent: 'center' }}>
-              <Link href="/seller/apply" className="btn btn-outline">
-                입점 신청
-              </Link>
-              <Link href="/shop/new" className="btn">
-                상품 등록
-              </Link>
-            </div>
-          </div>
-        )}
+        <ShopCatalog items={items} />
       </div>
     </div>
   );

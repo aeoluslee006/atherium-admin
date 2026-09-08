@@ -8,6 +8,8 @@ import {
   SHOP_EXTRA_PACK_SIZE,
   SHOP_MONTHLY_KEY,
   SHOP_UPGRADE_MONTHLY_KEY,
+  SHOP_UPGRADE_YEARLY_KEY,
+  SHOP_YEARLY_KEY,
   shopProductLimit,
 } from '../../../../lib/sellerConstants';
 import { getAppUrl, getStripe } from '../../../../lib/stripe';
@@ -33,12 +35,25 @@ export async function POST(request) {
     const body = await request.json().catch(() => ({}));
     const plan =
       body.plan === 'upgrade' ? 'upgrade' : body.plan === 'extra_pack' ? 'extra_pack' : 'basic';
+    const interval = body.interval === 'year' ? 'year' : 'month';
+
+    if (plan === 'extra_pack' && interval === 'year') {
+      return NextResponse.json(
+        { error: '상품 추가 팩은 월 구독만 지원합니다.' },
+        { status: 400 }
+      );
+    }
+
     const pricingKey =
       plan === 'upgrade'
-        ? SHOP_UPGRADE_MONTHLY_KEY
+        ? interval === 'year'
+          ? SHOP_UPGRADE_YEARLY_KEY
+          : SHOP_UPGRADE_MONTHLY_KEY
         : plan === 'extra_pack'
           ? SHOP_EXTRA_PACK_KEY
-          : SHOP_MONTHLY_KEY;
+          : interval === 'year'
+            ? SHOP_YEARLY_KEY
+            : SHOP_MONTHLY_KEY;
 
     const sponsor = await getShopSponsor(db, user.id);
     if (!sponsor) {
@@ -71,18 +86,23 @@ export async function POST(request) {
     if (pricingErr) throw pricingErr;
 
     const defaults = {
-      basic: 1000,
-      upgrade: 2000,
-      extra_pack: SHOP_EXTRA_PACK_DEFAULT_CENTS,
+      basic_month: 1000,
+      basic_year: 10000,
+      upgrade_month: 2000,
+      upgrade_year: 20000,
+      extra_pack_month: SHOP_EXTRA_PACK_DEFAULT_CENTS,
     };
-    const amountCents = pricing?.amount_cents ?? defaults[plan];
+    const defaultKey = `${plan === 'extra_pack' ? 'extra_pack' : plan}_${interval}`;
+    const amountCents = pricing?.amount_cents ?? defaults[defaultKey];
     const currency = (pricing?.currency || 'usd').toLowerCase();
     const labels = {
-      basic: '일반 셀러 (튤립몰 · 최대 6개)',
-      upgrade: '프로 셀러 (튤립몰 · 최대 20개)',
-      extra_pack: '상품 10개 추가 (+$8/월)',
+      basic_month: '일반 셀러 (월 · 최대 6개)',
+      basic_year: '일반 셀러 (연 · 최대 6개)',
+      upgrade_month: '프로 셀러 (월 · 최대 20개)',
+      upgrade_year: '프로 셀러 (연 · 최대 20개)',
+      extra_pack_month: '상품 10개 추가 (+$8/월)',
     };
-    const label = pricing?.label || labels[plan];
+    const label = pricing?.label || labels[defaultKey];
 
     const stripe = getStripe();
     const appUrl = getAppUrl();
@@ -105,19 +125,20 @@ export async function POST(request) {
           price_data: {
             currency,
             unit_amount: amountCents,
-            recurring: { interval: 'month' },
+            recurring: { interval },
             product_data: { name: label },
           },
           quantity: 1,
         },
       ],
-      success_url: `${appUrl}/seller?checkout=success&session_id={CHECKOUT_SESSION_ID}&plan=${plan}`,
-      cancel_url: `${appUrl}/seller?checkout=cancel`,
+      success_url: `${appUrl}/mypage/shop?checkout=success&session_id={CHECKOUT_SESSION_ID}&plan=${plan}`,
+      cancel_url: `${appUrl}/mypage/shop?checkout=cancel`,
       metadata: {
         kind,
         sponsor_id: sponsor.id,
         user_id: user.id,
         pricing_key: pricingKey,
+        billing_interval: interval,
         ...(nextLimit != null
           ? {
               next_product_limit: String(nextLimit),
@@ -132,6 +153,7 @@ export async function POST(request) {
           sponsor_id: sponsor.id,
           user_id: user.id,
           pricing_key: pricingKey,
+          billing_interval: interval,
           ...(nextLimit != null
             ? {
                 next_product_limit: String(nextLimit),
@@ -148,6 +170,7 @@ export async function POST(request) {
       session_id: session.id,
       next_product_limit: nextLimit ?? null,
       base_pro_limit: SHOP_EXTENDED_PRODUCT_LIMIT,
+      interval,
     });
   } catch (err) {
     return NextResponse.json({ error: err.message || 'Checkout failed' }, { status: 500 });

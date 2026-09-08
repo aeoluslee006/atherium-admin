@@ -13,6 +13,10 @@ import {
   resolveMemberTier,
 } from '../../lib/memberTier';
 import { isLoginBlocked } from '../../lib/memberStatus';
+import {
+  SELLER_STATUS_LABEL,
+  hasActiveShopSubscription,
+} from '../../lib/sellerConstants';
 import { createServerSupabase } from '../../lib/supabaseServer';
 
 export const dynamic = 'force-dynamic';
@@ -159,6 +163,22 @@ export default async function MyPage() {
   const name = displayNameFromProfile(safeProfile, user.email);
   const activeSubs = subscriptions.filter((s) => s.status === 'active');
 
+  let shopSponsor = null;
+  {
+    const { data: sponsorRow } = await supabase
+      .from('sponsors')
+      .select('id,business_name,status,plan_tier,product_limit,listing_type')
+      .eq('listing_type', 'shop')
+      .eq('submitted_by', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    shopSponsor = sponsorRow || null;
+  }
+
+  const showShopManage =
+    Boolean(shopSponsor) || hasActiveShopSubscription(subscriptions);
+
   return (
     <div className="container mypage">
       <header className="mypage-hero">
@@ -179,6 +199,50 @@ export default async function MyPage() {
       />
 
       <MyPageAdminContact />
+
+      <section className="mypage-section card" aria-labelledby="mypage-shop-title">
+        <div className="mypage-section-head">
+          <h2 id="mypage-shop-title">내 가게 관리</h2>
+          <span className="mypage-count">
+            {shopSponsor
+              ? SELLER_STATUS_LABEL[shopSponsor.status] || shopSponsor.status
+              : showShopManage
+                ? '구독 중'
+                : '입점'}
+          </span>
+        </div>
+        {showShopManage ? (
+          <>
+            <p className="mypage-list-sub" style={{ marginBottom: 12 }}>
+              {shopSponsor?.business_name
+                ? `${shopSponsor.business_name} · 상품 등록 · 요금제 · 승인 상태`
+                : '튤립가게 판매자 요금제와 상품을 관리합니다.'}
+            </p>
+            <div className="mypage-empty-actions">
+              <Link href="/mypage/shop" className="btn">
+                가게 관리 열기
+              </Link>
+              <Link href="/shop" className="btn btn-outline">
+                공개 튤립가게
+              </Link>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="mypage-list-sub" style={{ marginBottom: 12 }}>
+              판매자이신가요? 마이페이지에서 사업자 입점을 신청하고 상품을 등록하세요.
+            </p>
+            <div className="mypage-empty-actions">
+              <Link href="/mypage/shop/apply" className="btn">
+                사업자 입점
+              </Link>
+              <Link href="/mypage/shop" className="btn btn-outline">
+                가게 관리
+              </Link>
+            </div>
+          </>
+        )}
+      </section>
 
       {safeProfile.is_admin || safeProfile.is_moderator ? (
         <section className="mypage-section card" aria-labelledby="mypage-dir-title">

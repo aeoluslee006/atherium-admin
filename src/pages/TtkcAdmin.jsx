@@ -49,16 +49,6 @@ function formatDate(value) {
   }
 }
 
-function promoLabel(endDate) {
-  if (!endDate) return '미적용'
-  const end = new Date(`${endDate}T23:59:59`)
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const diff = Math.ceil((end.getTime() - today.getTime()) / (24 * 60 * 60 * 1000))
-  if (diff < 0) return '만료'
-  return `D-${diff}`
-}
-
 function memberAccountStatus(row) {
   const status = row.status || (row.is_banned ? 'deleted' : row.suspended_until && new Date(row.suspended_until) > Date.now() ? 'hold' : 'active')
   if (status === 'deleted' || row.is_banned) return { label: '해지', tone: 'danger', status: 'deleted' }

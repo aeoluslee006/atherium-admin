@@ -70,7 +70,7 @@ export async function POST(request) {
     if ((count || 0) >= limit) {
       return NextResponse.json(
         {
-          error: `상품 한도(${limit}개)에 도달했습니다. 확장 요금제로 업그레이드해 주세요.`,
+          error: `상품 한도(${limit}개)에 도달했습니다. 프로 셀러는 10개 추가(+ $8/월)를 구매해 주세요.`,
           code: 'PRODUCT_LIMIT',
           limit,
           upgrade: true,

@@ -188,7 +188,7 @@ function SellerDashboardInner() {
         <div className="card" style={{ marginBottom: 16 }}>
           <h3 className="section-title" style={{ fontSize: 16 }}>요금제</h3>
           <p className="hint-text">
-            기본 $10 / 상품 6개 · 확장 +$20 / 최대 20개. 승인 후 판매자가 구독을 시작합니다.
+            일반 셀러 $10 / 상품 6개 · 프로 셀러 +$20 / 기본 20개 · 이후 10개마다 +$8.
           </p>
           <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
             <button
@@ -197,7 +197,7 @@ function SellerDashboardInner() {
               disabled={busy}
               onClick={() => startCheckout('basic')}
             >
-              기본 구독 ($10)
+              일반 셀러 ($10)
             </button>
             {sponsor.plan_tier !== 'extended' ? (
               <button
@@ -206,10 +206,20 @@ function SellerDashboardInner() {
                 disabled={busy}
                 onClick={() => startCheckout('upgrade')}
               >
-                확장 업그레이드 (+$20)
+                프로 셀러 (+$20)
               </button>
             ) : (
-              <span className="hint-text">확장 요금제 이용 중</span>
+              <>
+                <span className="hint-text">프로 셀러 이용 중 · 한도 {limit}개</span>
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={busy}
+                  onClick={() => startCheckout('extra_pack')}
+                >
+                  상품 10개 추가 (+$8/월)
+                </button>
+              </>
             )}
           </div>
         </div>

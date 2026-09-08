@@ -19,9 +19,10 @@ export const PRICING_DISPLAY_LABELS = {
   directory_ultra: '울트라',
   special_ad_addon: '특별광고 추가',
   directory_listing: '레거시(미사용)',
-  tulip_shop: '일반 셀러',
   shop_monthly: '일반 셀러',
   shop_upgrade_monthly: '프로 셀러',
+  shop_extra_pack_monthly: '상품 10개 추가',
+  tulip_shop: '레거시 키 (shop_monthly와 중복)',
   seller_monthly: '셀러 월 구독 (레거시)',
 }
 
@@ -34,7 +35,7 @@ const DIRECTORY_ORDER = [
   'directory_listing',
 ]
 
-const TULIP_ORDER = ['tulip_shop', 'shop_monthly', 'shop_upgrade_monthly']
+const TULIP_ORDER = ['shop_monthly', 'shop_upgrade_monthly', 'shop_extra_pack_monthly']
 
 export function groupPricingSettings(rows = []) {
   const byKey = new Map((rows || []).map((r) => [r.key, r]))
@@ -49,8 +50,14 @@ export function groupPricingSettings(rows = []) {
 
   const directory = pickOrdered(DIRECTORY_ORDER)
   const tulip = pickOrdered(TULIP_ORDER)
-  const sellerLegacy = byKey.get('seller_monthly')
-  if (sellerLegacy) byKey.delete('seller_monthly')
+
+  const legacyItems = []
+  for (const k of ['tulip_shop', 'seller_monthly']) {
+    if (byKey.has(k)) {
+      legacyItems.push(byKey.get(k))
+      byKey.delete(k)
+    }
+  }
   const other = [...byKey.values()].sort((a, b) => String(a.key).localeCompare(String(b.key)))
 
   const groups = [
@@ -60,19 +67,22 @@ export function groupPricingSettings(rows = []) {
       title: '튤립몰',
       items: tulip,
       hints: {
-        tulip_shop: '최대 6개 상품 등록',
         shop_monthly: '최대 6개 상품 등록',
-        shop_upgrade_monthly: '최대 20개 상품 등록',
+        shop_upgrade_monthly: '기본 최대 20개 · 이후 10개당 +$8',
+        shop_extra_pack_monthly: '프로 셀러 전용 · 상품 한도 +10',
       },
     },
   ]
 
-  if (sellerLegacy) {
+  if (legacyItems.length) {
     groups.push({
       id: 'legacy_seller',
-      title: '레거시 (신규 판매 중단)',
-      items: [sellerLegacy],
-      hints: { seller_monthly: '기존 구독만 유지 · 신규 노출 비활성' },
+      title: '레거시 (신규 판매 중단 / 중복 키)',
+      items: legacyItems,
+      hints: {
+        tulip_shop: '일반 셀러는 shop_monthly 사용 · 이 키는 미사용',
+        seller_monthly: '기존 구독만 유지 · 신규 노출 비활성',
+      },
     })
   }
   if (other.length) groups.push({ id: 'other', title: '기타', items: other })

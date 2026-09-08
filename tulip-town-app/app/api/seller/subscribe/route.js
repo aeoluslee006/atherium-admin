@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 import { getUserFromRequest, tryAdminSupabase } from '../../../../lib/apiAuth';
 import {
+  SHOP_EXTENDED_PLAN,
+  SHOP_EXTENDED_PRODUCT_LIMIT,
+  SHOP_EXTRA_PACK_DEFAULT_CENTS,
+  SHOP_EXTRA_PACK_KEY,
+  SHOP_EXTRA_PACK_SIZE,
   SHOP_MONTHLY_KEY,
   SHOP_UPGRADE_MONTHLY_KEY,
+  shopProductLimit,
 } from '../../../../lib/sellerConstants';
 import { getAppUrl, getStripe } from '../../../../lib/stripe';
 
@@ -25,8 +31,14 @@ export async function POST(request) {
     if (!user || !db) return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
 
     const body = await request.json().catch(() => ({}));
-    const plan = body.plan === 'upgrade' ? 'upgrade' : 'basic';
-    const pricingKey = plan === 'upgrade' ? SHOP_UPGRADE_MONTHLY_KEY : SHOP_MONTHLY_KEY;
+    const plan =
+      body.plan === 'upgrade' ? 'upgrade' : body.plan === 'extra_pack' ? 'extra_pack' : 'basic';
+    const pricingKey =
+      plan === 'upgrade'
+        ? SHOP_UPGRADE_MONTHLY_KEY
+        : plan === 'extra_pack'
+          ? SHOP_EXTRA_PACK_KEY
+          : SHOP_MONTHLY_KEY;
 
     const sponsor = await getShopSponsor(db, user.id);
     if (!sponsor) {
@@ -38,8 +50,14 @@ export async function POST(request) {
     if (sponsor.status !== 'approved') {
       return NextResponse.json({ error: '관리자 승인 후 구독할 수 있습니다.' }, { status: 400 });
     }
-    if (plan === 'upgrade' && sponsor.plan_tier === 'extended') {
-      return NextResponse.json({ error: '이미 확장 요금제입니다.' }, { status: 400 });
+    if (plan === 'upgrade' && sponsor.plan_tier === SHOP_EXTENDED_PLAN) {
+      return NextResponse.json({ error: '이미 프로 셀러 요금제입니다.' }, { status: 400 });
+    }
+    if (plan === 'extra_pack' && sponsor.plan_tier !== SHOP_EXTENDED_PLAN) {
+      return NextResponse.json(
+        { error: '상품 10개 추가는 프로 셀러만 구매할 수 있습니다.' },
+        { status: 400 }
+      );
     }
 
     const admin = tryAdminSupabase();
@@ -52,16 +70,32 @@ export async function POST(request) {
       .maybeSingle();
     if (pricingErr) throw pricingErr;
 
-    const amountCents =
-      pricing?.amount_cents ?? (plan === 'upgrade' ? 2000 : 1000);
+    const defaults = {
+      basic: 1000,
+      upgrade: 2000,
+      extra_pack: SHOP_EXTRA_PACK_DEFAULT_CENTS,
+    };
+    const amountCents = pricing?.amount_cents ?? defaults[plan];
     const currency = (pricing?.currency || 'usd').toLowerCase();
-    const label =
-      pricing?.label ||
-      (plan === 'upgrade' ? '튤립가게 확장 요금제 (+$20)' : '튤립가게 월 구독 ($10)');
+    const labels = {
+      basic: '일반 셀러 (튤립몰 · 최대 6개)',
+      upgrade: '프로 셀러 (튤립몰 · 최대 20개)',
+      extra_pack: '상품 10개 추가 (+$8/월)',
+    };
+    const label = pricing?.label || labels[plan];
 
     const stripe = getStripe();
     const appUrl = getAppUrl();
-    const kind = plan === 'upgrade' ? 'shop_upgrade' : 'shop_subscription';
+    const kind =
+      plan === 'upgrade'
+        ? 'shop_upgrade'
+        : plan === 'extra_pack'
+          ? 'shop_extra_pack'
+          : 'shop_subscription';
+
+    const currentLimit = shopProductLimit(sponsor);
+    const nextLimit =
+      plan === 'extra_pack' ? currentLimit + SHOP_EXTRA_PACK_SIZE : undefined;
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
@@ -84,6 +118,13 @@ export async function POST(request) {
         sponsor_id: sponsor.id,
         user_id: user.id,
         pricing_key: pricingKey,
+        ...(nextLimit != null
+          ? {
+              next_product_limit: String(nextLimit),
+              add_packs: '1',
+              pack_size: String(SHOP_EXTRA_PACK_SIZE),
+            }
+          : {}),
       },
       subscription_data: {
         metadata: {
@@ -91,11 +132,23 @@ export async function POST(request) {
           sponsor_id: sponsor.id,
           user_id: user.id,
           pricing_key: pricingKey,
+          ...(nextLimit != null
+            ? {
+                next_product_limit: String(nextLimit),
+                add_packs: '1',
+                pack_size: String(SHOP_EXTRA_PACK_SIZE),
+              }
+            : {}),
         },
       },
     });
 
-    return NextResponse.json({ url: session.url, session_id: session.id });
+    return NextResponse.json({
+      url: session.url,
+      session_id: session.id,
+      next_product_limit: nextLimit ?? null,
+      base_pro_limit: SHOP_EXTENDED_PRODUCT_LIMIT,
+    });
   } catch (err) {
     return NextResponse.json({ error: err.message || 'Checkout failed' }, { status: 500 });
   }

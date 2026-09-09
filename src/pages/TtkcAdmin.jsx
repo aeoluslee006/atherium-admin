@@ -49,6 +49,17 @@ function formatDate(value) {
   }
 }
 
+/** Local calendar date → YYYY-MM-DD for <input type="date"> */
+function datePlusDays(days) {
+  const d = new Date()
+  d.setHours(12, 0, 0, 0)
+  d.setDate(d.getDate() + Number(days || 0))
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 function memberAccountStatus(row) {
   const status = row.status || (row.is_banned ? 'deleted' : row.suspended_until && new Date(row.suspended_until) > Date.now() ? 'hold' : 'active')
   if (status === 'deleted' || row.is_banned) return { label: '해지', tone: 'danger', status: 'deleted' }
@@ -73,17 +84,35 @@ export default function TtkcAdmin() {
   const [msgOpenId, setMsgOpenId] = useState('')
   const [messages, setMessages] = useState([])
   const [msgLoading, setMsgLoading] = useState(false)
-  const [showPricing, setShowPricing] = useState(false)
+  const [showPricing, setShowPricing] = useState(true)
   const [pricingRows, setPricingRows] = useState([])
   const [dollarDraft, setDollarDraft] = useState({})
   const [pricingBusy, setPricingBusy] = useState('')
   const [pricingMsg, setPricingMsg] = useState('')
+  const [pricingLoaded, setPricingLoaded] = useState(false)
   const [pricingOpen, setPricingOpen] = useState({
     directory: true,
     tulip: true,
     legacy_seller: false,
     other: false,
   })
+
+  const loadPricing = useCallback(async () => {
+    setPricingMsg('')
+    try {
+      const data = await fetchTtkcPricing()
+      const settings = (data.settings || []).map((r) => ({ ...r }))
+      setPricingRows(settings)
+      const dollars = {}
+      for (const r of settings) dollars[r.key] = centsToDollarInput(r.amount_cents)
+      setDollarDraft(dollars)
+      setPricingLoaded(true)
+      return true
+    } catch (err) {
+      setPricingLoaded(true)
+      throw err
+    }
+  }, [])
 
   const load = useCallback(async (query = '') => {
     setLoading(true)
@@ -128,6 +157,13 @@ export default function TtkcAdmin() {
     load('')
   }, [load])
 
+  useEffect(() => {
+    loadPricing().catch((err) => {
+      // Pricing may fail until SQL; keep page usable.
+      if (err?.message) setError(err.message)
+    })
+  }, [loadPricing])
+
   async function copySql() {
     if (!sqlText) return
     try {
@@ -137,6 +173,16 @@ export default function TtkcAdmin() {
     } catch {
       setError('클립보드 복사에 실패했습니다. SQL 파일을 직접 열어 복사하세요.')
     }
+  }
+
+  function setPromoDate(memberId, productKey, value) {
+    setPromoDraft((prev) => ({
+      ...prev,
+      [memberId]: {
+        ...(prev[memberId] || {}),
+        [productKey]: value,
+      },
+    }))
   }
 
   async function runModeration(row, action) {
@@ -175,6 +221,9 @@ export default function TtkcAdmin() {
       await load(q)
     } catch (err) {
       setError(err.message)
+      if (/atherium_admin_ttkc_fix\.sql|프로모션 기능/.test(err.message || '')) {
+        setSchemaReady(false)
+      }
     } finally {
       setBusyId('')
     }
@@ -198,23 +247,21 @@ export default function TtkcAdmin() {
 
   async function openPricing() {
     setShowPricing(true)
-    setPricingMsg('')
     setError('')
     try {
-      const data = await fetchTtkcPricing()
-      const settings = (data.settings || []).map((r) => ({ ...r }))
-      setPricingRows(settings)
-      const dollars = {}
-      for (const r of settings) dollars[r.key] = centsToDollarInput(r.amount_cents)
-      setDollarDraft(dollars)
+      await loadPricing()
     } catch (err) {
       setError(err.message)
+      if (/atherium_admin_ttkc_fix\.sql|단가/.test(err.message || '')) {
+        setSchemaReady(false)
+      }
     }
   }
 
   async function savePrice(row) {
     setPricingBusy(row.key)
     setPricingMsg('')
+    setError('')
     try {
       const cents = dollarsToCents(dollarDraft[row.key])
       if (cents == null) throw new Error('금액($)을 올바르게 입력해 주세요.')
@@ -225,12 +272,7 @@ export default function TtkcAdmin() {
         is_active: !!row.is_active,
       })
       setPricingMsg(`${displayLabelForPricingRow(row)} 저장됨 ($${centsToDollarInput(cents)})`)
-      const data = await fetchTtkcPricing()
-      const settings = (data.settings || []).map((r) => ({ ...r }))
-      setPricingRows(settings)
-      const dollars = {}
-      for (const r of settings) dollars[r.key] = centsToDollarInput(r.amount_cents)
-      setDollarDraft(dollars)
+      await loadPricing()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -299,10 +341,13 @@ export default function TtkcAdmin() {
         <div style={s.panel}>
           <div style={s.panelHead}>
             <div>
-              <div style={s.panelTitle}>단가 관리</div>
+              <div style={s.panelTitle}>단가 관리 (가격 조정)</div>
+              <div style={s.panelSub}>
+                디렉토리·튤립몰 요금을 $ 단위로 수정합니다. 저장 즉시 pricing_settings에 반영됩니다.
+              </div>
             </div>
             <button type="button" style={s.refreshBtn} onClick={() => setShowPricing(false)}>
-              닫기
+              접기
             </button>
           </div>
           {pricingMsg ? <div style={s.okBanner}>{pricingMsg}</div> : null}
@@ -401,7 +446,11 @@ export default function TtkcAdmin() {
               )
             })}
             {!pricingRows.length ? (
-              <div style={s.empty}>요금 항목이 없습니다. SQL을 실행해 주세요.</div>
+              <div style={s.empty}>
+                {pricingLoaded
+                  ? '요금 항목이 없습니다. atherium_admin_ttkc_fix.sql 을 실행해 주세요.'
+                  : '단가 불러오는 중…'}
+              </div>
             ) : null}
           </div>
         </div>
@@ -409,9 +458,11 @@ export default function TtkcAdmin() {
 
       {schemaReady === false && (
         <div style={s.setupBox}>
-          <div style={s.setupTitle}>데이터베이스 설정(SQL)이 필요합니다</div>
+          <div style={s.setupTitle}>DB SQL이 아직 적용되지 않았습니다</div>
           <div style={s.setupBody}>
-            등급·서비스별 프로모션·문의 메시지·단가 브리지를 쓰려면 아래 SQL을 한 번 실행하세요.
+            빨간/주황 안내가 뜨는 이유는 <b>프로모션·단가·문의 메시지용 DB 함수</b>가 Supabase에
+            없어서입니다. 회원 목록은 보이지만, 프로모션 저장·단가 저장은 SQL 실행 후에만
+            동작합니다. 아래 SQL을 <b>한 번</b> 실행하세요.
           </div>
           <ol style={s.setupList}>
             <li>
@@ -421,7 +472,12 @@ export default function TtkcAdmin() {
               </a>
               에서 Run
             </li>
-            <li>이 페이지에서 <b>새로고침</b></li>
+            <li>
+              파일명: <code style={{ color: '#ffd19a' }}>atherium_admin_ttkc_fix.sql</code>
+            </li>
+            <li>
+              이 페이지에서 <b>새로고침</b> — 안내가 사라지면 준비 완료
+            </li>
           </ol>
           <div style={s.setupActions}>
             <button type="button" style={s.setupBtn} onClick={copySql} disabled={!sqlText}>
@@ -430,6 +486,9 @@ export default function TtkcAdmin() {
             <a href={SQL_FILE} target="_blank" rel="noopener noreferrer" style={s.setupBtnGhost}>
               SQL 파일 열기
             </a>
+            <button type="button" style={s.setupBtnGhost} onClick={() => load(q)}>
+              새로고침
+            </button>
           </div>
           {hint ? <div style={{ marginTop: 10, fontSize: 11, opacity: 0.85 }}>{hint}</div> : null}
         </div>
@@ -560,29 +619,45 @@ export default function TtkcAdmin() {
                       {expanded ? (
                         <tr>
                           <td colSpan={9} style={{ ...s.td, background: 'rgba(0,0,0,0.18)' }}>
-                            <div style={{ display: 'grid', gap: 10, maxWidth: 520 }}>
+                            <div style={{ display: 'grid', gap: 12, maxWidth: 640 }}>
                               <div style={{ fontSize: 12, fontWeight: 600 }}>프로모션 종료일</div>
-                              {PROMO_PRODUCTS.map((p) => (
-                                <div key={p.key} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                  <span style={{ minWidth: 110, fontSize: 12 }}>{p.label}</span>
-                                  <input
-                                    type="date"
-                                    style={s.searchInput}
-                                    value={(promoDraft[row.id] && promoDraft[row.id][p.key]) || ''}
-                                    disabled={busy || row.is_admin}
-                                    onChange={(e) =>
-                                      setPromoDraft((prev) => ({
-                                        ...prev,
-                                        [row.id]: {
-                                          ...(prev[row.id] || {}),
-                                          [p.key]: e.target.value,
-                                        },
-                                      }))
-                                    }
-                                  />
-                                  <span style={s.reason}>기본 {p.defaultDays}일</span>
-                                </div>
-                              ))}
+                              <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.45 }}>
+                                달력 아이콘을 눌러 날짜를 고르거나, 「기본 N일」로 오늘 기준 종료일을
+                                넣으세요. 저장 시 서비스별 무료 기간이 반영됩니다.
+                              </div>
+                              {PROMO_PRODUCTS.map((p) => {
+                                const value = (promoDraft[row.id] && promoDraft[row.id][p.key]) || ''
+                                return (
+                                  <div key={p.key} style={s.promoRow}>
+                                    <span style={s.promoLabel}>{p.label}</span>
+                                    <input
+                                      type="date"
+                                      style={s.dateInput}
+                                      value={value}
+                                      disabled={busy || row.is_admin}
+                                      onChange={(e) => setPromoDate(row.id, p.key, e.target.value)}
+                                    />
+                                    <button
+                                      type="button"
+                                      style={s.chipBtn}
+                                      disabled={busy || row.is_admin}
+                                      onClick={() =>
+                                        setPromoDate(row.id, p.key, datePlusDays(p.defaultDays))
+                                      }
+                                    >
+                                      기본 {p.defaultDays}일
+                                    </button>
+                                    <button
+                                      type="button"
+                                      style={s.chipBtnGhost}
+                                      disabled={busy || row.is_admin || !value}
+                                      onClick={() => setPromoDate(row.id, p.key, '')}
+                                    >
+                                      지우기
+                                    </button>
+                                  </div>
+                                )
+                              })}
                               <button
                                 type="button"
                                 style={s.searchBtn}
@@ -763,6 +838,47 @@ const s = {
     color: 'var(--text)',
     fontSize: 12,
     marginBottom: 6,
+  },
+  dateInput: {
+    minWidth: 168,
+    padding: '8px 10px',
+    borderRadius: 8,
+    border: '1px solid var(--border2)',
+    background: 'var(--night3)',
+    color: 'var(--text)',
+    fontSize: 13,
+    colorScheme: 'dark',
+    cursor: 'pointer',
+  },
+  promoRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 8,
+    alignItems: 'center',
+  },
+  promoLabel: {
+    minWidth: 110,
+    fontSize: 12,
+    fontWeight: 600,
+  },
+  chipBtn: {
+    padding: '7px 10px',
+    borderRadius: 8,
+    border: '1px solid rgba(201,168,76,0.45)',
+    background: 'rgba(201,168,76,0.16)',
+    color: 'var(--gold-light)',
+    fontSize: 11,
+    fontWeight: 650,
+    cursor: 'pointer',
+  },
+  chipBtnGhost: {
+    padding: '7px 10px',
+    borderRadius: 8,
+    border: '1px solid var(--border)',
+    background: 'transparent',
+    color: 'var(--muted)',
+    fontSize: 11,
+    cursor: 'pointer',
   },
   searchBtn: {
     padding: '8px 12px',

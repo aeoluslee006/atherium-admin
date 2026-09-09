@@ -207,7 +207,7 @@ export default async function HomePage() {
           ) : (
             <div className="wf-empty wf-empty--grow">
               아직 홈에 올린 좋은글이 없습니다. 글쓰기에서 「좋은글」선택 후 「홈에 표시」를
-              체크하세요. 체크한 글 중 하루에 한 편이 편지지로 보입니다.
+              체크하세요. 체크한 글 중 하루에 한 편이 보입니다.
             </div>
           )}
         </div>

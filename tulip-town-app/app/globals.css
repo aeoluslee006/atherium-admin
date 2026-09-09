@@ -1338,6 +1338,21 @@ main:has(.home-page) {
   color: var(--accent-dark);
 }
 
+/* 홈 좋은글: 편지지 SVG(노트 라인) 없이 아이보리 바탕만 */
+.wf-featured-letter--plain {
+  background-color: #fffaf3;
+  background-image: none;
+  color: #2a261f;
+  border-radius: 0 0 14px 14px;
+}
+
+.wf-featured-letter--plain .wf-featured-name,
+.wf-featured-letter--plain .wf-featured-letter-body,
+.wf-featured-letter--plain .wf-featured-meta,
+.wf-featured-letter--plain .wf-featured-letter-foot {
+  color: inherit;
+}
+
 /* 3) 수업/교육 | 중고장터 — 하나의 큰 박스 */
 .wf-bottom {
   display: grid;

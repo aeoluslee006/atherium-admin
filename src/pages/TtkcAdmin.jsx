@@ -84,7 +84,7 @@ export default function TtkcAdmin() {
   const [msgOpenId, setMsgOpenId] = useState('')
   const [messages, setMessages] = useState([])
   const [msgLoading, setMsgLoading] = useState(false)
-  const [showPricing, setShowPricing] = useState(true)
+  const [showPricing, setShowPricing] = useState(false)
   const [pricingRows, setPricingRows] = useState([])
   const [dollarDraft, setDollarDraft] = useState({})
   const [pricingBusy, setPricingBusy] = useState('')
@@ -156,13 +156,6 @@ export default function TtkcAdmin() {
   useEffect(() => {
     load('')
   }, [load])
-
-  useEffect(() => {
-    loadPricing().catch((err) => {
-      // Pricing may fail until SQL; keep page usable.
-      if (err?.message) setError(err.message)
-    })
-  }, [loadPricing])
 
   async function copySql() {
     if (!sqlText) return
@@ -358,7 +351,7 @@ export default function TtkcAdmin() {
               </div>
             </div>
             <button type="button" style={s.refreshBtn} onClick={() => setShowPricing(false)}>
-              접기
+              닫기
             </button>
           </div>
           {pricingMsg ? <div style={s.okBanner}>{pricingMsg}</div> : null}

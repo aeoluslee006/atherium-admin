@@ -19,8 +19,10 @@ export const PRICING_DISPLAY_LABELS = {
   directory_ultra: '울트라',
   special_ad_addon: '특별광고 추가',
   directory_listing: '레거시(미사용)',
-  shop_monthly: '일반 셀러',
-  shop_upgrade_monthly: '프로 셀러',
+  shop_monthly: '일반 셀러 (월)',
+  shop_yearly: '일반 셀러 (연)',
+  shop_upgrade_monthly: '프로 셀러 (월)',
+  shop_upgrade_yearly: '프로 셀러 (연)',
   shop_extra_pack_monthly: '상품 10개 추가',
   tulip_shop: '레거시 키',
   seller_monthly: '셀러 월 구독 (레거시)',
@@ -34,7 +36,13 @@ const DIRECTORY_ORDER = [
   'special_ad_addon',
 ]
 
-const TULIP_ORDER = ['shop_monthly', 'shop_upgrade_monthly', 'shop_extra_pack_monthly']
+const TULIP_ORDER = [
+  'shop_monthly',
+  'shop_yearly',
+  'shop_upgrade_monthly',
+  'shop_upgrade_yearly',
+  'shop_extra_pack_monthly',
+]
 
 export function groupPricingSettings(rows = [], { showInactiveLegacy = false } = {}) {
   const byKey = new Map((rows || []).map((r) => [r.key, r]))

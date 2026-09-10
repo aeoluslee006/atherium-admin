@@ -96,6 +96,20 @@ begin
   select json_build_object(
     'total_visitors', (select count(*)::int from public.site_visits),
     'unique_visitors', (select count(distinct visitor_key)::int from public.site_visits),
+    'today_visitors', (
+      select count(*)::int from public.site_visits
+      where created_at >= (timezone('America/Detroit', now()))::date
+                         at time zone 'America/Detroit'
+        and created_at <  ((timezone('America/Detroit', now()))::date + 1)
+                         at time zone 'America/Detroit'
+    ),
+    'today_unique_visitors', (
+      select count(distinct visitor_key)::int from public.site_visits
+      where created_at >= (timezone('America/Detroit', now()))::date
+                         at time zone 'America/Detroit'
+        and created_at <  ((timezone('America/Detroit', now()))::date + 1)
+                         at time zone 'America/Detroit'
+    ),
     'member_count', (select count(*)::int from public.profiles),
     'active_members', (
       select count(*)::int from public.profiles

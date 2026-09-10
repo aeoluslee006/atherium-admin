@@ -287,7 +287,18 @@ export default function TtkcAdmin() {
 
   const cards = useMemo(
     () => [
-      { label: '총 방문자', value: stats?.totalVisitors, icon: 'ti-eye', sub: `고유 ${stats?.uniqueVisitors ?? 0}` },
+      {
+        label: '오늘 방문자',
+        value: stats?.todayVisitors ?? 0,
+        icon: 'ti-calendar-event',
+        sub: `오늘 고유 ${stats?.todayUniqueVisitors ?? 0} · 미시간 기준`,
+      },
+      {
+        label: '총 방문자',
+        value: stats?.totalVisitors,
+        icon: 'ti-eye',
+        sub: `고유 ${stats?.uniqueVisitors ?? 0}`,
+      },
       { label: '회원 수', value: stats?.memberCount, icon: 'ti-users', sub: `활성 ${stats?.activeMembers ?? 0}` },
       {
         label: '홀드 / 해지',
@@ -742,7 +753,7 @@ const s = {
   },
   cards: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
     gap: 12,
     marginBottom: 16,
   },

@@ -2,9 +2,12 @@ import { NextResponse } from 'next/server';
 import { isWriteBlocked } from '../../../../lib/adminAuth';
 import {
   ensureFirstPaidPromo,
+  getMemberPromo,
   PROMO_PRODUCT,
   trialEndForPromo,
 } from '../../../../lib/adminMemberActions';
+import { activateDirectoryAdForPromo } from '../../../../lib/directoryPromoActivate';
+import { isPromoActive } from '../../../../lib/memberStatus';
 import { getUserFromRequest, tryAdminSupabase, getWriteDbFromRequest } from '../../../../lib/apiAuth';
 import {
   adBodyLimit,
@@ -99,15 +102,28 @@ export async function POST(request) {
       );
     }
 
-    // First paid checkout for directory grants +20 day promo if none yet
+    // Existing admin promo → skip Stripe entirely. Do NOT auto-grant before this check.
     let promoEndDate = null;
+    let priceCentsOverride = null;
     try {
-      const granted = await ensureFirstPaidPromo(admin || db, user.id, PROMO_PRODUCT.DIRECTORY);
-      promoEndDate = granted.promo_end_date;
+      const promo = await getMemberPromo(admin || db, user.id, PROMO_PRODUCT.DIRECTORY);
+      promoEndDate = promo.promo_end_date;
+      priceCentsOverride = promo.price_cents_override;
     } catch (err) {
-      console.warn('ensureFirstPaidPromo', err.message);
+      console.warn('getMemberPromo', err.message);
     }
-    const trialEnd = trialEndForPromo(promoEndDate);
+    const promoCoversCheckout = isPromoActive(promoEndDate);
+    let trialEnd = null;
+    if (!promoCoversCheckout) {
+      // First paid checkout grants +20 day promo (Stripe trial) only when none exists.
+      try {
+        const granted = await ensureFirstPaidPromo(admin || db, user.id, PROMO_PRODUCT.DIRECTORY);
+        promoEndDate = granted.promo_end_date;
+      } catch (err) {
+        console.warn('ensureFirstPaidPromo', err.message);
+      }
+      trialEnd = trialEndForPromo(promoEndDate);
+    }
 
     let specialQueued = false;
     let specialQueuePosition = null;
@@ -207,6 +223,40 @@ export async function POST(request) {
       }
       pendingAdId = inserted?.id || null;
 
+      // Active promo: publish for free until promo_end_date (no Stripe page).
+      if (promoCoversCheckout) {
+        if (!admin) {
+          throw new Error('프로모션 무료 게재에는 서버 admin(service role) 설정이 필요합니다.');
+        }
+        await activateDirectoryAdForPromo(admin, {
+          slotId,
+          userId: user.id,
+          pendingAdId,
+          businessName,
+          adTitle,
+          categorySlug,
+          adPhone,
+          adImageUrl,
+          adBody,
+          imageUrls,
+          wantSpecial,
+          specialImageUrl,
+          specialQueuePosition,
+          promoEndDate,
+        });
+        const appUrl = getAppUrl();
+        return NextResponse.json({
+          free: true,
+          url: `${appUrl}/directory?checkout=promo&page=${slot.page_number}`,
+          promo_end_date: promoEndDate,
+          amount_cents: 0,
+          special_queued: specialQueued,
+          label: wantSpecial
+            ? `지면 광고 ${slot.page_number}면 ${slot.position_label} (${slot.size_tier}) + 특별광고 (프로모션)`
+            : `지면 광고 ${slot.page_number}면 ${slot.position_label} (${slot.size_tier}) (프로모션)`,
+        });
+      }
+
       const stripe = getStripe();
       const appUrl = getAppUrl();
       const priceKey = directoryPriceKey(slot.size_tier);
@@ -222,6 +272,10 @@ export async function POST(request) {
         priceKey,
         Number(slot.base_price_cents) || defaultTier[slot.size_tier] || 300
       );
+      const billedBase =
+        priceCentsOverride != null && priceCentsOverride >= 0
+          ? priceCentsOverride
+          : resolvedBase;
 
       const specialCents = wantSpecial
         ? await getPricingAmountCents(
@@ -230,7 +284,7 @@ export async function POST(request) {
             SPECIAL_AD_EXTRA_CENTS
           )
         : 0;
-      const amountCents = resolvedBase + specialCents;
+      const amountCents = billedBase + specialCents;
       const label = wantSpecial
         ? `지면 광고 ${slot.page_number}면 ${slot.position_label} (${slot.size_tier}) + 특별광고`
         : `지면 광고 ${slot.page_number}면 ${slot.position_label} (${slot.size_tier})`;
@@ -259,7 +313,7 @@ export async function POST(request) {
         {
           price_data: {
             currency: 'usd',
-            unit_amount: resolvedBase,
+            unit_amount: billedBase,
             recurring: { interval: 'month' },
             product_data: {
               name: `지면 광고 ${slot.page_number}면 ${slot.position_label} (${slot.size_tier})`,

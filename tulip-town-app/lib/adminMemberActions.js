@@ -32,26 +32,56 @@ async function logAction(db, { actorId, targetId, action, detail }) {
   }
 }
 
-export async function getMemberPromoEndDate(db, profileId, productKey) {
+export async function getMemberPromo(db, profileId, productKey) {
   const { data, error } = await db
     .from('member_promotions')
-    .select('promo_end_date')
+    .select('promo_end_date, price_cents_override')
     .eq('profile_id', profileId)
     .eq('product_key', productKey)
     .maybeSingle();
   if (error) {
     // Fallback to legacy profiles.promo_end_date for directory only
+    // (price override requires member_promotions.price_cents_override column)
     if (productKey === PROMO_PRODUCT.DIRECTORY) {
       const { data: profile } = await db
         .from('profiles')
         .select('promo_end_date')
         .eq('id', profileId)
         .maybeSingle();
-      return profile?.promo_end_date || null;
+      return {
+        promo_end_date: profile?.promo_end_date || null,
+        price_cents_override: null,
+      };
+    }
+    // Column may be missing before SQL patch — retry without override.
+    if (String(error.message || '').includes('price_cents_override')) {
+      const { data: row, error: err2 } = await db
+        .from('member_promotions')
+        .select('promo_end_date')
+        .eq('profile_id', profileId)
+        .eq('product_key', productKey)
+        .maybeSingle();
+      if (err2) throw err2;
+      return {
+        promo_end_date: row?.promo_end_date || null,
+        price_cents_override: null,
+      };
     }
     throw error;
   }
-  return data?.promo_end_date || null;
+  const override =
+    data?.price_cents_override == null || data?.price_cents_override === ''
+      ? null
+      : Number(data.price_cents_override);
+  return {
+    promo_end_date: data?.promo_end_date || null,
+    price_cents_override: Number.isFinite(override) ? Math.round(override) : null,
+  };
+}
+
+export async function getMemberPromoEndDate(db, profileId, productKey) {
+  const row = await getMemberPromo(db, profileId, productKey);
+  return row.promo_end_date || null;
 }
 
 /**

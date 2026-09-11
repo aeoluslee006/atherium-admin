@@ -253,6 +253,10 @@ function ApplyInner() {
       });
       const payload = await res.json();
       if (!res.ok) throw new Error(payload.error || '결제 시작 실패');
+      if (payload.free && payload.url) {
+        window.location.href = payload.url;
+        return;
+      }
       if (payload.url) {
         window.location.href = payload.url;
         return;
@@ -291,7 +295,7 @@ function ApplyInner() {
       <div className="row-between">
         <div>
           <h2 className="section-title">지면 광고 신청</h2>
-          <p className="hint-text">결제 완료 후 즉시 지면에 게재됩니다. (사업자 서류 심사 없음)</p>
+          <p className="hint-text">프로모션이 있으면 결제 없이 바로 게재됩니다. 없으면 Stripe 결제로 진행됩니다. (사업자 서류 심사 없음)</p>
         </div>
         <Link href="/directory" className="btn btn-outline">
           지면으로
@@ -456,7 +460,7 @@ function ApplyInner() {
         {error ? <div className="error-text">{error}</div> : null}
 
         <button className="btn" type="submit" disabled={saving || uploading || !slot}>
-          {saving ? '결제창 여는 중…' : '결제하고 게재하기'}
+          {saving ? '처리 중…' : '게재 신청하기'}
         </button>
       </form>
     </div>

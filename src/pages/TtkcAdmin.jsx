@@ -19,6 +19,7 @@ import {
 const TTKC_SITE = 'https://www.ttkc.us'
 const SQL_EDITOR = 'https://supabase.com/dashboard/project/lyikgkjhkmppvciicxfm/sql/new'
 const SQL_FILE = '/atherium_admin_ttkc_fix.sql'
+const MEMBER_PRICE_SQL = '/atherium_admin_ttkc_member_price.sql'
 
 const PROMO_PRODUCTS = [
   { key: 'tulip_shop', label: '튤립몰', defaultDays: 30 },
@@ -81,6 +82,7 @@ export default function TtkcAdmin() {
   const [copied, setCopied] = useState(false)
   const [expandedId, setExpandedId] = useState('')
   const [promoDraft, setPromoDraft] = useState({})
+  const [priceDraft, setPriceDraft] = useState({})
   const [msgOpenId, setMsgOpenId] = useState('')
   const [messages, setMessages] = useState([])
   const [msgLoading, setMsgLoading] = useState(false)
@@ -126,14 +128,20 @@ export default function TtkcAdmin() {
       const rows = list.members || []
       setMembers(rows)
       const drafts = {}
+      const prices = {}
       for (const m of rows) {
         drafts[m.id] = {}
+        prices[m.id] = {}
         for (const p of PROMO_PRODUCTS) {
           const found = (m.promotions || []).find((x) => x.product_key === p.key)
           drafts[m.id][p.key] = found?.promo_end_date || ''
+          const cents = found?.price_cents_override
+          prices[m.id][p.key] =
+            cents == null || cents === '' ? '' : (Number(cents) / 100).toFixed(2)
         }
       }
       setPromoDraft(drafts)
+      setPriceDraft(prices)
       setHint(overview.setupHint || list.setupHint || '')
       setSchemaReady(overview.schemaReady !== false && list.schemaReady !== false)
     } catch (err) {
@@ -178,6 +186,16 @@ export default function TtkcAdmin() {
     }))
   }
 
+  function setPriceDollars(memberId, productKey, value) {
+    setPriceDraft((prev) => ({
+      ...prev,
+      [memberId]: {
+        ...(prev[memberId] || {}),
+        [productKey]: value,
+      },
+    }))
+  }
+
   async function runModeration(row, action) {
     let reason = ''
     if (action === 'ban' || action === 'delete') {
@@ -208,8 +226,18 @@ export default function TtkcAdmin() {
     setError('')
     try {
       const draft = promoDraft[row.id] || {}
+      const prices = priceDraft[row.id] || {}
       for (const p of PROMO_PRODUCTS) {
-        await setTtkcMemberPromo(row.id, p.key, draft[p.key] || null)
+        const raw = String(prices[p.key] ?? '').trim()
+        let cents = null
+        if (raw !== '') {
+          const dollars = Number(raw)
+          if (!Number.isFinite(dollars) || dollars < 0) {
+            throw new Error(`${p.label} 가격($)을 올바르게 입력해 주세요.`)
+          }
+          cents = Math.round(dollars * 100)
+        }
+        await setTtkcMemberPromo(row.id, p.key, draft[p.key] || null, cents)
       }
       await load(q)
     } catch (err) {
@@ -471,7 +499,7 @@ export default function TtkcAdmin() {
               에서 Run
             </li>
             <li>
-              파일명: <code style={{ color: '#ffd19a' }}>atherium_admin_ttkc_fix.sql</code>
+              파일명: <code style={{ color: '#ffd19a' }}>atherium_admin_ttkc_fix.sql</code> (+ 회원별 가격: <code style={{ color: '#ffd19a' }}>atherium_admin_ttkc_member_price.sql</code>)
             </li>
             <li>
               이 페이지에서 <b>새로고침</b> — 안내가 사라지면 준비 완료
@@ -620,39 +648,69 @@ export default function TtkcAdmin() {
                             <div style={{ display: 'grid', gap: 12, maxWidth: 640 }}>
                               <div style={{ fontSize: 12, fontWeight: 600 }}>프로모션 종료일</div>
                               <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.45 }}>
-                                달력 아이콘을 눌러 날짜를 고르거나, 「기본 N일」로 오늘 기준 종료일을
-                                넣으세요. 저장 시 서비스별 무료 기간이 반영됩니다.
+                                프로모션 종료일 + 회원별 월 가격($)을 저장하세요. 프로모션이 유효하면 지면 신청 시
+                                Stripe 결제 없이 바로 게재됩니다. 가격을 비우면 전역 단가를 씁니다.
                               </div>
                               {PROMO_PRODUCTS.map((p) => {
                                 const value = (promoDraft[row.id] && promoDraft[row.id][p.key]) || ''
+                                const priceValue =
+                                  (priceDraft[row.id] && priceDraft[row.id][p.key]) || ''
                                 return (
-                                  <div key={p.key} style={s.promoRow}>
-                                    <span style={s.promoLabel}>{p.label}</span>
-                                    <input
-                                      type="date"
-                                      style={s.dateInput}
-                                      value={value}
-                                      disabled={busy || row.is_admin}
-                                      onChange={(e) => setPromoDate(row.id, p.key, e.target.value)}
-                                    />
-                                    <button
-                                      type="button"
-                                      style={s.chipBtn}
-                                      disabled={busy || row.is_admin}
-                                      onClick={() =>
-                                        setPromoDate(row.id, p.key, datePlusDays(p.defaultDays))
-                                      }
-                                    >
-                                      기본 {p.defaultDays}일
-                                    </button>
-                                    <button
-                                      type="button"
-                                      style={s.chipBtnGhost}
-                                      disabled={busy || row.is_admin || !value}
-                                      onClick={() => setPromoDate(row.id, p.key, '')}
-                                    >
-                                      지우기
-                                    </button>
+                                  <div key={p.key} style={{ display: 'grid', gap: 8 }}>
+                                    <div style={s.promoRow}>
+                                      <span style={s.promoLabel}>{p.label}</span>
+                                      <input
+                                        type="date"
+                                        style={s.dateInput}
+                                        value={value}
+                                        disabled={busy || row.is_admin}
+                                        onChange={(e) => setPromoDate(row.id, p.key, e.target.value)}
+                                      />
+                                      <button
+                                        type="button"
+                                        style={s.chipBtn}
+                                        disabled={busy || row.is_admin}
+                                        onClick={() =>
+                                          setPromoDate(row.id, p.key, datePlusDays(p.defaultDays))
+                                        }
+                                      >
+                                        기본 {p.defaultDays}일
+                                      </button>
+                                      <button
+                                        type="button"
+                                        style={s.chipBtnGhost}
+                                        disabled={busy || row.is_admin || !value}
+                                        onClick={() => setPromoDate(row.id, p.key, '')}
+                                      >
+                                        지우기
+                                      </button>
+                                    </div>
+                                    <div style={s.promoRow}>
+                                      <span style={s.promoLabel}>월 가격 ($)</span>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        placeholder="기본 단가"
+                                        style={{ ...s.dateInput, width: 120 }}
+                                        value={priceValue}
+                                        disabled={busy || row.is_admin}
+                                        onChange={(e) =>
+                                          setPriceDollars(row.id, p.key, e.target.value)
+                                        }
+                                      />
+                                      <button
+                                        type="button"
+                                        style={s.chipBtnGhost}
+                                        disabled={busy || row.is_admin || !priceValue}
+                                        onClick={() => setPriceDollars(row.id, p.key, '')}
+                                      >
+                                        기본단가
+                                      </button>
+                                      <span style={{ fontSize: 11, color: 'var(--muted)' }}>
+                                        비우면 전역 단가 · 프로모션 기간엔 결제 생략
+                                      </span>
+                                    </div>
                                   </div>
                                 )
                               })}

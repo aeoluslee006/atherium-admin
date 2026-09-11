@@ -28,12 +28,17 @@ export default async function handler(req, res) {
   if (body.product_key) {
     // Atherium admin user ids are not rows in the TTKC profiles table, so
     // passing them as updated_by trips the FK and was misread as "SQL missing".
+    const priceOverride =
+      body.price_cents_override === '' || body.price_cents_override == null
+        ? null
+        : Number(body.price_cents_override)
     const { data, error } = await ttkc.rpc('atherium_ttkc_set_promo', {
       p_secret: getBridgeSecret(),
       p_profile_id: id,
       p_product_key: body.product_key,
       p_promo_end_date: body.promo_end_date || null,
       p_actor_id: null,
+      p_price_cents_override: Number.isFinite(priceOverride) ? Math.round(priceOverride) : null,
     })
     if (!error) return sendJson(res, 200, { promotion: data })
     if (isSchemaMissing(error)) {

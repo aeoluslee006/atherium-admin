@@ -7,6 +7,7 @@ create table if not exists public.member_promotions (
   profile_id uuid not null references public.profiles(id) on delete cascade,
   product_key text not null,
   promo_end_date date,
+  price_cents_override integer,
   updated_at timestamptz not null default now(),
   updated_by uuid references public.profiles(id) on delete set null,
   unique (profile_id, product_key)
@@ -176,7 +177,8 @@ begin
       coalesce((
         select json_agg(json_build_object(
           'product_key', mp.product_key,
-          'promo_end_date', mp.promo_end_date
+          'promo_end_date', mp.promo_end_date,
+          'price_cents_override', mp.price_cents_override
         ) order by mp.product_key)
         from public.member_promotions mp
         where mp.profile_id = p.id
@@ -417,3 +419,5 @@ values
   ('directory_listing', '업체 디렉토리(레거시)', 1000, 'usd', true),
   ('seller_monthly', '셀러 월 구독', 1500, 'usd', true)
 on conflict (key) do nothing;
+
+-- See also atherium_admin_ttkc_member_price.sql for price_cents_override on set_promo.

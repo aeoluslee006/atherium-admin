@@ -5571,7 +5571,9 @@ main:has(.home-page) {
   flex: 1 1 0;
   min-height: 0;
   max-height: 55%;
-  object-fit: cover;
+  /* contain: guide-size photos (e.g. 1080×720) stay fully visible — cover was cropping top/bottom */
+  object-fit: contain;
+  object-position: center;
   display: block;
   background: #efe7d8;
 }
@@ -5836,8 +5838,10 @@ main:has(.home-page) {
 .dir-ad-slider .dir-ad-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
   display: block;
+  background: #efe7d8;
 }
 .dir-ad-slider-dots {
   position: absolute;

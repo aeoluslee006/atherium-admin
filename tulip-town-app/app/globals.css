@@ -5359,13 +5359,6 @@ main:has(.home-page) {
   text-overflow: ellipsis;
 }
 
-.dir-cell.tier-small .dir-ad-image {
-  flex: 1 1 0;
-  min-height: 0;
-  height: auto;
-  max-height: 52%;
-}
-
 .dir-cell.tier-small .dir-ad-image--placeholder {
   min-height: 0;
 }
@@ -5386,6 +5379,15 @@ main:has(.home-page) {
   cursor: default;
 }
 
+/* Own ads must stay clickable for edit */
+.dir-cell.is-occupied.is-mine,
+.dir-cell.is-occupied.is-mine .dir-ad,
+.dir-cell.is-occupied.is-mine a {
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+}
+
 .dir-cell.is-dimmed {
   opacity: 0.28;
   filter: grayscale(0.4);
@@ -5404,12 +5406,6 @@ main:has(.home-page) {
 
 .dir-cell.tier-small .dir-slot-meta {
   font-size: 7px;
-}
-
-.dir-pages-hint {
-  margin: 0 0 10px;
-  font-size: 13px;
-  color: var(--ink-soft);
 }
 
 .dir-cell-empty {
@@ -5466,6 +5462,12 @@ main:has(.home-page) {
   pointer-events: none;
   cursor: default;
   opacity: 0.95;
+}
+
+.dir-mobile-list-row.is-mine {
+  pointer-events: auto;
+  cursor: pointer;
+  opacity: 1;
 }
 
 .dir-slot-position {
@@ -5556,58 +5558,95 @@ main:has(.home-page) {
 }
 
 .dir-ad {
+  position: relative;
   height: 100%;
-  display: flex;
-  flex-direction: column;
+  display: block;
   min-width: 0;
   min-height: 0;
   max-width: 100%;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
 }
 
 .dir-ad-image {
   width: 100%;
+  height: 100%;
   max-width: 100%;
   min-width: 0;
-  flex: 1 1 0;
   min-height: 0;
-  max-height: 55%;
-  /* contain: guide-size photos (e.g. 1080×720) stay fully visible — cover was cropping top/bottom */
-  object-fit: contain;
+  object-fit: cover;
   object-position: center;
   display: block;
-  background: #efe7d8;
+  background: #1a1a1a;
+}
+
+/* Placeholder (no photo) still fills the slot */
+.dir-ad > .dir-ad-image,
+.dir-ad > .dir-ad-image--placeholder {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
 }
 
 .dir-ad-image--placeholder {
   min-height: 0;
+  background: #d8cfc0;
 }
 
+/* Text/CTA sit on top of the photo */
 .dir-ad-body {
-  padding: 5px 6px 6px;
-  flex: 0 0 auto;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  padding: 18px 8px 6px;
   min-width: 0;
+  background: linear-gradient(
+    to top,
+    rgba(10, 10, 12, 0.82) 0%,
+    rgba(10, 10, 12, 0.45) 55%,
+    rgba(10, 10, 12, 0) 100%
+  );
+  color: #fff;
+  pointer-events: none;
+}
+
+.dir-ad-body .dir-slot-cta {
+  margin-top: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #fff;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
 }
 
 .dir-ad-title {
   font-size: 12px;
   font-weight: 700;
   line-height: 1.25;
-  color: #2a261f;
+  color: #fff;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
 }
 
 .dir-ad-cat,
 .dir-ad-phone {
   margin-top: 2px;
   font-size: 10px;
-  color: #7a6a55;
+  color: rgba(255, 255, 255, 0.92);
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 .dir-vacancy-head {
@@ -5830,28 +5869,31 @@ main:has(.home-page) {
   border: 1px solid #e5e7eb;
 }
 .dir-ad-slider {
-  position: relative;
-  flex: 1 1 0;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
   min-height: 0;
   overflow: hidden;
 }
 .dir-ad-slider .dir-ad-image {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   object-position: center;
   display: block;
-  background: #efe7d8;
+  background: #1a1a1a;
 }
 .dir-ad-slider-dots {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 4px;
+  top: 6px;
+  bottom: auto;
   display: flex;
   justify-content: center;
   gap: 4px;
   pointer-events: none;
+  z-index: 3;
 }
 .dir-ad-dot {
   width: 5px;
@@ -5867,11 +5909,12 @@ main:has(.home-page) {
   margin-top: 2px;
   font-size: 10px;
   line-height: 1.25;
-  color: #5b5246;
+  color: rgba(255, 255, 255, 0.88);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 .dir-cell.tier-small .dir-ad-copy {
   font-size: 8px;

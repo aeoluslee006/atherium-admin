@@ -38,7 +38,7 @@ export async function moderateTtkcMember(id, body) {
   return parse(res)
 }
 
-export async function setTtkcMemberPromo(id, productKey, promoEndDate) {
+export async function setTtkcMemberPromo(id, productKey, promoEndDate, priceCentsOverride = null) {
   const headers = await authHeaders()
   const res = await fetch(`/api/ttkc/members/${id}`, {
     method: 'PATCH',
@@ -46,6 +46,7 @@ export async function setTtkcMemberPromo(id, productKey, promoEndDate) {
     body: JSON.stringify({
       product_key: productKey,
       promo_end_date: promoEndDate || null,
+      price_cents_override: priceCentsOverride,
     }),
   })
   return parse(res)

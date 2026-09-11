@@ -4,7 +4,6 @@ import { getCategory } from '../lib/categories';
 import { pickDailyFeatured, siteDateKey } from '../lib/dailyFeatured';
 import { isExampleLocalNews } from '../lib/localNews';
 import { getSampleClassesPost, SAMPLE_CLASSES_POST_ID } from '../lib/sampleClassesPost';
-import { stationeryBackgroundStyle, stationeryClassName } from '../lib/stationery';
 import { supabaseRest } from '../lib/supabaseRest';
 
 export const dynamic = 'force-dynamic';
@@ -130,10 +129,6 @@ export default async function HomePage() {
     await getHomeData();
   const ads = padAds(premiumAds);
   const cat = featuredPost ? getCategory(featuredPost.category_slug) : null;
-  const paper = featuredPost ? stationeryClassName(featuredPost.stationery_id) : '';
-  const paperStyle = featuredPost
-    ? stationeryBackgroundStyle(featuredPost.stationery_id || 'classic-notes')
-    : null;
   const bodyText = featuredPost ? letterBody(featuredPost.body) : '';
 
   return (
@@ -192,8 +187,7 @@ export default async function HomePage() {
           {featuredPost ? (
             <Link
               href={`/post/${featuredPost.id}`}
-              className={`wf-featured-letter${paper ? ` ${paper}` : ' letter-paper letter-paper--svg letter-paper--classic-notes'}`}
-              style={paperStyle || undefined}
+              className="wf-featured-letter wf-featured-letter--plain"
             >
               <div className="wf-featured-letter-top">
                 <span className="wf-featured-today">오늘의 글</span>
@@ -213,7 +207,7 @@ export default async function HomePage() {
           ) : (
             <div className="wf-empty wf-empty--grow">
               아직 홈에 올린 좋은글이 없습니다. 글쓰기에서 「좋은글」선택 후 「홈에 표시」를
-              체크하세요. 체크한 글 중 하루에 한 편이 편지지로 보입니다.
+              체크하세요. 체크한 글 중 하루에 한 편이 보입니다.
             </div>
           )}
         </div>

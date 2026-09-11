@@ -54,12 +54,15 @@ export async function readJson(req) {
 
 export function isSchemaMissing(error) {
   const msg = (error?.message || '').toLowerCase()
+  const code = String(error?.code || '')
+  // Only treat PostgREST "function/relation missing" as setup-required.
+  // Runtime FK errors mention table names like member_promotions and were
+  // incorrectly shown as "SQL not applied".
   return (
+    code === 'PGRST202' ||
+    code === 'PGRST205' ||
     msg.includes('could not find the function') ||
-    msg.includes('atherium_ttkc') ||
-    msg.includes('site_visits') ||
-    msg.includes('member_promotions') ||
-    msg.includes('admin_messages') ||
+    msg.includes('could not find the table') ||
     msg.includes('schema cache')
   )
 }

@@ -47,7 +47,8 @@ export default async function handler(req, res) {
       p_amount_cents: body.amount_cents != null ? Number(body.amount_cents) : null,
       p_label: body.label ?? null,
       p_is_active: typeof body.is_active === 'boolean' ? body.is_active : null,
-      p_actor_id: auth.user.id,
+      // Atherium user ids are not TTKC profile rows — avoid updated_by FK failures.
+      p_actor_id: null,
     })
     if (!error) return sendJson(res, 200, { setting: data })
     if (isSchemaMissing(error)) {

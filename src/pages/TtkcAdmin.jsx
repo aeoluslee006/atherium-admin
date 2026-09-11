@@ -214,9 +214,6 @@ export default function TtkcAdmin() {
       await load(q)
     } catch (err) {
       setError(err.message)
-      if (/atherium_admin_ttkc_fix\.sql|프로모션 기능/.test(err.message || '')) {
-        setSchemaReady(false)
-      }
     } finally {
       setBusyId('')
     }
@@ -245,9 +242,6 @@ export default function TtkcAdmin() {
       await loadPricing()
     } catch (err) {
       setError(err.message)
-      if (/atherium_admin_ttkc_fix\.sql|단가/.test(err.message || '')) {
-        setSchemaReady(false)
-      }
     }
   }
 

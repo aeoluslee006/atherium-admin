@@ -1,7 +1,8 @@
 /**
  * Activate a directory slot ad without Stripe when member promo is active.
+ * Prefers service-role client; works with the caller's JWT client when RLS allows.
  */
-export async function activateDirectoryAdForPromo(admin, {
+export async function activateDirectoryAdForPromo(db, {
   slotId,
   userId,
   pendingAdId,
@@ -17,8 +18,8 @@ export async function activateDirectoryAdForPromo(admin, {
   specialQueuePosition,
   promoEndDate,
 }) {
-  if (!admin) {
-    throw new Error('프로모션 무료 게재에는 서버 admin DB 권한이 필요합니다.');
+  if (!db) {
+    throw new Error('게재를 완료할 수 없습니다. 다시 로그인 후 시도해 주세요.');
   }
 
   const periodStart = new Date().toISOString();
@@ -28,7 +29,7 @@ export async function activateDirectoryAdForPromo(admin, {
 
   // Reuse directory sponsor for this user when possible.
   let sponsorId = null;
-  const { data: existingSponsor } = await admin
+  const { data: existingSponsor } = await db
     .from('sponsors')
     .select('id')
     .eq('submitted_by', userId)
@@ -39,7 +40,7 @@ export async function activateDirectoryAdForPromo(admin, {
 
   if (existingSponsor?.id) {
     sponsorId = existingSponsor.id;
-    await admin
+    const { error: upSpErr } = await db
       .from('sponsors')
       .update({
         business_name: businessName,
@@ -50,8 +51,11 @@ export async function activateDirectoryAdForPromo(admin, {
         approved_at: new Date().toISOString(),
       })
       .eq('id', sponsorId);
+    if (upSpErr) {
+      console.warn('sponsor update', upSpErr.message);
+    }
   } else {
-    const { data: created, error: spErr } = await admin
+    const { data: created, error: spErr } = await db
       .from('sponsors')
       .insert({
         business_name: businessName,
@@ -69,11 +73,15 @@ export async function activateDirectoryAdForPromo(admin, {
     sponsorId = created.id;
   }
 
-  await admin
+  // Best-effort: expire prior live ads on this slot (may fail under RLS without service role).
+  const { error: expireErr } = await db
     .from('directory_slot_ads')
     .update({ status: 'expired' })
     .eq('slot_id', slotId)
     .eq('status', 'active');
+  if (expireErr) {
+    console.warn('expire prior ads', expireErr.message);
+  }
 
   const activatePatch = {
     sponsor_id: sponsorId,
@@ -93,7 +101,7 @@ export async function activateDirectoryAdForPromo(admin, {
   if (imageUrls?.length) activatePatch.ad_image_urls = imageUrls;
 
   if (pendingAdId) {
-    const { data: activated, error: actErr } = await admin
+    const { data: activated, error: actErr } = await db
       .from('directory_slot_ads')
       .update(activatePatch)
       .eq('id', pendingAdId)
@@ -106,7 +114,7 @@ export async function activateDirectoryAdForPromo(admin, {
         String(actErr.message || '').includes('special') ||
         String(actErr.message || '').includes('is_special')
       ) {
-        const { error: actErr2 } = await admin
+        const { error: actErr2 } = await db
           .from('directory_slot_ads')
           .update({
             sponsor_id: sponsorId,
@@ -127,7 +135,6 @@ export async function activateDirectoryAdForPromo(admin, {
         throw actErr;
       }
     } else if (!activated?.id) {
-      // Fall through to insert if draft missing
       pendingAdId = null;
     }
   }
@@ -151,15 +158,28 @@ export async function activateDirectoryAdForPromo(admin, {
     };
     if (adBody) insertRow.ad_body = adBody;
     if (imageUrls?.length) insertRow.ad_image_urls = imageUrls;
-    const { error: adErr } = await admin.from('directory_slot_ads').insert(insertRow);
+    const { error: adErr } = await db.from('directory_slot_ads').insert(insertRow);
     if (adErr) throw adErr;
   }
 
-  const { error: slotErr } = await admin
+  const { error: slotErr } = await db
     .from('directory_slots')
     .update({ status: 'occupied' })
-    .eq('id', slotId);
-  if (slotErr) throw slotErr;
+    .eq('id', slotId)
+    .eq('status', 'available');
+  if (slotErr) {
+    // Slot may already be held by service-role path, or RLS may block — try without status filter.
+    const { error: slotErr2 } = await db
+      .from('directory_slots')
+      .update({ status: 'occupied' })
+      .eq('id', slotId);
+    if (slotErr2) {
+      console.warn('slot occupy', slotErr2.message);
+      throw new Error(
+        '프로모션 게재 중 자리 확정에 실패했습니다. 잠시 후 다시 시도하거나 관리자에게 문의해 주세요.'
+      );
+    }
+  }
 
   return { period_start: periodStart, period_end: periodEnd, sponsor_id: sponsorId };
 }

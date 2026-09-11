@@ -225,10 +225,8 @@ export async function POST(request) {
 
       // Active promo: publish for free until promo_end_date (no Stripe page).
       if (promoCoversCheckout) {
-        if (!admin) {
-          throw new Error('프로모션 무료 게재에는 서버 admin(service role) 설정이 필요합니다.');
-        }
-        await activateDirectoryAdForPromo(admin, {
+        // Prefer service role; fall back to the caller's authenticated DB (RLS).
+        await activateDirectoryAdForPromo(admin || db, {
           slotId,
           userId: user.id,
           pendingAdId,

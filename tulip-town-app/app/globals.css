@@ -3778,6 +3778,20 @@ main:has(.home-page) {
   font-size: 14px;
 }
 
+.shop-seller-trust {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.shop-seller-trust-text {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--ink-soft);
+}
+
 .shop-detail-desc {
   margin: 16px 0 0;
   font-size: 15px;
@@ -3806,6 +3820,17 @@ main:has(.home-page) {
   font-weight: 700;
   color: var(--ink);
   word-break: break-word;
+}
+
+.shop-safety-note {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(47, 93, 74, 0.16);
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 @media (max-width: 1100px) {

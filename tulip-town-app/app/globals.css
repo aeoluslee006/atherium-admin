@@ -3483,6 +3483,102 @@ main:has(.home-page) {
   padding-top: 4px;
 }
 
+.shop-topbar {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(47, 107, 79, 0.12);
+}
+
+.shop-brand-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.shop-brand-inline {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  min-width: 0;
+}
+
+.shop-page--product-first .shop-brand-inline .shop-kicker,
+.shop-brand-inline .shop-kicker {
+  margin: 0;
+  font-family: var(--font-script);
+  font-size: clamp(18px, 2.4vw, 24px);
+  line-height: 1;
+  color: var(--shop-leaf);
+  opacity: 0.95;
+  white-space: nowrap;
+}
+
+.shop-page--product-first .shop-brand-inline .shop-brand,
+.shop-brand-inline .shop-brand {
+  margin: 0;
+  font-size: clamp(22px, 3.2vw, 30px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.shop-brand-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+
+.shop-toolbar-category,
+.shop-toolbar-sort,
+.shop-toolbar-filter {
+  position: relative;
+}
+
+.shop-search-bar {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.shop-search-bar input {
+  width: 100%;
+  min-height: 40px;
+  border-radius: 999px;
+  border: 1px solid #dde5df;
+  background: #f7f8f6;
+  padding: 0 16px;
+  font: inherit;
+}
+
+.shop-search-bar input:focus {
+  outline: 2px solid rgba(47, 107, 79, 0.3);
+  outline-offset: 1px;
+  background: #fff;
+  border-color: rgba(47, 107, 79, 0.4);
+}
+
+.shop-lead--under {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+
+.shop-brand-actions .shop-toolbar-count {
+  margin: 0;
+  padding-left: 4px;
+}
+
 .shop-page-head {
   display: flex;
   align-items: flex-end;
@@ -4446,6 +4542,17 @@ main:has(.home-page) {
 
   .shop-toolbar-actions {
     margin-left: auto;
+  }
+
+  .shop-brand-inline .shop-kicker {
+    font-size: 16px;
+  }
+  .shop-brand-inline .shop-brand {
+    font-size: 22px;
+  }
+  .shop-brand-actions {
+    width: 100%;
+    justify-content: flex-end;
   }
 
   .shop-filter-popover {

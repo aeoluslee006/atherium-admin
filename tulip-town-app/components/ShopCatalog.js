@@ -23,6 +23,7 @@ export default function ShopCatalog({
   sectionTitle = '상품',
   showSellerLink = true,
   showToolbar = true,
+  showBrandHeader = false,
   favoriteIds = [],
 }) {
   const [category, setCategory] = useState('all');
@@ -79,187 +80,213 @@ export default function ShopCatalog({
   return (
     <div className="shop-catalog">
       {showToolbar ? (
-        <div className="shop-toolbar shop-toolbar--slim shop-toolbar--icon-row" role="search">
-          <div className="shop-search-combo" ref={categoryRef}>
-            <label className="shop-search-combo-field">
-              <span className="sr-only">검색</span>
-              <input
-                type="search"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="상품명 · 판매자 검색"
-                aria-label="상품 검색"
-              />
-            </label>
-            <button
-              type="button"
-              className={`shop-search-combo-icon${categoryActive ? ' is-active' : ''}`}
-              aria-expanded={categoryOpen}
-              aria-haspopup="dialog"
-              aria-label={categoryActive ? `카테고리: ${categoryLabel}` : '카테고리'}
-              title={categoryLabel}
-              onClick={() => {
-                setCategoryOpen((open) => !open);
-                setFilterOpen(false);
-                setSortOpen(false);
-              }}
-            >
-              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-                <path
-                  fill="currentColor"
-                  d="M4 6h16v2H4V6zm3 5h10v2H7v-2zm3 5h4v2h-4v-2z"
-                />
-              </svg>
-              {categoryActive ? <span className="shop-filter-badge">1</span> : null}
-            </button>
-            {categoryOpen ? (
-              <div
-                className="shop-filter-popover shop-category-popover"
-                role="dialog"
-                aria-label="카테고리"
-              >
-                <div className="shop-category-options" role="listbox" aria-label="카테고리 선택">
-                  {SHOP_CATEGORIES.map((c) => {
-                    const selected = category === c.id;
-                    return (
+        <div className="shop-topbar">
+          <div className="shop-brand-row">
+            {showBrandHeader ? (
+              <div className="shop-brand-inline" aria-label="튤립가게">
+                <p className="shop-kicker">Tulip Town Marketplace</p>
+                <h1 className="shop-brand">튤립가게</h1>
+              </div>
+            ) : (
+              <div className="shop-section-head shop-section-head--inline">
+                <h2 className="shop-section-title">{sectionTitle}</h2>
+              </div>
+            )}
+
+            <div className="shop-brand-actions">
+              <div className="shop-toolbar-category" ref={categoryRef}>
+                <button
+                  type="button"
+                  className={`shop-icon-trigger${categoryActive ? ' is-active' : ''}`}
+                  aria-expanded={categoryOpen}
+                  aria-haspopup="dialog"
+                  aria-label={categoryActive ? `카테고리: ${categoryLabel}` : '카테고리'}
+                  title={categoryLabel}
+                  onClick={() => {
+                    setCategoryOpen((open) => !open);
+                    setFilterOpen(false);
+                    setSortOpen(false);
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                    <path
+                      fill="currentColor"
+                      d="M4 5h7a1 1 0 0 1 1 1v5H3V6a1 1 0 0 1 1-1zm9 0h7a1 1 0 0 1 1 1v5h-9V6a1 1 0 0 1 1-1zM3 13h9v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-5zm11 0h9v5a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1v-5z"
+                    />
+                  </svg>
+                  {categoryActive ? <span className="shop-filter-badge">1</span> : null}
+                </button>
+                {categoryOpen ? (
+                  <div
+                    className="shop-filter-popover shop-category-popover"
+                    role="dialog"
+                    aria-label="카테고리"
+                  >
+                    <div className="shop-category-options" role="listbox" aria-label="카테고리 선택">
+                      {SHOP_CATEGORIES.map((c) => {
+                        const selected = category === c.id;
+                        return (
+                          <button
+                            key={c.id}
+                            type="button"
+                            role="option"
+                            aria-selected={selected}
+                            className={`shop-category-option${selected ? ' is-selected' : ''}`}
+                            onClick={() => {
+                              setCategory(c.id);
+                              setCategoryOpen(false);
+                            }}
+                          >
+                            {c.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="shop-toolbar-sort" ref={sortRef}>
+                <button
+                  type="button"
+                  className={`shop-icon-trigger${sort !== 'newest' ? ' is-active' : ''}`}
+                  aria-expanded={sortOpen}
+                  aria-haspopup="dialog"
+                  aria-label={`정렬: ${SHOP_SORTS.find((s) => s.id === sort)?.label || '정렬'}`}
+                  title={SHOP_SORTS.find((s) => s.id === sort)?.label || '정렬'}
+                  onClick={() => {
+                    setSortOpen((open) => !open);
+                    setCategoryOpen(false);
+                    setFilterOpen(false);
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                    <path
+                      fill="currentColor"
+                      d="M7 4h2v12.2l2.6-2.6 1.4 1.4L8 20l-5-5 1.4-1.4L7 16.2V4zm8 16h2V7.8l2.6 2.6 1.4-1.4L17 4l-5 5 1.4 1.4L15 7.8V20z"
+                    />
+                  </svg>
+                </button>
+                {sortOpen ? (
+                  <div className="shop-filter-popover shop-sort-popover" role="dialog" aria-label="정렬">
+                    <div className="shop-category-options" role="listbox" aria-label="정렬 선택">
+                      {SHOP_SORTS.map((s) => {
+                        const selected = sort === s.id;
+                        return (
+                          <button
+                            key={s.id}
+                            type="button"
+                            role="option"
+                            aria-selected={selected}
+                            className={`shop-category-option${selected ? ' is-selected' : ''}`}
+                            onClick={() => {
+                              setSort(s.id);
+                              setSortOpen(false);
+                            }}
+                          >
+                            {s.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="shop-toolbar-filter" ref={filterRef}>
+                <button
+                  type="button"
+                  className={`shop-icon-trigger${extraFilterCount ? ' is-active' : ''}`}
+                  aria-expanded={filterOpen}
+                  aria-haspopup="dialog"
+                  aria-label="필터"
+                  title="필터"
+                  onClick={() => {
+                    setFilterOpen((open) => !open);
+                    setCategoryOpen(false);
+                    setSortOpen(false);
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                    <path
+                      fill="currentColor"
+                      d="M4 5h16l-6 7.2V19l-4 2v-8.8L4 5z"
+                    />
+                  </svg>
+                  {extraFilterCount ? (
+                    <span className="shop-filter-badge">{extraFilterCount}</span>
+                  ) : null}
+                </button>
+                {filterOpen ? (
+                  <div className="shop-filter-popover" role="dialog" aria-label="추가 필터">
+                    <label className="shop-toolbar-field">
+                      <span className="shop-toolbar-label">배송범위</span>
+                      <select
+                        value={shipping}
+                        onChange={(e) => setShipping(e.target.value)}
+                        aria-label="배송범위"
+                      >
+                        {SHOP_SHIPPING_FILTERS.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="shop-toolbar-field">
+                      <span className="shop-toolbar-label">지역</span>
+                      <select
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        aria-label="지역"
+                      >
+                        {SHOP_CITY_FILTERS.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    {extraFilterCount ? (
                       <button
-                        key={c.id}
                         type="button"
-                        role="option"
-                        aria-selected={selected}
-                        className={`shop-category-option${selected ? ' is-selected' : ''}`}
+                        className="shop-filter-clear"
                         onClick={() => {
-                          setCategory(c.id);
-                          setCategoryOpen(false);
+                          setShipping('all');
+                          setCity('all');
                         }}
                       >
-                        {c.label}
+                        초기화
                       </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : null}
-          </div>
-
-          <div className="shop-toolbar-actions">
-            <div className="shop-toolbar-sort" ref={sortRef}>
-              <button
-                type="button"
-                className={`shop-icon-trigger${sort !== 'newest' ? ' is-active' : ''}`}
-                aria-expanded={sortOpen}
-                aria-haspopup="dialog"
-                aria-label={`정렬: ${SHOP_SORTS.find((s) => s.id === sort)?.label || '정렬'}`}
-                title={SHOP_SORTS.find((s) => s.id === sort)?.label || '정렬'}
-                onClick={() => {
-                  setSortOpen((open) => !open);
-                  setCategoryOpen(false);
-                  setFilterOpen(false);
-                }}
-              >
-                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-                  <path fill="currentColor" d="M8 6h11v2H8V6zm2 5h7v2h-7v-2zm2 5h3v2h-3v-2zM4 7.5L6.5 4 9 7.5H4zm0 9L6.5 20 9 16.5H4z" />
-                </svg>
-              </button>
-              {sortOpen ? (
-                <div className="shop-filter-popover shop-sort-popover" role="dialog" aria-label="정렬">
-                  <div className="shop-category-options" role="listbox" aria-label="정렬 선택">
-                    {SHOP_SORTS.map((s) => {
-                      const selected = sort === s.id;
-                      return (
-                        <button
-                          key={s.id}
-                          type="button"
-                          role="option"
-                          aria-selected={selected}
-                          className={`shop-category-option${selected ? ' is-selected' : ''}`}
-                          onClick={() => {
-                            setSort(s.id);
-                            setSortOpen(false);
-                          }}
-                        >
-                          {s.label}
-                        </button>
-                      );
-                    })}
+                    ) : null}
                   </div>
-                </div>
-              ) : null}
-            </div>
-
-            <div className="shop-toolbar-filter" ref={filterRef}>
-              <button
-                type="button"
-                className={`shop-icon-trigger${extraFilterCount ? ' is-active' : ''}`}
-                aria-expanded={filterOpen}
-                aria-haspopup="dialog"
-                aria-label="필터"
-                title="필터"
-                onClick={() => {
-                  setFilterOpen((open) => !open);
-                  setCategoryOpen(false);
-                  setSortOpen(false);
-                }}
-              >
-                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-                  <path
-                    fill="currentColor"
-                    d="M3 5h18v2.2l-6.5 6.5V19l-5 2v-7.3L3 7.2V5z"
-                  />
-                </svg>
-                {extraFilterCount ? (
-                  <span className="shop-filter-badge">{extraFilterCount}</span>
                 ) : null}
-              </button>
+              </div>
 
-              {filterOpen ? (
-                <div className="shop-filter-popover" role="dialog" aria-label="추가 필터">
-                  <label className="shop-toolbar-field">
-                    <span className="shop-toolbar-label">배송범위</span>
-                    <select
-                      value={shipping}
-                      onChange={(e) => setShipping(e.target.value)}
-                      aria-label="배송범위"
-                    >
-                      {SHOP_SHIPPING_FILTERS.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="shop-toolbar-field">
-                    <span className="shop-toolbar-label">지역</span>
-                    <select value={city} onChange={(e) => setCity(e.target.value)} aria-label="지역">
-                      {SHOP_CITY_FILTERS.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  {extraFilterCount ? (
-                    <button
-                      type="button"
-                      className="shop-filter-clear"
-                      onClick={() => {
-                        setShipping('all');
-                        setCity('all');
-                      }}
-                    >
-                      초기화
-                    </button>
-                  ) : null}
-                </div>
-              ) : null}
+              <p className="shop-toolbar-count" aria-live="polite">
+                {filtered.length}개
+              </p>
             </div>
-
-            <p className="shop-toolbar-count" aria-live="polite">
-              {filtered.length}개
-            </p>
           </div>
+
+          <label className="shop-search-bar">
+            <span className="sr-only">검색</span>
+            <input
+              type="search"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="상품명 · 판매자 검색"
+              aria-label="상품 검색"
+            />
+          </label>
+
+          {showBrandHeader ? (
+            <p className="shop-lead shop-lead--under">
+              승인된 사업자 판매자의 상품입니다. 판매자에게 직접 연락해 거래하세요.
+            </p>
+          ) : null}
         </div>
-) : (
+      ) : (
         <div className="shop-section-head">
           <h2 className="shop-section-title">{sectionTitle}</h2>
           <p className="shop-section-desc">{filtered.length}개</p>

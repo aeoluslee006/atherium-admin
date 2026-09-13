@@ -2,11 +2,16 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import MemberTierBadge from '../../../components/MemberTierBadge';
 import ProductFavoriteButton from '../../../components/ProductFavoriteButton';
+import ProductReviewSection from '../../../components/ProductReviewSection';
 import ShopDetailGallery from '../../../components/ShopDetailGallery';
 import { getTierMeta } from '../../../lib/memberTier';
 import { formatPriceCents } from '../../../lib/sellerConstants';
 import { productImageList, shopCategoryLabel } from '../../../lib/shopCatalog';
 import { loadFavoriteProductIds } from '../../../lib/shopFavorites';
+import {
+  loadMyProductReview,
+  loadProductReviews,
+} from '../../../lib/shopReviews';
 import { loadSellerTrust } from '../../../lib/shopSellerTrust';
 import { supabaseRest } from '../../../lib/supabaseRest';
 
@@ -53,7 +58,11 @@ export default async function ShopDetailPage({ params }) {
   const item = await loadProduct(params.id);
   if (!item) notFound();
 
-  const favoriteIds = await loadFavoriteProductIds();
+  const [favoriteIds, reviews, myReview] = await Promise.all([
+    loadFavoriteProductIds(),
+    loadProductReviews(item.id),
+    loadMyProductReview(item.id),
+  ]);
   const isFavorited = favoriteIds.includes(item.id);
   const isSold = item.is_active === false;
 
@@ -132,6 +141,14 @@ export default async function ShopDetailPage({ params }) {
           </div>
         </div>
       </div>
+
+      <ProductReviewSection
+        productId={item.id}
+        isSold={isSold}
+        initialReviews={reviews}
+        initialMyReview={myReview}
+        sellerUserId={item.seller?.submitted_by || null}
+      />
     </div>
   );
 }

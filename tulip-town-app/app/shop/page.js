@@ -44,10 +44,6 @@ export default async function ShopPage() {
           <p className="shop-lead">
             승인된 사업자 판매자의 상품입니다. 판매자에게 직접 연락해 거래하세요.
           </p>
-          <p className="shop-pricing-note">
-            일반 셀러 월 $10 또는 연 $100(2개월 무료) · 최대 6개 · 프로 셀러 월 $20 또는 연
-            $200(2개월 무료) · 최대 20개 · 이후 10개당 +$8/월
-          </p>
         </div>
       </section>
 

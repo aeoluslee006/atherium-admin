@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { formatPriceCents } from '../lib/sellerConstants';
 import {
   SHOP_CATEGORIES,
@@ -30,18 +30,40 @@ export default function ShopCatalog({
   const [q, setQ] = useState('');
   const [shipping, setShipping] = useState('all');
   const [city, setCity] = useState('all');
+  const [filterOpen, setFilterOpen] = useState(false);
   const [favSet, setFavSet] = useState(() => new Set(favoriteIds));
+  const filterRef = useRef(null);
 
   const filtered = useMemo(
     () => filterShopItems(items, { category, sort, q, shipping, city }),
     [items, category, sort, q, shipping, city]
   );
 
+  const extraFilterCount = (shipping !== 'all' ? 1 : 0) + (city !== 'all' ? 1 : 0);
+
+  useEffect(() => {
+    if (!filterOpen) return undefined;
+    const onPointerDown = (event) => {
+      if (filterRef.current && !filterRef.current.contains(event.target)) {
+        setFilterOpen(false);
+      }
+    };
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') setFilterOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [filterOpen]);
+
   return (
     <div className="shop-catalog">
       {showToolbar ? (
         <div className="shop-toolbar" role="search">
-          <label className="shop-toolbar-field">
+          <label className="shop-toolbar-field shop-toolbar-field--search">
             <span className="shop-toolbar-label">검색</span>
             <input
               type="search"
@@ -66,30 +88,6 @@ export default function ShopCatalog({
             </select>
           </label>
           <label className="shop-toolbar-field">
-            <span className="shop-toolbar-label">배송범위</span>
-            <select
-              value={shipping}
-              onChange={(e) => setShipping(e.target.value)}
-              aria-label="배송범위"
-            >
-              {SHOP_SHIPPING_FILTERS.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="shop-toolbar-field">
-            <span className="shop-toolbar-label">지역</span>
-            <select value={city} onChange={(e) => setCity(e.target.value)} aria-label="지역">
-              {SHOP_CITY_FILTERS.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="shop-toolbar-field">
             <span className="shop-toolbar-label">정렬</span>
             <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="정렬">
               {SHOP_SORTS.map((s) => (
@@ -99,6 +97,64 @@ export default function ShopCatalog({
               ))}
             </select>
           </label>
+
+          <div className="shop-toolbar-filter" ref={filterRef}>
+            <span className="shop-toolbar-label">추가</span>
+            <button
+              type="button"
+              className={`shop-filter-trigger${extraFilterCount ? ' is-active' : ''}`}
+              aria-expanded={filterOpen}
+              aria-haspopup="dialog"
+              onClick={() => setFilterOpen((open) => !open)}
+            >
+              <span aria-hidden="true">▾</span>
+              필터
+              {extraFilterCount ? (
+                <span className="shop-filter-badge">{extraFilterCount}</span>
+              ) : null}
+            </button>
+
+            {filterOpen ? (
+              <div className="shop-filter-popover" role="dialog" aria-label="추가 필터">
+                <label className="shop-toolbar-field">
+                  <span className="shop-toolbar-label">배송범위</span>
+                  <select
+                    value={shipping}
+                    onChange={(e) => setShipping(e.target.value)}
+                    aria-label="배송범위"
+                  >
+                    {SHOP_SHIPPING_FILTERS.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="shop-toolbar-field">
+                  <span className="shop-toolbar-label">지역</span>
+                  <select value={city} onChange={(e) => setCity(e.target.value)} aria-label="지역">
+                    {SHOP_CITY_FILTERS.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {extraFilterCount ? (
+                  <button
+                    type="button"
+                    className="shop-filter-clear"
+                    onClick={() => {
+                      setShipping('all');
+                      setCity('all');
+                    }}
+                  >
+                    초기화
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         </div>
       ) : null}
 

@@ -7393,8 +7393,82 @@ body:has(.shop-shell) .site-header {
 
 /* —— My Page / member tiers (phase 1) —— */
 .mypage {
-  max-width: 860px;
+  max-width: 1180px;
   padding-bottom: 48px;
+}
+
+.mypage-shell {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.mypage-side-nav {
+  position: sticky;
+  top: 88px;
+  display: grid;
+  gap: 4px;
+  padding: 14px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(47, 93, 74, 0.12);
+  background: #fff;
+}
+
+.mypage-side-label {
+  margin: 0 8px 8px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+
+.mypage-side-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  padding: 0 12px;
+  border-radius: 10px;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.mypage-side-item:hover {
+  background: rgba(47, 93, 74, 0.06);
+}
+
+.mypage-side-icon {
+  display: inline-flex;
+  color: var(--shop-leaf, #2f5d4a);
+}
+
+.mypage-side-item em {
+  margin-left: auto;
+  min-width: 18px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #2f5d4a;
+  color: #fff;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 700;
+  text-align: center;
+}
+
+.mypage-main {
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+}
+
+.mypage-main > .mypage-section,
+.mypage-main > .card {
+  margin-bottom: 0;
 }
 
 .mypage-hero {
@@ -7870,6 +7944,39 @@ body:has(.shop-shell) .site-header {
 .mypage-shop-icon-actions {
   display: inline-flex;
   gap: 6px;
+}
+
+@media (max-width: 900px) {
+  .mypage-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .mypage-side-nav {
+    position: static;
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 10px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .mypage-side-label {
+    display: none;
+  }
+
+  .mypage-side-item {
+    flex: 0 0 auto;
+    min-height: 38px;
+    padding: 0 12px;
+    border: 1px solid rgba(47, 93, 74, 0.12);
+    background: #f8faf8;
+    white-space: nowrap;
+  }
+
+  .mypage-side-item em {
+    margin-left: 6px;
+  }
 }
 
 @media (max-width: 640px) {

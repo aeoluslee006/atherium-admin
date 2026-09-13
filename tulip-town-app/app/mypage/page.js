@@ -8,6 +8,7 @@ import {
   IconCard,
   IconChat,
   IconHeart,
+  IconMail,
   IconPencil,
   IconPost,
   IconStore,
@@ -210,42 +211,49 @@ export default async function MyPage() {
         <MemberTierBadge tier={tier} />
       </header>
 
-      <nav className="mypage-quick-nav" aria-label="마이페이지 바로가기">
-        <a href="#mypage-account" className="mypage-quick-item">
-          <span className="mypage-quick-icon"><IconUser /></span>
-          <span>내 정보</span>
-        </a>
-        <a href="#mypage-favorites" className="mypage-quick-item">
-          <span className="mypage-quick-icon"><IconHeart /></span>
-          <span>찜</span>
-          {favoriteProducts.length ? <em>{favoriteProducts.length}</em> : null}
-        </a>
-        <a href="#mypage-shop" className="mypage-quick-item">
-          <span className="mypage-quick-icon"><IconStore /></span>
-          <span>가게</span>
-        </a>
-        <a href="#mypage-ads" className="mypage-quick-item">
-          <span className="mypage-quick-icon"><IconAd /></span>
-          <span>광고</span>
-          {myDirectoryAds.length ? <em>{myDirectoryAds.length}</em> : null}
-        </a>
-        <a href="#mypage-subs" className="mypage-quick-item">
-          <span className="mypage-quick-icon"><IconCard /></span>
-          <span>구독</span>
-          {activeSubs.length ? <em>{activeSubs.length}</em> : null}
-        </a>
-        <a href="#mypage-posts" className="mypage-quick-item">
-          <span className="mypage-quick-icon"><IconPost /></span>
-          <span>내 글</span>
-          {posts.length ? <em>{posts.length}</em> : null}
-        </a>
-        <a href="#mypage-comments" className="mypage-quick-item">
-          <span className="mypage-quick-icon"><IconChat /></span>
-          <span>댓글</span>
-          {commentsOnMyPosts.length ? <em>{commentsOnMyPosts.length}</em> : null}
-        </a>
-      </nav>
+      <div className="mypage-shell">
+        <nav className="mypage-side-nav" aria-label="마이페이지 메뉴">
+          <p className="mypage-side-label">메뉴</p>
+          <a href="#mypage-account" className="mypage-side-item">
+            <span className="mypage-side-icon"><IconUser /></span>
+            <span>내 정보</span>
+          </a>
+          <a href="#mypage-favorites" className="mypage-side-item">
+            <span className="mypage-side-icon"><IconHeart /></span>
+            <span>찜</span>
+            {favoriteProducts.length ? <em>{favoriteProducts.length}</em> : null}
+          </a>
+          <a href="#mypage-shop" className="mypage-side-item">
+            <span className="mypage-side-icon"><IconStore /></span>
+            <span>가게</span>
+          </a>
+          <a href="#mypage-ads" className="mypage-side-item">
+            <span className="mypage-side-icon"><IconAd /></span>
+            <span>광고</span>
+            {myDirectoryAds.length ? <em>{myDirectoryAds.length}</em> : null}
+          </a>
+          <a href="#mypage-subs" className="mypage-side-item">
+            <span className="mypage-side-icon"><IconCard /></span>
+            <span>구독</span>
+            {activeSubs.length ? <em>{activeSubs.length}</em> : null}
+          </a>
+          <a href="#mypage-posts" className="mypage-side-item">
+            <span className="mypage-side-icon"><IconPost /></span>
+            <span>내 글</span>
+            {posts.length ? <em>{posts.length}</em> : null}
+          </a>
+          <a href="#mypage-comments" className="mypage-side-item">
+            <span className="mypage-side-icon"><IconChat /></span>
+            <span>댓글</span>
+            {commentsOnMyPosts.length ? <em>{commentsOnMyPosts.length}</em> : null}
+          </a>
+          <a href="#mypage-contact" className="mypage-side-item">
+            <span className="mypage-side-icon"><IconMail /></span>
+            <span>문의</span>
+          </a>
+        </nav>
 
+        <div className="mypage-main">
       <MyPageAccountPanel
         initialNickname={safeProfile.display_name || name || ''}
         email={safeProfile.email || user.email || ''}
@@ -492,6 +500,8 @@ export default async function MyPage() {
       </section>
 
       <MyPageAdminContact />
+        </div>
+      </div>
     </div>
   );
 }

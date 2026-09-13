@@ -27,6 +27,8 @@ export default async function handler(req, res) {
       stats: {
         totalVisitors: data?.total_visitors ?? 0,
         uniqueVisitors: data?.unique_visitors ?? 0,
+        todayVisitors: data?.today_visitors ?? 0,
+        todayUniqueVisitors: data?.today_unique_visitors ?? 0,
         memberCount: data?.member_count ?? 0,
         activeMembers: data?.active_members ?? 0,
         bannedMembers: data?.banned_members ?? 0,
@@ -62,6 +64,8 @@ export default async function handler(req, res) {
     stats: {
       totalVisitors: 0,
       uniqueVisitors: 0,
+      todayVisitors: 0,
+      todayUniqueVisitors: 0,
       memberCount: count ?? rows.length,
       activeMembers: rows.length - banned,
       bannedMembers: banned,

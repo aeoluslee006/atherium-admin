@@ -13,7 +13,7 @@ import {
   shopShippingLabel,
 } from '../lib/shopCatalog';
 import ProductFavoriteButton from './ProductFavoriteButton';
-import ShopPromoSlider from './ShopPromoSlider';
+import ShopPromoGrid from './ShopPromoGrid';
 
 function placeholderImage(seed) {
   return `https://images.unsplash.com/photo-1513885535751-8b9238bd345a?auto=format&fit=crop&w=800&q=80&sig=${encodeURIComponent(seed || 'shop')}`;
@@ -76,7 +76,54 @@ const CATEGORY_ICONS = {
       />
     </svg>
   ),
+  new: (
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M12 2 13.8 8.2 20 9l-4.5 4.1L16.9 20 12 16.8 7.1 20l1.4-6.9L4 9l6.2-.8L12 2z"
+      />
+    </svg>
+  ),
+  gift: (
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M20 7h-2.2A3 3 0 0 0 12 4a3 3 0 0 0-5.8 3H4a1 1 0 0 0-1 1v3h18V8a1 1 0 0 0-1-1zM9 6a1 1 0 1 1 0 2H8a1 1 0 0 1 1-2zm7 0a1 1 0 0 1 0 2h-1a1 1 0 1 1 0-2h1zM3 13v7a1 1 0 0 0 1 1h7v-8H3zm10 0v8h7a1 1 0 0 0 1-1v-7h-8z"
+      />
+    </svg>
+  ),
+  local: (
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z"
+      />
+    </svg>
+  ),
+  nationwide: (
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M3 7h13l1.2 2H21v2h-1l-1.5 7H6.8L4.2 9H3V7zm4.2 9h8.9l1.1-5H7.7l-.5 5zM8 20a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm9 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"
+      />
+    </svg>
+  ),
 };
+
+/** Yami-like dense shortcut rail (maps onto category / shipping filters). */
+const SHOP_NAV_SHORTCUTS = [
+  { id: 'all', label: '전체', category: 'all' },
+  { id: 'new', label: '신상', category: 'all', emphasize: true },
+  { id: 'food', label: '식품', category: 'food' },
+  { id: 'fashion', label: '패션', category: 'fashion' },
+  { id: 'home', label: '생활', category: 'home' },
+  { id: 'beauty', label: '뷰티', category: 'beauty' },
+  { id: 'kids', label: '키즈', category: 'kids' },
+  { id: 'gift', label: '선물', category: 'all' },
+  { id: 'local', label: '로컬', category: 'all', shipping: 'local' },
+  { id: 'nationwide', label: '전국', category: 'all', shipping: 'nationwide' },
+  { id: 'other', label: '기타', category: 'other' },
+];
 
 function ProductCard({
   item,
@@ -158,6 +205,7 @@ export default function ShopCatalog({
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [activeShortcut, setActiveShortcut] = useState('all');
   const [favSet, setFavSet] = useState(() => new Set(favoriteIds));
   const filterRef = useRef(null);
   const categoryRef = useRef(null);
@@ -226,12 +274,28 @@ export default function ShopCatalog({
     return () => window.clearTimeout(t);
   }, [searchOpen]);
 
-  function selectCategory(nextId) {
-    setCategory(nextId);
-    setCategoryOpen(false);
+  function scrollToProducts() {
     window.requestAnimationFrame(() => {
       productsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
+  }
+
+  function selectCategory(nextId) {
+    setCategory(nextId);
+    setShipping('all');
+    setActiveShortcut(nextId === 'all' ? 'all' : nextId);
+    setCategoryOpen(false);
+    scrollToProducts();
+  }
+
+  function selectShortcut(shortcut) {
+    setActiveShortcut(shortcut.id);
+    setCategory(shortcut.category || shortcut.id || 'all');
+    if (shortcut.shipping) setShipping(shortcut.shipping);
+    else setShipping('all');
+    if (shortcut.id === 'new') setSort('newest');
+    setCategoryOpen(false);
+    scrollToProducts();
   }
 
   return (
@@ -488,29 +552,28 @@ export default function ShopCatalog({
 
       {showBrandHeader ? (
         <>
-          <ShopPromoSlider
-            onBrowse={() =>
-              productsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-            }
-          />
-
-          <nav className="shop-cat-rail" aria-label="카테고리 바로가기">
-            {SHOP_CATEGORIES.map((c) => {
-              const selected = category === c.id;
+          <nav className="shop-cat-rail shop-cat-rail--dense" aria-label="카테고리 바로가기">
+            {SHOP_NAV_SHORTCUTS.map((c) => {
+              const selected = activeShortcut === c.id;
               return (
                 <button
                   key={c.id}
                   type="button"
-                  className={`shop-cat-chip${selected ? ' is-selected' : ''}`}
+                  className={`shop-cat-chip${selected ? ' is-selected' : ''}${c.emphasize ? ' is-hot' : ''}`}
                   aria-pressed={selected}
-                  onClick={() => selectCategory(c.id)}
+                  onClick={() => selectShortcut(c)}
                 >
-                  <span className="shop-cat-chip-icon">{CATEGORY_ICONS[c.id] || CATEGORY_ICONS.other}</span>
+                  <span className="shop-cat-chip-icon">
+                    {CATEGORY_ICONS[c.id] || CATEGORY_ICONS[c.category] || CATEGORY_ICONS.other}
+                    {c.emphasize ? <span className="shop-cat-chip-badge">N</span> : null}
+                  </span>
                   <span className="shop-cat-chip-label">{c.label}</span>
                 </button>
               );
             })}
           </nav>
+
+          <ShopPromoGrid items={items} onSelectCategory={selectCategory} />
 
           {browsingHome && newestItems.length > 0 ? (
             <section className="shop-rail-section" aria-labelledby="shop-newest-heading">

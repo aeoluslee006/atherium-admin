@@ -5134,8 +5134,10 @@ body:has(.shop-shell) .site-header {
 
 .shop-contact-cta,
 .shop-pay-btn {
+  display: inline-flex;
   width: 100%;
   justify-content: center;
+  box-sizing: border-box;
 }
 
 .shop-pay-btn {

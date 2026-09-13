@@ -12,6 +12,7 @@ import {
   productImageList,
   shopShippingLabel,
 } from '../lib/shopCatalog';
+import ProductFavoriteButton from './ProductFavoriteButton';
 
 function placeholderImage(seed) {
   return `https://images.unsplash.com/photo-1513885535751-8b9238bd345a?auto=format&fit=crop&w=800&q=80&sig=${encodeURIComponent(seed || 'shop')}`;
@@ -22,12 +23,14 @@ export default function ShopCatalog({
   sectionTitle = '상품',
   showSellerLink = true,
   showToolbar = true,
+  favoriteIds = [],
 }) {
   const [category, setCategory] = useState('all');
   const [sort, setSort] = useState('newest');
   const [q, setQ] = useState('');
   const [shipping, setShipping] = useState('all');
   const [city, setCity] = useState('all');
+  const [favSet, setFavSet] = useState(() => new Set(favoriteIds));
 
   const filtered = useMemo(
     () => filterShopItems(items, { category, sort, q, shipping, city }),
@@ -109,14 +112,31 @@ export default function ShopCatalog({
           {filtered.map((item) => {
             const seller = item.sponsor || item.sponsors;
             const thumb = productImageList(item)[0] || placeholderImage(item.id);
+            const isSold = item.is_active === false;
             return (
-              <article key={item.id} className="shop-card">
-                <Link href={`/shop/${item.id}`} className="shop-card-media-link">
-                  <div className="shop-card-media">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={thumb} alt="" loading="lazy" />
-                  </div>
-                </Link>
+              <article key={item.id} className={`shop-card${isSold ? ' is-sold' : ''}`}>
+                <div className="shop-card-media-wrap">
+                  <Link href={`/shop/${item.id}`} className="shop-card-media-link">
+                    <div className="shop-card-media">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={thumb} alt="" loading="lazy" />
+                    </div>
+                    {isSold ? <span className="shop-card-sold-badge">판매완료</span> : null}
+                  </Link>
+                  <ProductFavoriteButton
+                    productId={item.id}
+                    initialFavorited={favSet.has(item.id)}
+                    className="shop-fav-btn--card"
+                    onChange={(next) => {
+                      setFavSet((prev) => {
+                        const copy = new Set(prev);
+                        if (next) copy.add(item.id);
+                        else copy.delete(item.id);
+                        return copy;
+                      });
+                    }}
+                  />
+                </div>
                 <div className="shop-card-body">
                   <Link href={`/shop/${item.id}`} className="shop-card-title">
                     {item.title}

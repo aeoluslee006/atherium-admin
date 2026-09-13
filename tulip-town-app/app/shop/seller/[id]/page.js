@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import MemberTierBadge from '../../../../components/MemberTierBadge';
 import ShopCatalog from '../../../../components/ShopCatalog';
 import { getTierMeta } from '../../../../lib/memberTier';
+import { loadFavoriteProductIds } from '../../../../lib/shopFavorites';
 import { loadSellerTrust } from '../../../../lib/shopSellerTrust';
 import { supabaseRest } from '../../../../lib/supabaseRest';
 
@@ -68,9 +69,10 @@ export default async function ShopSellerPage({ params }) {
   const seller = await loadSeller(params.id);
   if (!seller) notFound();
 
-  const [products, sellerTrust] = await Promise.all([
+  const [products, sellerTrust, favoriteIds] = await Promise.all([
     loadSellerProducts(seller.id, seller),
     loadSellerTrust(seller),
+    loadFavoriteProductIds(),
   ]);
   const tierMeta = getTierMeta(sellerTrust.tier);
 
@@ -108,6 +110,7 @@ export default async function ShopSellerPage({ params }) {
           items={products}
           sectionTitle={`${seller.business_name} 상품`}
           showSellerLink={false}
+          favoriteIds={favoriteIds}
         />
       </div>
     </div>

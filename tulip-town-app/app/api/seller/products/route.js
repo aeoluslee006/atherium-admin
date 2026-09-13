@@ -57,7 +57,7 @@ export async function POST(request) {
     const sponsor = await getMyShopSponsor(db, user.id);
     if (!canManageShopProducts(sponsor)) {
       return NextResponse.json(
-        { error: '승인된 사업자만 상품을 등록할 수 있습니다. 입점 신청·승인 후 이용해 주세요.' },
+        { error: '승인된 판매자만 상품을 등록할 수 있습니다. 마이페이지에서 판매자 등록 후 이용해 주세요.' },
         { status: 403 }
       );
     }

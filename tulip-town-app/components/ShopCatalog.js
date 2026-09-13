@@ -576,7 +576,7 @@ export default function ShopCatalog({
       {showBrandHeader ? (
         <>
           <p className="shop-trust-line">
-            승인된 사업자 판매자의 상품입니다. 판매자에게 직접 연락해 거래하세요.
+            등록된 판매자의 상품입니다. 판매자에게 직접 연락해 거래하세요.
           </p>
 
           {showCategoryStrip ? (

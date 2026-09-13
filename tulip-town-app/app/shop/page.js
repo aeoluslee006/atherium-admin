@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata = {
   title: '튤립가게 · Tulip Town',
-  description: '승인된 사업자 판매자의 상품을 둘러보세요',
+  description: '이웃 판매자의 상품을 둘러보세요',
 };
 
 async function loadShopProducts() {

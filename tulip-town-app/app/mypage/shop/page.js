@@ -158,22 +158,24 @@ function MyPageShopInner() {
           <div className="mypage-hero-text">
             <p className="mypage-kicker">Shop</p>
             <h1 className="mypage-title">내 가게 관리</h1>
-            <p className="mypage-meta">사업자 입점 후 상품을 등록할 수 있습니다.</p>
+            <p className="mypage-meta">개인·사업자 모두 상품을 등록할 수 있습니다.</p>
           </div>
         </header>
         <div className="mypage-section card">
-          <h2 className="section-title" style={{ fontSize: 18 }}>사업자 입점</h2>
+          <h2 className="section-title" style={{ fontSize: 18 }}>판매자 등록</h2>
           <p className="hint-text" style={{ marginTop: 8, lineHeight: 1.55 }}>
-            일반 셀러: 월 $10 또는 연 $100(2개월 무료) · 최대 6개 상품
+            개인 판매는 바로 시작 · 사업자는 서류 검토 후 승인
             <br />
-            프로 셀러: 월 $20 또는 연 $200(2개월 무료) · 최대 20개 상품 · 이후 10개당 +$8/월
+            일반 셀러: 월 $10 또는 연 $100 · 최대 6개 상품
+            <br />
+            프로 셀러: 월 $20 또는 연 $200 · 최대 20개 상품 · 이후 10개당 +$8/월
           </p>
           <p className="hint-text" style={{ marginTop: 8 }}>
-            회원별 프로모션(서비스별)은 관리자 설정이며, 입점 요금제와 별개입니다.
+            거래는 직접 연락·외부 결제 링크로 진행되며, 플랫폼은 결제를 대행하지 않습니다.
           </p>
           <div className="mypage-empty-actions" style={{ marginTop: 16 }}>
             <Link href="/mypage/shop/apply" className="btn">
-              사업자 입점 신청
+              판매 시작
             </Link>
             <Link href="/shop" className="btn btn-outline">
               공개 튤립가게

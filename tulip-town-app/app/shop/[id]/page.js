@@ -2,13 +2,10 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import MemberTierBadge from '../../../components/MemberTierBadge';
 import ShopDetailGallery from '../../../components/ShopDetailGallery';
-import {
-  TIER,
-  formatMembershipMonths,
-  getTierMeta,
-} from '../../../lib/memberTier';
+import { getTierMeta } from '../../../lib/memberTier';
 import { formatPriceCents } from '../../../lib/sellerConstants';
 import { productImageList, shopCategoryLabel } from '../../../lib/shopCatalog';
+import { loadSellerTrust } from '../../../lib/shopSellerTrust';
 import { supabaseRest } from '../../../lib/supabaseRest';
 
 export const dynamic = 'force-dynamic';
@@ -38,41 +35,6 @@ async function loadProduct(id) {
     }
   }
   return null;
-}
-
-async function loadSellerTrust(seller) {
-  const profileId = seller?.submitted_by;
-  if (!profileId) {
-    return { tier: TIER.BRONZE, tenureLabel: null };
-  }
-
-  let tier = TIER.BRONZE;
-  let createdAt = null;
-
-  try {
-    const rows = await supabaseRest(
-      `member_tier_view?select=profile_id,tier&profile_id=eq.${encodeURIComponent(profileId)}&limit=1`
-    );
-    if (Array.isArray(rows) && rows[0]?.tier) {
-      tier = rows[0].tier;
-    }
-  } catch {
-    // fall back to bronze
-  }
-
-  try {
-    const rows = await supabaseRest(
-      `profiles?select=id,created_at&id=eq.${encodeURIComponent(profileId)}&limit=1`
-    );
-    createdAt = Array.isArray(rows) ? rows[0]?.created_at || null : null;
-  } catch {
-    // tenure optional
-  }
-
-  return {
-    tier,
-    tenureLabel: formatMembershipMonths(createdAt),
-  };
 }
 
 export async function generateMetadata({ params }) {

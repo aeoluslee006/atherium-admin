@@ -5,14 +5,21 @@ import {
   SHOP_BASIC_PRODUCT_LIMIT,
   isValidEin,
 } from '../../../../lib/sellerConstants';
+import {
+  buildLegacyContactText,
+  contactChannelsHaveAny,
+  normalizeContactChannels,
+} from '../../../../lib/sellerContact';
+
+const SPONSOR_SELECTS = [
+  'id,business_name,business_address,ein,sos_document_path,city,contact,contact_channels,description,status,plan_tier,product_limit,review_notes,approved_at,trial_ends_at,created_at,listing_type,seller_kind,submitted_by',
+  'id,business_name,business_address,ein,sos_document_path,city,contact,description,status,plan_tier,product_limit,review_notes,approved_at,trial_ends_at,created_at,listing_type,seller_kind,submitted_by',
+  'id,business_name,business_address,ein,sos_document_path,city,contact,description,status,plan_tier,product_limit,review_notes,approved_at,trial_ends_at,created_at,listing_type,submitted_by',
+];
 
 async function getShopSponsor(db, userId) {
-  const selects = [
-    'id,business_name,business_address,ein,sos_document_path,city,contact,description,status,plan_tier,product_limit,review_notes,approved_at,trial_ends_at,created_at,listing_type,seller_kind,submitted_by',
-    'id,business_name,business_address,ein,sos_document_path,city,contact,description,status,plan_tier,product_limit,review_notes,approved_at,trial_ends_at,created_at,listing_type,submitted_by',
-  ];
   let lastError = null;
-  for (const cols of selects) {
+  for (const cols of SPONSOR_SELECTS) {
     const { data, error } = await db
       .from('sponsors')
       .select(cols)
@@ -23,9 +30,61 @@ async function getShopSponsor(db, userId) {
       .maybeSingle();
     if (!error) return data;
     lastError = error;
-    if (!/seller_kind/i.test(error.message || '')) throw error;
+    if (!/(seller_kind|contact_channels)/i.test(error.message || '')) throw error;
   }
   throw lastError;
+}
+
+async function persistSponsor({ db, existing, row, mode }) {
+  const selectSets = [
+    'id,business_name,business_address,city,contact,contact_channels,status,plan_tier,product_limit,sos_document_path,seller_kind,created_at',
+    'id,business_name,business_address,city,contact,status,plan_tier,product_limit,sos_document_path,seller_kind,created_at',
+    'id,business_name,business_address,city,contact,status,plan_tier,product_limit,sos_document_path,created_at',
+  ];
+
+  let payload = { ...row };
+  const clients = [db, tryAdminSupabase()].filter(Boolean);
+
+  for (const client of clients) {
+    for (const cols of selectSets) {
+      let result;
+      if (mode === 'update') {
+        result = await client
+          .from('sponsors')
+          .update(payload)
+          .eq('id', existing.id)
+          .select(cols)
+          .single();
+      } else if (mode === 'upsert-rejected') {
+        result = await client
+          .from('sponsors')
+          .update(payload)
+          .eq('id', existing.id)
+          .select(cols)
+          .single();
+      } else {
+        result = await client.from('sponsors').insert(payload).select(cols).single();
+      }
+
+      if (!result.error) return result.data;
+
+      if (/contact_channels/i.test(result.error.message || '')) {
+        const { contact_channels: _drop, ...rest } = payload;
+        payload = rest;
+        continue;
+      }
+      if (/seller_kind/i.test(result.error.message || '')) {
+        const { seller_kind: _drop, ...rest } = payload;
+        payload = rest;
+        continue;
+      }
+
+      // Non-column errors: try admin client next, else throw.
+      if (client === db) break;
+      throw result.error;
+    }
+  }
+  throw new Error('판매자 정보 저장에 실패했습니다.');
 }
 
 export async function GET(request) {
@@ -46,23 +105,35 @@ export async function POST(request) {
     if (!user || !db) return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
 
     const body = await request.json();
-    const sellerKind = String(body.seller_kind || body.sellerKind || 'business').trim().toLowerCase() === 'individual'
-      ? 'individual'
-      : 'business';
+    const sellerKind =
+      String(body.seller_kind || body.sellerKind || 'business').trim().toLowerCase() === 'individual'
+        ? 'individual'
+        : 'business';
     const businessName = String(body.business_name || body.shop_name || '').trim();
     const businessAddress = String(body.business_address || '').trim();
     const ein = String(body.ein || '').trim();
     const sosDocumentPath = String(body.sos_document_path || '').trim();
     const city = String(body.city || 'Holland').trim();
-    const contact = String(body.contact || '').trim() || null;
+    const phone = String(body.phone || '').trim();
     const description = String(body.description || body.bio || '').trim() || null;
+    const contactChannels = normalizeContactChannels({
+      ...(body.contact_channels || body.contactChannels || {}),
+      phone,
+    });
+    const contact =
+      buildLegacyContactText({ phone, channels: contactChannels }) ||
+      String(body.contact || '').trim() ||
+      null;
 
     if (sellerKind === 'individual') {
       if (!businessName) {
         return NextResponse.json({ error: '판매자/상점 이름을 입력해 주세요.' }, { status: 400 });
       }
-      if (!contact) {
-        return NextResponse.json({ error: '연락처를 입력해 주세요.' }, { status: 400 });
+      if (!phone && !contactChannelsHaveAny(contactChannels) && !contact) {
+        return NextResponse.json(
+          { error: '전화, 메신저 아이디/QR, 이메일 중 하나 이상 입력해 주세요.' },
+          { status: 400 }
+        );
       }
     } else {
       if (!businessName || !businessAddress || !ein || !sosDocumentPath) {
@@ -101,6 +172,7 @@ export async function POST(request) {
       sos_document_path: sellerKind === 'individual' ? null : sosDocumentPath,
       city,
       contact,
+      contact_channels: contactChannels,
       description,
       listing_type: 'shop',
       seller_kind: sellerKind,
@@ -112,62 +184,13 @@ export async function POST(request) {
       approved_at: sellerKind === 'individual' ? nowIso : null,
     };
 
-    const rowWithoutKind = (({ seller_kind: _ignored, ...rest }) => rest)(row);
+    const result = await persistSponsor({
+      db,
+      existing,
+      row,
+      mode: existing?.status === 'rejected' ? 'upsert-rejected' : 'insert',
+    });
 
-    // Prefer user-scoped client; fall back to service role if RLS blocks insert.
-    let result;
-    let writeDb = db;
-    if (existing?.status === 'rejected') {
-      const { data, error } = await writeDb
-        .from('sponsors')
-        .update(row)
-        .eq('id', existing.id)
-        .select(
-          'id,business_name,business_address,city,status,plan_tier,product_limit,sos_document_path,seller_kind,created_at'
-        )
-        .single();
-      if (error) {
-        const admin = tryAdminSupabase();
-        if (!admin) throw error;
-        const retry = await admin
-          .from('sponsors')
-          .update(row)
-          .eq('id', existing.id)
-          .select(
-            'id,business_name,business_address,city,status,plan_tier,product_limit,sos_document_path,seller_kind,created_at'
-          )
-          .single();
-        if (retry.error) throw retry.error;
-        result = retry.data;
-      } else {
-        result = data;
-      }
-    } else {
-      const { data, error } = await writeDb
-        .from('sponsors')
-        .insert(row)
-        .select(
-          'id,business_name,business_address,city,status,plan_tier,product_limit,sos_document_path,seller_kind,created_at'
-        )
-        .single();
-      if (error) {
-        const admin = tryAdminSupabase();
-        if (!admin) throw error;
-        const retry = await admin
-          .from('sponsors')
-          .insert(row)
-          .select(
-            'id,business_name,business_address,city,status,plan_tier,product_limit,sos_document_path,seller_kind,created_at'
-          )
-          .single();
-        if (retry.error) throw retry.error;
-        result = retry.data;
-      } else {
-        result = data;
-      }
-    }
-
-    // Never echo sensitive fields beyond what's needed for confirmation UI.
     return NextResponse.json({
       seller: result,
       sponsor: result,
@@ -176,6 +199,70 @@ export async function POST(request) {
           ? '개인 판매자로 등록되었습니다. 바로 상품을 올릴 수 있습니다.'
           : '관리자 검토 중입니다. 승인되면 안내드립니다.',
     });
+  } catch (err) {
+    return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request) {
+  try {
+    const { user, db } = await getUserFromRequest(request);
+    if (!user || !db) return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
+
+    const existing = await getShopSponsor(db, user.id);
+    if (!existing) {
+      return NextResponse.json({ error: '판매자 등록이 없습니다.' }, { status: 404 });
+    }
+
+    const body = await request.json();
+    const patch = {};
+
+    if ('city' in body) patch.city = String(body.city || '').trim() || null;
+    if ('description' in body || 'bio' in body) {
+      patch.description = String(body.description || body.bio || '').trim() || null;
+    }
+    if ('business_name' in body || 'shop_name' in body) {
+      const name = String(body.business_name || body.shop_name || '').trim();
+      if (!name) return NextResponse.json({ error: '상점 이름을 입력해 주세요.' }, { status: 400 });
+      patch.business_name = name;
+    }
+
+    if ('phone' in body || 'contact' in body || 'contact_channels' in body || 'contactChannels' in body) {
+      const phone =
+        'phone' in body
+          ? String(body.phone || '').trim()
+          : String(existing.contact_channels?.phone || existing.contact || '').trim();
+      const contactChannels = normalizeContactChannels({
+        ...(body.contact_channels || body.contactChannels || existing.contact_channels || {}),
+        phone,
+      });
+      const legacyFallback = String(body.contact || '').trim();
+      const contact =
+        buildLegacyContactText({ phone, channels: contactChannels }) || legacyFallback || null;
+
+      if (!phone && !legacyFallback && !contactChannelsHaveAny(contactChannels)) {
+        return NextResponse.json(
+          { error: '전화, 메신저 아이디/QR, 이메일 중 하나 이상 남겨 주세요.' },
+          { status: 400 }
+        );
+      }
+
+      patch.contact = contact;
+      patch.contact_channels = contactChannels;
+    }
+
+    if (!Object.keys(patch).length) {
+      return NextResponse.json({ error: '변경할 항목이 없습니다.' }, { status: 400 });
+    }
+
+    const result = await persistSponsor({
+      db,
+      existing,
+      row: patch,
+      mode: 'update',
+    });
+
+    return NextResponse.json({ seller: result, sponsor: result });
   } catch (err) {
     return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 });
   }

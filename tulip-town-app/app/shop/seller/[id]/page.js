@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import MemberTierBadge from '../../../../components/MemberTierBadge';
 import ShopCatalog from '../../../../components/ShopCatalog';
+import ShopContactChannels from '../../../../components/ShopContactChannels';
 import { getTierMeta } from '../../../../lib/memberTier';
 import { loadFavoriteProductIds } from '../../../../lib/shopFavorites';
 import { loadSellerReviewCount } from '../../../../lib/shopReviews';
@@ -12,6 +13,8 @@ export const dynamic = 'force-dynamic';
 
 async function loadSeller(id) {
   const selects = [
+    `sponsors?select=id,business_name,city,description,status,listing_type,contact,contact_channels,submitted_by&id=eq.${encodeURIComponent(id)}&listing_type=eq.shop&status=eq.approved&limit=1`,
+    `sponsors?select=id,business_name,city,description,status,listing_type,contact,submitted_by&id=eq.${encodeURIComponent(id)}&listing_type=eq.shop&status=eq.approved&limit=1`,
     `sponsors?select=id,business_name,city,description,status,listing_type,submitted_by&id=eq.${encodeURIComponent(id)}&listing_type=eq.shop&status=eq.approved&limit=1`,
     `sponsors?select=id,business_name,city,description,status,listing_type&id=eq.${encodeURIComponent(id)}&listing_type=eq.shop&status=eq.approved&limit=1`,
   ];
@@ -106,6 +109,12 @@ export default async function ShopSellerPage({ params }) {
           {seller.description ? (
             <p className="shop-seller-profile-bio">{seller.description}</p>
           ) : null}
+
+          <ShopContactChannels
+            contact={seller.contact}
+            contactChannels={seller.contact_channels}
+            showHeading
+          />
         </header>
       </div>
 

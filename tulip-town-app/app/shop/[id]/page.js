@@ -3,9 +3,14 @@ import { notFound } from 'next/navigation';
 import MemberTierBadge from '../../../components/MemberTierBadge';
 import ProductFavoriteButton from '../../../components/ProductFavoriteButton';
 import ProductReviewSection from '../../../components/ProductReviewSection';
+import ShopContactChannels from '../../../components/ShopContactChannels';
 import ShopDetailGallery from '../../../components/ShopDetailGallery';
 import ShopPaymentLinkButton from '../../../components/ShopPaymentLinkButton';
 import { getTierMeta } from '../../../lib/memberTier';
+import {
+  contactChannelsHaveAny,
+  primaryContactHref,
+} from '../../../lib/sellerContact';
 import { formatPriceCents } from '../../../lib/sellerConstants';
 import { productImageList, shopCategoryLabel } from '../../../lib/shopCatalog';
 import { loadFavoriteProductIds } from '../../../lib/shopFavorites';
@@ -22,18 +27,9 @@ function placeholderImage(seed) {
   return `https://images.unsplash.com/photo-1513885535751-8b9238bd345a?auto=format&fit=crop&w=1200&q=80&sig=${encodeURIComponent(seed || 'shop')}`;
 }
 
-function contactActionHref(contact) {
-  const raw = String(contact || '').trim();
-  if (!raw) return '#shop-seller-contact';
-  const emailMatch = raw.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
-  if (emailMatch) return `mailto:${emailMatch[0]}`;
-  const digits = raw.replace(/[^\d+]/g, '');
-  if (digits.replace(/\D/g, '').length >= 7) return `tel:${digits}`;
-  return '#shop-seller-contact';
-}
-
 async function loadProduct(id) {
   const selects = [
+    `products?select=id,title,description,price_cents,image_url,image_urls,category,shipping_scope,payment_link,created_at,is_active,sponsor_id,sponsors(id,business_name,city,status,listing_type,contact,contact_channels,description,submitted_by)&id=eq.${encodeURIComponent(id)}&limit=1`,
     `products?select=id,title,description,price_cents,image_url,image_urls,category,shipping_scope,payment_link,created_at,is_active,sponsor_id,sponsors(id,business_name,city,status,listing_type,contact,description,submitted_by)&id=eq.${encodeURIComponent(id)}&limit=1`,
     `products?select=id,title,description,price_cents,image_url,image_urls,category,shipping_scope,created_at,is_active,sponsor_id,sponsors(id,business_name,city,status,listing_type,contact,description,submitted_by)&id=eq.${encodeURIComponent(id)}&limit=1`,
     `products?select=id,title,description,price_cents,image_url,image_urls,category,created_at,is_active,sponsor_id,sponsors(id,business_name,city,status,listing_type,contact,description,submitted_by)&id=eq.${encodeURIComponent(id)}&limit=1`,
@@ -82,6 +78,9 @@ export default async function ShopDetailPage({ params }) {
   const gallery = images.length ? images : [placeholderImage(item.id)];
   const sellerTrust = await loadSellerTrust(item.seller);
   const tierMeta = getTierMeta(sellerTrust.tier);
+  const hasContact =
+    Boolean(String(item.seller.contact || '').trim()) ||
+    contactChannelsHaveAny(item.seller.contact_channels);
 
   return (
     <div className="container shop-detail">
@@ -130,10 +129,11 @@ export default async function ShopDetailPage({ params }) {
               <p className="hint-text" style={{ marginTop: 8 }}>
                 이 상품은 판매가 완료되었습니다.
               </p>
-            ) : item.seller.contact ? (
-              <div id="shop-seller-contact" className="shop-contact-value">
-                {item.seller.contact}
-              </div>
+            ) : hasContact ? (
+              <ShopContactChannels
+                contact={item.seller.contact}
+                contactChannels={item.seller.contact_channels}
+              />
             ) : (
               <p id="shop-seller-contact" className="hint-text" style={{ marginTop: 8 }}>
                 연락처는 판매자 스토어에서 확인해 주세요.
@@ -143,7 +143,10 @@ export default async function ShopDetailPage({ params }) {
             {!isSold ? (
               <div className="shop-contact-actions">
                 <a
-                  href={contactActionHref(item.seller.contact)}
+                  href={primaryContactHref({
+                    contact: item.seller.contact,
+                    channels: item.seller.contact_channels,
+                  })}
                   className="btn shop-contact-cta"
                 >
                   판매자에게 연락하기

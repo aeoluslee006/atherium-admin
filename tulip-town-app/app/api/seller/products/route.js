@@ -4,6 +4,7 @@ import {
   canManageShopProducts,
   shopProductLimit,
 } from '../../../../lib/sellerConstants';
+import { normalizeShippingScope } from '../../../../lib/shopCatalog';
 
 async function getMyShopSponsor(db, userId) {
   const { data, error } = await db
@@ -88,45 +89,65 @@ export async function POST(request) {
         : Math.round(Number(body.price_usd || 0) * 100);
     const imageUrl = String(body.image_url || '').trim() || null;
     const category = String(body.category || 'other').trim() || 'other';
+    const shippingScope = normalizeShippingScope(body.shipping_scope);
 
     if (!title || !description || !Number.isFinite(priceCents) || priceCents < 0) {
       return NextResponse.json({ error: '상품명, 설명, 가격을 확인해 주세요.' }, { status: 400 });
     }
 
-    const rowWithCategory = {
-      sponsor_id: sponsor.id,
-      title,
-      description,
-      price_cents: priceCents,
-      image_url: imageUrl,
-      category,
-      is_active: body.is_active !== false,
-    };
-    const row = {
-      sponsor_id: sponsor.id,
-      title,
-      description,
-      price_cents: priceCents,
-      image_url: imageUrl,
-      is_active: body.is_active !== false,
-    };
+    const payloads = [
+      {
+        sponsor_id: sponsor.id,
+        title,
+        description,
+        price_cents: priceCents,
+        image_url: imageUrl,
+        category,
+        shipping_scope: shippingScope,
+        is_active: body.is_active !== false,
+      },
+      {
+        sponsor_id: sponsor.id,
+        title,
+        description,
+        price_cents: priceCents,
+        image_url: imageUrl,
+        category,
+        is_active: body.is_active !== false,
+      },
+      {
+        sponsor_id: sponsor.id,
+        title,
+        description,
+        price_cents: priceCents,
+        image_url: imageUrl,
+        is_active: body.is_active !== false,
+      },
+    ];
 
     async function insertProduct(client, payload) {
       return client.from('products').insert(payload).select('*').single();
     }
 
-    let data;
-    let { data: inserted, error } = await insertProduct(db, rowWithCategory);
-    if (error && /category/i.test(error.message || '')) {
-      ({ data: inserted, error } = await insertProduct(db, row));
+    async function insertWithFallback(client) {
+      let lastError = null;
+      for (const payload of payloads) {
+        const result = await insertProduct(client, payload);
+        if (!result.error) return result;
+        lastError = result.error;
+        if (!/(category|shipping_scope)/i.test(result.error.message || '')) {
+          return result;
+        }
+      }
+      return { data: null, error: lastError };
     }
+
+    let data;
+    let { data: inserted, error } = await insertWithFallback(db);
     if (error) {
       const admin = tryAdminSupabase();
       if (!admin) throw error;
-      let retry = await insertProduct(admin, rowWithCategory);
-      if (retry.error && /category/i.test(retry.error.message || '')) {
-        retry = await insertProduct(admin, row);
-      }
+      const retry = await insertWithFallback(admin);
       if (retry.error) throw retry.error;
       data = retry.data;
     } else {
@@ -160,25 +181,44 @@ export async function PATCH(request) {
     if ('price_usd' in body) patch.price_cents = Math.round(Number(body.price_usd) * 100);
     if ('image_url' in body) patch.image_url = String(body.image_url || '').trim() || null;
     if ('category' in body) patch.category = String(body.category || 'other').trim() || 'other';
+    if ('shipping_scope' in body) patch.shipping_scope = normalizeShippingScope(body.shipping_scope);
     if ('is_active' in body) patch.is_active = !!body.is_active;
 
-    let { data, error } = await db
-      .from('products')
-      .update(patch)
-      .eq('id', body.id)
-      .eq('sponsor_id', sponsor.id)
-      .select('*')
-      .single();
-    if (error && patch.category && /category/i.test(error.message || '')) {
-      const { category: _ignored, ...withoutCategory } = patch;
-      ({ data, error } = await db
+    async function updateWithFallback(client, payload) {
+      let current = { ...payload };
+      let result = await client
         .from('products')
-        .update(withoutCategory)
+        .update(current)
         .eq('id', body.id)
         .eq('sponsor_id', sponsor.id)
         .select('*')
-        .single());
+        .single();
+
+      if (result.error && current.shipping_scope && /shipping_scope/i.test(result.error.message || '')) {
+        const { shipping_scope: _ignored, ...rest } = current;
+        current = rest;
+        result = await client
+          .from('products')
+          .update(current)
+          .eq('id', body.id)
+          .eq('sponsor_id', sponsor.id)
+          .select('*')
+          .single();
+      }
+      if (result.error && current.category && /category/i.test(result.error.message || '')) {
+        const { category: _ignored, ...rest } = current;
+        result = await client
+          .from('products')
+          .update(rest)
+          .eq('id', body.id)
+          .eq('sponsor_id', sponsor.id)
+          .select('*')
+          .single();
+      }
+      return result;
     }
+
+    let { data, error } = await updateWithFallback(db, patch);
     if (error) throw error;
     return NextResponse.json({ product: data });
   } catch (err) {

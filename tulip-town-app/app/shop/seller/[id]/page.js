@@ -28,7 +28,8 @@ async function loadSeller(id) {
 
 async function loadSellerProducts(sponsorId, seller) {
   const selects = [
-    `products?select=id,title,description,price_cents,image_url,image_urls,category,created_at,sponsor_id&sponsor_id=eq.${encodeURIComponent(sponsorId)}&is_active=eq.true&order=created_at.desc`,
+    `products?select=id,title,description,price_cents,image_url,image_urls,category,shipping_scope,created_at,sponsor_id&sponsor_id=eq.${encodeURIComponent(sponsorId)}&is_active=eq.true&order=created_at.desc`,
+    `products?select=id,title,description,price_cents,image_url,category,shipping_scope,created_at,sponsor_id&sponsor_id=eq.${encodeURIComponent(sponsorId)}&is_active=eq.true&order=created_at.desc`,
     `products?select=id,title,description,price_cents,image_url,category,created_at,sponsor_id&sponsor_id=eq.${encodeURIComponent(sponsorId)}&is_active=eq.true&order=created_at.desc`,
     `products?select=id,title,price_cents,image_url,created_at,sponsor_id&sponsor_id=eq.${encodeURIComponent(sponsorId)}&is_active=eq.true&order=created_at.desc`,
   ];

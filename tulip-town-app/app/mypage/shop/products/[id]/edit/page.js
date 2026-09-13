@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '../../../../../../lib/supabaseClient';
 import { formatPriceCents } from '../../../../../../lib/sellerConstants';
-import { SHOP_CATEGORIES } from '../../../../../../lib/shopCatalog';
+import { SHOP_CATEGORIES, SHOP_SHIPPING_FILTERS } from '../../../../../../lib/shopCatalog';
 
 export default function MyPageShopProductEditPage() {
   const router = useRouter();
@@ -20,6 +20,7 @@ export default function MyPageShopProductEditPage() {
     price_usd: '',
     image_url: '',
     category: 'other',
+    shipping_scope: 'local',
     description: '',
     is_active: true,
   });
@@ -52,6 +53,7 @@ export default function MyPageShopProductEditPage() {
             price_usd: product.price_cents != null ? String(Number(product.price_cents) / 100) : '',
             image_url: product.image_url || '',
             category: product.category || 'other',
+            shipping_scope: product.shipping_scope === 'nationwide' ? 'nationwide' : 'local',
             description: product.description || '',
             is_active: product.is_active !== false,
           });
@@ -94,6 +96,7 @@ export default function MyPageShopProductEditPage() {
           price_usd: priceUsd,
           image_url: form.image_url.trim() || null,
           category: form.category,
+          shipping_scope: form.shipping_scope,
           is_active: form.is_active,
         }),
       });
@@ -169,6 +172,19 @@ export default function MyPageShopProductEditPage() {
             {categoryOptions.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.label}
+              </option>
+            ))}
+          </select>
+
+          <label htmlFor="shipping_scope">배송범위</label>
+          <select
+            id="shipping_scope"
+            value={form.shipping_scope}
+            onChange={(e) => update('shipping_scope', e.target.value)}
+          >
+            {SHOP_SHIPPING_FILTERS.filter((s) => s.id !== 'all').map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.id === 'local' ? '로컬 (직거래·근처 배송)' : '전국배송'}
               </option>
             ))}
           </select>

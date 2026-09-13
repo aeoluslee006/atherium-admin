@@ -9,35 +9,24 @@ export const metadata = {
 };
 
 async function loadShopProducts() {
-  try {
-    const rows = await supabaseRest(
-      'products?select=id,title,description,price_cents,image_url,category,created_at,sponsor:sponsors!inner(id,business_name,city,status,listing_type)&is_active=eq.true&sponsors.status=eq.approved&sponsors.listing_type=eq.shop&order=created_at.desc'
-    );
-    if (Array.isArray(rows)) return rows;
-  } catch {
-    // category column may be missing before SQL migration
-  }
+  const selects = [
+    'products?select=id,title,description,price_cents,image_url,category,shipping_scope,created_at,sponsor:sponsors!inner(id,business_name,city,status,listing_type)&is_active=eq.true&sponsors.status=eq.approved&sponsors.listing_type=eq.shop&order=created_at.desc',
+    'products?select=id,title,description,price_cents,image_url,category,created_at,sponsor:sponsors!inner(id,business_name,city,status,listing_type)&is_active=eq.true&sponsors.status=eq.approved&sponsors.listing_type=eq.shop&order=created_at.desc',
+    'products?select=id,title,description,price_cents,image_url,created_at,sponsor:sponsors!inner(id,business_name,city,status,listing_type)&is_active=eq.true&sponsors.status=eq.approved&sponsors.listing_type=eq.shop&order=created_at.desc',
+    'products?select=id,title,description,price_cents,image_url,created_at,sponsor_id,sponsors(id,business_name,city,status,listing_type)&is_active=eq.true&order=created_at.desc',
+  ];
 
-  try {
-    let items = await supabaseRest(
-      'products?select=id,title,description,price_cents,image_url,created_at,sponsor:sponsors!inner(id,business_name,city,status,listing_type)&is_active=eq.true&sponsors.status=eq.approved&sponsors.listing_type=eq.shop&order=created_at.desc'
-    );
-    if (Array.isArray(items)) return items;
-  } catch {
-    // fall through
-  }
-
-  try {
-    let items = await supabaseRest(
-      'products?select=id,title,description,price_cents,image_url,created_at,sponsor_id,sponsors(id,business_name,city,status,listing_type)&is_active=eq.true&order=created_at.desc'
-    );
-    if (Array.isArray(items)) {
-      return items.filter(
+  for (const path of selects) {
+    try {
+      const rows = await supabaseRest(path);
+      if (!Array.isArray(rows)) continue;
+      if (path.includes('sponsors!inner')) return rows;
+      return rows.filter(
         (p) => p.sponsors?.status === 'approved' && p.sponsors?.listing_type === 'shop'
       );
+    } catch {
+      // try next select shape (older schemas may lack category/shipping_scope)
     }
-  } catch {
-    // ignore
   }
   return [];
 }

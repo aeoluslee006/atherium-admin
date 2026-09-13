@@ -28,8 +28,17 @@ export default function DirectoryAdSlider({ ad, className = '' }) {
 
   return (
     <div className={`dir-ad-slider ${className}`.trim()}>
+      {/* Blurred cover fills the slot; sharp photo sits on top without cropping */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={current} alt="" className="dir-ad-image" draggable={false} />
+      <img
+        src={current}
+        alt=""
+        className="dir-ad-image dir-ad-image--bg"
+        draggable={false}
+        aria-hidden="true"
+      />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={current} alt="" className="dir-ad-image dir-ad-image--fg" draggable={false} />
       {urls.length > 1 ? (
         <div className="dir-ad-slider-dots" aria-hidden="true">
           {urls.map((u, i) => (

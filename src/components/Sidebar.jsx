@@ -1,4 +1,5 @@
 import React from 'react'
+import AtheriumBottomNav from './AtheriumBottomNav'
 
 const NAV = [
   { section: 'Main', items: [
@@ -65,6 +66,9 @@ export default function Sidebar({ activePage, setActivePage, userEmail = 'Admin'
       </nav>
 
       <div style={s.footer}>
+        <div style={s.workspaceNav}>
+          <AtheriumBottomNav activeView="admin" onNavigate={setActivePage} />
+        </div>
         <div style={s.userChip}>
           <div style={s.avatar}>{(userEmail[0] || 'A').toUpperCase()}</div>
           <div style={{ minWidth: 0, flex: 1 }}>
@@ -108,6 +112,7 @@ const s = {
   },
   navItemActive: { color: 'var(--gold)', borderLeftColor: 'var(--gold)', background: 'rgba(201,168,76,0.05)' },
   footer: { padding: '16px 20px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 10, flexShrink: 0 },
+  workspaceNav: { display: 'flex', flexDirection: 'column', gap: 2, margin: '0 -20px', paddingBottom: 4, borderBottom: '1px solid var(--border)' },
   userChip: { display: 'flex', alignItems: 'center', gap: 8 },
   signOutBtn: {
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,

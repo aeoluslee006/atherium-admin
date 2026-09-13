@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard'
 import Customers from './pages/Customers'
 import Reports from './pages/Reports'
 import TtkcAdmin from './pages/TtkcAdmin'
+import CalendarPage from './pages/CalendarPage'
 import Login from './pages/Login'
 import { supabase } from './lib/supabase'
 
@@ -55,6 +56,16 @@ export default function App() {
   }
 
   const userEmail = session.user?.email || 'Admin'
+
+  if (activePage === 'calendar' || activePage === 'stickers') {
+    return (
+      <CalendarPage
+        view={activePage}
+        userEmail={userEmail}
+        onNavigate={setActivePage}
+      />
+    )
+  }
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>

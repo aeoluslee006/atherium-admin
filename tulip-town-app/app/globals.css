@@ -3484,8 +3484,6 @@ main:has(.home-page) {
 }
 
 .shop-topbar {
-  display: grid;
-  gap: 10px;
   margin-bottom: 14px;
   padding-bottom: 12px;
   border-bottom: 1px solid rgba(47, 107, 79, 0.12);
@@ -3538,10 +3536,27 @@ main:has(.home-page) {
   flex: 0 0 auto;
 }
 
+.shop-toolbar-search,
 .shop-toolbar-category,
 .shop-toolbar-sort,
 .shop-toolbar-filter {
   position: relative;
+}
+
+.shop-search-popover {
+  width: min(280px, calc(100vw - 32px));
+  right: 0;
+  left: auto;
+}
+
+.shop-search-popover input[type='search'] {
+  width: 100%;
+  min-height: 38px;
+  border-radius: 8px;
+  border: 1px solid #d7e0da;
+  padding: 8px 10px;
+  font: inherit;
+  background: #fff;
 }
 
 .shop-search-bar {

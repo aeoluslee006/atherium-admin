@@ -34,10 +34,13 @@ export default function ShopCatalog({
   const [filterOpen, setFilterOpen] = useState(false);
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [favSet, setFavSet] = useState(() => new Set(favoriteIds));
   const filterRef = useRef(null);
   const categoryRef = useRef(null);
   const sortRef = useRef(null);
+  const searchRef = useRef(null);
+  const searchInputRef = useRef(null);
 
   const filtered = useMemo(
     () => filterShopItems(items, { category, sort, q, shipping, city }),
@@ -50,7 +53,7 @@ export default function ShopCatalog({
     SHOP_CATEGORIES.find((c) => c.id === category)?.label || '카테고리';
 
   useEffect(() => {
-    if (!filterOpen && !categoryOpen && !sortOpen) return undefined;
+    if (!filterOpen && !categoryOpen && !sortOpen && !searchOpen) return undefined;
     const onPointerDown = (event) => {
       if (filterOpen && filterRef.current && !filterRef.current.contains(event.target)) {
         setFilterOpen(false);
@@ -61,12 +64,16 @@ export default function ShopCatalog({
       if (sortOpen && sortRef.current && !sortRef.current.contains(event.target)) {
         setSortOpen(false);
       }
+      if (searchOpen && searchRef.current && !searchRef.current.contains(event.target)) {
+        setSearchOpen(false);
+      }
     };
     const onKeyDown = (event) => {
       if (event.key === 'Escape') {
         setFilterOpen(false);
         setCategoryOpen(false);
         setSortOpen(false);
+        setSearchOpen(false);
       }
     };
     document.addEventListener('mousedown', onPointerDown);
@@ -75,7 +82,13 @@ export default function ShopCatalog({
       document.removeEventListener('mousedown', onPointerDown);
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [filterOpen, categoryOpen, sortOpen]);
+  }, [filterOpen, categoryOpen, sortOpen, searchOpen]);
+
+  useEffect(() => {
+    if (!searchOpen) return undefined;
+    const t = window.setTimeout(() => searchInputRef.current?.focus(), 0);
+    return () => window.clearTimeout(t);
+  }, [searchOpen]);
 
   return (
     <div className="shop-catalog">
@@ -94,6 +107,59 @@ export default function ShopCatalog({
             )}
 
             <div className="shop-brand-actions">
+              <div className="shop-toolbar-search" ref={searchRef}>
+                <button
+                  type="button"
+                  className={`shop-icon-trigger${searchOpen || q ? ' is-active' : ''}`}
+                  aria-expanded={searchOpen}
+                  aria-haspopup="dialog"
+                  aria-label="검색"
+                  title="검색"
+                  onClick={() => {
+                    setSearchOpen((open) => !open);
+                    setCategoryOpen(false);
+                    setSortOpen(false);
+                    setFilterOpen(false);
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                    <path
+                      fill="currentColor"
+                      d="M10.5 3a7.5 7.5 0 0 1 5.95 12.1l4.22 4.23-1.41 1.41-4.23-4.22A7.5 7.5 0 1 1 10.5 3zm0 2a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z"
+                    />
+                  </svg>
+                  {q ? <span className="shop-filter-badge">1</span> : null}
+                </button>
+                {searchOpen ? (
+                  <div
+                    className="shop-filter-popover shop-search-popover"
+                    role="dialog"
+                    aria-label="상품 검색"
+                  >
+                    <label className="shop-toolbar-field">
+                      <span className="shop-toolbar-label">검색</span>
+                      <input
+                        ref={searchInputRef}
+                        type="search"
+                        value={q}
+                        onChange={(e) => setQ(e.target.value)}
+                        placeholder="상품명 · 판매자"
+                        aria-label="상품 검색"
+                      />
+                    </label>
+                    {q ? (
+                      <button
+                        type="button"
+                        className="shop-filter-clear"
+                        onClick={() => setQ('')}
+                      >
+                        지우기
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+
               <div className="shop-toolbar-category" ref={categoryRef}>
                 <button
                   type="button"
@@ -106,6 +172,7 @@ export default function ShopCatalog({
                     setCategoryOpen((open) => !open);
                     setFilterOpen(false);
                     setSortOpen(false);
+                    setSearchOpen(false);
                   }}
                 >
                   <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
@@ -158,6 +225,7 @@ export default function ShopCatalog({
                     setSortOpen((open) => !open);
                     setCategoryOpen(false);
                     setFilterOpen(false);
+                    setSearchOpen(false);
                   }}
                 >
                   <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
@@ -205,6 +273,7 @@ export default function ShopCatalog({
                     setFilterOpen((open) => !open);
                     setCategoryOpen(false);
                     setSortOpen(false);
+                    setSearchOpen(false);
                   }}
                 >
                   <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
@@ -268,23 +337,6 @@ export default function ShopCatalog({
               </p>
             </div>
           </div>
-
-          <label className="shop-search-bar">
-            <span className="sr-only">검색</span>
-            <input
-              type="search"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="상품명 · 판매자 검색"
-              aria-label="상품 검색"
-            />
-          </label>
-
-          {showBrandHeader ? (
-            <p className="shop-lead shop-lead--under">
-              승인된 사업자 판매자의 상품입니다. 판매자에게 직접 연락해 거래하세요.
-            </p>
-          ) : null}
         </div>
       ) : (
         <div className="shop-section-head">

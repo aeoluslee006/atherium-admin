@@ -3515,6 +3515,52 @@ main:has(.shop-page) {
   gap: 0;
 }
 
+/* Immersive shop: hide community header while /shop is open */
+body:has(.shop-shell) .site-header {
+  display: none;
+}
+
+.shop-shell-bar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom: 1px solid rgba(47, 107, 79, 0.12);
+  backdrop-filter: blur(8px);
+}
+
+.shop-shell-bar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.shop-shell-exit,
+.shop-shell-home {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--shop-leaf, #2f6b4f);
+}
+
+.shop-shell-exit {
+  color: var(--ink-soft, #667);
+  font-weight: 650;
+}
+
+.shop-shell-exit:hover,
+.shop-shell-home:hover {
+  color: var(--shop-leaf, #2f6b4f);
+  text-decoration: underline;
+}
+
 .shop-promo {
   position: relative;
   width: 100vw;
@@ -3531,16 +3577,45 @@ main:has(.shop-page) {
   animation: shop-promo-in 0.55s ease-out both;
 }
 
+.shop-promo-slide {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 0.7s ease;
+  pointer-events: none;
+}
+
+.shop-promo-slide.is-active {
+  opacity: 1;
+  z-index: 0;
+}
+
 .shop-promo-media {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background:
-    linear-gradient(105deg, rgba(20, 48, 34, 0.88) 0%, rgba(20, 48, 34, 0.55) 42%, rgba(20, 48, 34, 0.25) 100%),
-    url('https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=1800&q=80')
-      center / cover;
+  background-color: #143022;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
   transform: scale(1.04);
-  animation: shop-promo-ken 18s ease-in-out infinite alternate;
+}
+
+.shop-promo-slide.is-active .shop-promo-media {
+  animation: shop-promo-ken 12s ease-in-out infinite alternate;
+}
+
+.shop-promo-media::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    rgba(20, 48, 34, 0.88) 0%,
+    rgba(20, 48, 34, 0.55) 42%,
+    rgba(20, 48, 34, 0.25) 100%
+  );
 }
 
 .shop-promo-copy {
@@ -3548,8 +3623,35 @@ main:has(.shop-page) {
   z-index: 1;
   width: min(1120px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 36px 0 32px;
+  padding: 36px 0 40px;
   max-width: 36em;
+}
+
+.shop-promo-dots {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.shop-promo-dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  transition: transform 0.18s ease, background 0.18s ease, width 0.18s ease;
+}
+
+.shop-promo-dot.is-active {
+  width: 18px;
+  background: #fff;
 }
 
 .shop-promo-kicker {
@@ -4843,6 +4945,7 @@ main:has(.shop-page) {
 
   .shop-promo,
   .shop-promo-media,
+  .shop-promo-slide,
   .shop-promo-cta,
   .shop-cat-chip-icon {
     animation: none !important;

@@ -13,6 +13,7 @@ import {
   shopShippingLabel,
 } from '../lib/shopCatalog';
 import ProductFavoriteButton from './ProductFavoriteButton';
+import ShopPromoSlider from './ShopPromoSlider';
 
 function placeholderImage(seed) {
   return `https://images.unsplash.com/photo-1513885535751-8b9238bd345a?auto=format&fit=crop&w=800&q=80&sig=${encodeURIComponent(seed || 'shop')}`;
@@ -487,25 +488,11 @@ export default function ShopCatalog({
 
       {showBrandHeader ? (
         <>
-          <section className="shop-promo" aria-label="튤립가게 프로모션">
-            <div className="shop-promo-media" aria-hidden="true" />
-            <div className="shop-promo-copy">
-              <p className="shop-promo-kicker">Best of Tulip Town</p>
-              <h2 className="shop-promo-title">동네에서 고른 특별한 선물</h2>
-              <p className="shop-promo-lead">
-                승인된 판매자의 식품·잡화·생활용품을 한곳에서 둘러보세요.
-              </p>
-              <button
-                type="button"
-                className="shop-promo-cta"
-                onClick={() =>
-                  productsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                }
-              >
-                상품 둘러보기
-              </button>
-            </div>
-          </section>
+          <ShopPromoSlider
+            onBrowse={() =>
+              productsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            }
+          />
 
           <nav className="shop-cat-rail" aria-label="카테고리 바로가기">
             {SHOP_CATEGORIES.map((c) => {

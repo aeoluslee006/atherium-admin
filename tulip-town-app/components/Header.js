@@ -150,6 +150,11 @@ export default function Header() {
     router.refresh();
   }
 
+  // Immersive tulip shop: hide community chrome while browsing /shop
+  if (pathname === '/shop' || pathname.startsWith('/shop/')) {
+    return null;
+  }
+
   return (
     <header className="site-header">
       <div className="container">

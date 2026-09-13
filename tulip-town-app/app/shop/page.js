@@ -1,4 +1,5 @@
 import ShopCatalog from '../../components/ShopCatalog';
+import { loadFavoriteCountsByProductId } from '../../lib/shopFavoriteCounts';
 import { loadFavoriteProductIds } from '../../lib/shopFavorites';
 import { supabaseRest } from '../../lib/supabaseRest';
 
@@ -11,10 +12,10 @@ export const metadata = {
 
 async function loadShopProducts() {
   const selects = [
-    'products?select=id,title,description,price_cents,image_url,category,shipping_scope,created_at,sponsor:sponsors!inner(id,business_name,city,status,listing_type)&is_active=eq.true&sponsors.status=eq.approved&sponsors.listing_type=eq.shop&order=created_at.desc',
-    'products?select=id,title,description,price_cents,image_url,category,created_at,sponsor:sponsors!inner(id,business_name,city,status,listing_type)&is_active=eq.true&sponsors.status=eq.approved&sponsors.listing_type=eq.shop&order=created_at.desc',
-    'products?select=id,title,description,price_cents,image_url,created_at,sponsor:sponsors!inner(id,business_name,city,status,listing_type)&is_active=eq.true&sponsors.status=eq.approved&sponsors.listing_type=eq.shop&order=created_at.desc',
-    'products?select=id,title,description,price_cents,image_url,created_at,sponsor_id,sponsors(id,business_name,city,status,listing_type)&is_active=eq.true&order=created_at.desc',
+    'products?select=id,title,description,price_cents,image_url,category,shipping_scope,created_at,is_active,sponsor:sponsors!inner(id,business_name,city,status,listing_type)&is_active=eq.true&sponsors.status=eq.approved&sponsors.listing_type=eq.shop&order=created_at.desc',
+    'products?select=id,title,description,price_cents,image_url,category,created_at,is_active,sponsor:sponsors!inner(id,business_name,city,status,listing_type)&is_active=eq.true&sponsors.status=eq.approved&sponsors.listing_type=eq.shop&order=created_at.desc',
+    'products?select=id,title,description,price_cents,image_url,created_at,is_active,sponsor:sponsors!inner(id,business_name,city,status,listing_type)&is_active=eq.true&sponsors.status=eq.approved&sponsors.listing_type=eq.shop&order=created_at.desc',
+    'products?select=id,title,description,price_cents,image_url,created_at,is_active,sponsor_id,sponsors(id,business_name,city,status,listing_type)&is_active=eq.true&order=created_at.desc',
   ];
 
   for (const path of selects) {
@@ -33,7 +34,15 @@ async function loadShopProducts() {
 }
 
 export default async function ShopPage() {
-  const [items, favoriteIds] = await Promise.all([loadShopProducts(), loadFavoriteProductIds()]);
+  const [rawItems, favoriteIds] = await Promise.all([
+    loadShopProducts(),
+    loadFavoriteProductIds(),
+  ]);
+  const favoriteCounts = await loadFavoriteCountsByProductId(rawItems.map((item) => item.id));
+  const items = rawItems.map((item) => ({
+    ...item,
+    favorite_count: favoriteCounts[item.id] || 0,
+  }));
 
   return (
     <div className="shop-page shop-page--product-first shop-page--yami-home">

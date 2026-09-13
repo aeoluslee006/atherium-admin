@@ -132,3 +132,29 @@ export function productImageList(item) {
   }
   return [];
 }
+
+/** Distinct categories that actually appear on listed products (excludes `all`). */
+export function presentShopCategories(items = []) {
+  const counts = new Map();
+  for (const item of Array.isArray(items) ? items : []) {
+    const id = String(item?.category || 'other');
+    counts.set(id, (counts.get(id) || 0) + 1);
+  }
+  return SHOP_CATEGORIES.filter((c) => c.id !== 'all' && counts.has(c.id)).map((c) => ({
+    ...c,
+    count: counts.get(c.id) || 0,
+  }));
+}
+
+const NEW_PRODUCT_MS = 14 * 24 * 60 * 60 * 1000;
+
+export function isNewShopProduct(item, now = Date.now()) {
+  const created = Date.parse(item?.created_at || '');
+  if (!Number.isFinite(created)) return false;
+  return now - created <= NEW_PRODUCT_MS;
+}
+
+/** Popular when enough people have favorited (phase 8). */
+export function isPopularShopProduct(item, { minFavorites = 3 } = {}) {
+  return Number(item?.favorite_count || 0) >= minFavorites;
+}

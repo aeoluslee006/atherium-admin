@@ -3808,6 +3808,65 @@ body:has(.shop-shell) .site-header {
   text-align: center;
 }
 
+.shop-trust-line {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-soft, #667);
+}
+
+.shop-promo-tile-count {
+  margin: 6px 0 0;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--shop-leaf, #2f6b4f);
+}
+
+.shop-promo-page--count-1 {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 320px;
+}
+
+.shop-promo-page--count-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.shop-promo-page--count-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.shop-card-badges {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.shop-card-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  color: #fff;
+}
+
+.shop-card-badge--new {
+  background: #2f6b4f;
+}
+
+.shop-card-badge--hot {
+  background: #c45c3a;
+}
+
 .shop-promo-grid {
   margin: 0 0 22px;
 }

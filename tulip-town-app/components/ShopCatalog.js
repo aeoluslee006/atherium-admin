@@ -18,6 +18,128 @@ function placeholderImage(seed) {
   return `https://images.unsplash.com/photo-1513885535751-8b9238bd345a?auto=format&fit=crop&w=800&q=80&sig=${encodeURIComponent(seed || 'shop')}`;
 }
 
+const CATEGORY_ICONS = {
+  all: (
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M4 5h7a1 1 0 0 1 1 1v5H3V6a1 1 0 0 1 1-1zm9 0h7a1 1 0 0 1 1 1v5h-9V6a1 1 0 0 1 1-1zM3 13h9v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-5zm11 0h9v5a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1v-5z"
+      />
+    </svg>
+  ),
+  food: (
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M7 2h2v7a3 3 0 0 1-3 3v8H4v-8a3 3 0 0 1-3-3V2h2v7h1V2zm9.5 0c2.5 0 4.5 2.2 4.5 5v15h-2V14h-5v8h-2V7c0-2.8 2-5 4.5-5zm0 2C15.1 4 14 5.1 14 7v5h5V7c0-1.9-1.1-3-2.5-3z"
+      />
+    </svg>
+  ),
+  fashion: (
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M12 2 8.5 5.5 4 4l1 6.5L2 14l4 1v7h12v-7l4-1-3-3.5L20 4l-4.5 1.5L12 2zm0 3.2 2 1.8.8-.3.7 4.2 1.7 1.5-1.5.4V20H9v-7.2l-1.5-.4 1.7-1.5.7-4.2.8.3 2-1.8z"
+      />
+    </svg>
+  ),
+  home: (
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M12 3 3 10.2V21h6v-6h6v6h6V10.2L12 3zm0 2.4 7 5.5V19h-2v-6H7v6H5v-8.1l7-5.5z"
+      />
+    </svg>
+  ),
+  beauty: (
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M12 2c1.7 0 3 1.4 3 3.2 0 1.3-.7 2.4-1.7 3l.4 1.3H16l1 2h-2.2l.5 1.5A5.5 5.5 0 0 1 12 22a5.5 5.5 0 0 1-3.7-9.5L8.8 11H6.5l1-2h2.3l.4-1.3C9.2 7.6 8.5 6.5 8.5 5.2 8.5 3.4 9.8 2 11.5 2H12zm0 2h-.5c-.6 0-1 .5-1 1.2S11 6.4 11.5 6.4h1c.6 0 1-.5 1-1.2S13.1 4 12.5 4H12zm0 8.2A3.5 3.5 0 0 0 8.5 15.7 3.5 3.5 0 0 0 12 19.2a3.5 3.5 0 0 0 3.5-3.5A3.5 3.5 0 0 0 12 12.2z"
+      />
+    </svg>
+  ),
+  kids: (
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M12 3a4 4 0 0 1 4 4v1.1A5 5 0 0 1 17 18H7a5 5 0 0 1 1-9.9V7a4 4 0 0 1 4-4zm0 2a2 2 0 0 0-2 2v1.1c.6-.1 1.3-.1 2-.1s1.4 0 2 .1V7a2 2 0 0 0-2-2zM9 13a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm6 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"
+      />
+    </svg>
+  ),
+  other: (
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M12 2 3 7v10l9 5 9-5V7l-9-5zm0 2.2 6.5 3.6L12 11.5 5.5 7.8 12 4.2zM5 9.5l6 3.3v6.9l-6-3.3V9.5zm8 10.2v-6.9l6-3.3v6.9l-6 3.3z"
+      />
+    </svg>
+  ),
+};
+
+function ProductCard({
+  item,
+  showSellerLink,
+  favSet,
+  setFavSet,
+  compact = false,
+}) {
+  const seller = item.sponsor || item.sponsors;
+  const thumb = productImageList(item)[0] || placeholderImage(item.id);
+  const isSold = item.is_active === false;
+
+  return (
+    <article className={`shop-card${isSold ? ' is-sold' : ''}${compact ? ' shop-card--rail' : ''}`}>
+      <div className="shop-card-media-wrap">
+        <Link href={`/shop/${item.id}`} className="shop-card-media-link">
+          <div className="shop-card-media">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={thumb} alt="" loading="lazy" />
+          </div>
+          {isSold ? <span className="shop-card-sold-badge">판매완료</span> : null}
+        </Link>
+        <ProductFavoriteButton
+          productId={item.id}
+          initialFavorited={favSet.has(item.id)}
+          className="shop-fav-btn--card"
+          onChange={(next) => {
+            setFavSet((prev) => {
+              const copy = new Set(prev);
+              if (next) copy.add(item.id);
+              else copy.delete(item.id);
+              return copy;
+            });
+          }}
+        />
+      </div>
+      <div className="shop-card-body">
+        <div className="shop-card-price">{formatPriceCents(item.price_cents)}</div>
+        <Link href={`/shop/${item.id}`} className="shop-card-title">
+          {item.title}
+        </Link>
+        {!compact ? (
+          <div className="shop-card-meta shop-card-meta--row">
+            {showSellerLink && seller?.id && seller?.business_name ? (
+              <Link href={`/shop/seller/${seller.id}`} className="shop-card-seller">
+                {seller.business_name}
+              </Link>
+            ) : (
+              <span>{seller?.business_name || (showSellerLink ? '판매자' : '')}</span>
+            )}
+            {seller?.city || item.shipping_scope ? (
+              <span className="shop-card-shipping">
+                {[seller?.city, shopShippingLabel(item.shipping_scope)]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    </article>
+  );
+}
+
 export default function ShopCatalog({
   items = [],
   sectionTitle = '상품',
@@ -41,11 +163,24 @@ export default function ShopCatalog({
   const sortRef = useRef(null);
   const searchRef = useRef(null);
   const searchInputRef = useRef(null);
+  const productsRef = useRef(null);
 
   const filtered = useMemo(
     () => filterShopItems(items, { category, sort, q, shipping, city }),
     [items, category, sort, q, shipping, city]
   );
+
+  const newestItems = useMemo(
+    () => filterShopItems(items, { category: 'all', sort: 'newest' }).slice(0, 8),
+    [items]
+  );
+
+  const browsingHome =
+    showBrandHeader &&
+    category === 'all' &&
+    !q.trim() &&
+    shipping === 'all' &&
+    city === 'all';
 
   const extraFilterCount = (shipping !== 'all' ? 1 : 0) + (city !== 'all' ? 1 : 0);
   const categoryActive = category !== 'all';
@@ -90,8 +225,16 @@ export default function ShopCatalog({
     return () => window.clearTimeout(t);
   }, [searchOpen]);
 
+  function selectCategory(nextId) {
+    setCategory(nextId);
+    setCategoryOpen(false);
+    window.requestAnimationFrame(() => {
+      productsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
   return (
-    <div className="shop-catalog">
+    <div className={`shop-catalog${showBrandHeader ? ' shop-catalog--home' : ''}`}>
       {showToolbar ? (
         <div className="shop-topbar">
           <div className="shop-brand-row">
@@ -199,10 +342,7 @@ export default function ShopCatalog({
                             role="option"
                             aria-selected={selected}
                             className={`shop-category-option${selected ? ' is-selected' : ''}`}
-                            onClick={() => {
-                              setCategory(c.id);
-                              setCategoryOpen(false);
-                            }}
+                            onClick={() => selectCategory(c.id)}
                           >
                             {c.label}
                           </button>
@@ -345,81 +485,113 @@ export default function ShopCatalog({
         </div>
       )}
 
-      {filtered.length ? (
-        <div className="shop-grid">
-          {filtered.map((item) => {
-            const seller = item.sponsor || item.sponsors;
-            const thumb = productImageList(item)[0] || placeholderImage(item.id);
-            const isSold = item.is_active === false;
-            return (
-              <article key={item.id} className={`shop-card${isSold ? ' is-sold' : ''}`}>
-                <div className="shop-card-media-wrap">
-                  <Link href={`/shop/${item.id}`} className="shop-card-media-link">
-                    <div className="shop-card-media">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={thumb} alt="" loading="lazy" />
-                    </div>
-                    {isSold ? <span className="shop-card-sold-badge">판매완료</span> : null}
-                  </Link>
-                  <ProductFavoriteButton
-                    productId={item.id}
-                    initialFavorited={favSet.has(item.id)}
-                    className="shop-fav-btn--card"
-                    onChange={(next) => {
-                      setFavSet((prev) => {
-                        const copy = new Set(prev);
-                        if (next) copy.add(item.id);
-                        else copy.delete(item.id);
-                        return copy;
-                      });
-                    }}
+      {showBrandHeader ? (
+        <>
+          <section className="shop-promo" aria-label="튤립가게 프로모션">
+            <div className="shop-promo-media" aria-hidden="true" />
+            <div className="shop-promo-copy">
+              <p className="shop-promo-kicker">Best of Tulip Town</p>
+              <h2 className="shop-promo-title">동네에서 고른 특별한 선물</h2>
+              <p className="shop-promo-lead">
+                승인된 판매자의 식품·잡화·생활용품을 한곳에서 둘러보세요.
+              </p>
+              <button
+                type="button"
+                className="shop-promo-cta"
+                onClick={() =>
+                  productsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                }
+              >
+                상품 둘러보기
+              </button>
+            </div>
+          </section>
+
+          <nav className="shop-cat-rail" aria-label="카테고리 바로가기">
+            {SHOP_CATEGORIES.map((c) => {
+              const selected = category === c.id;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  className={`shop-cat-chip${selected ? ' is-selected' : ''}`}
+                  aria-pressed={selected}
+                  onClick={() => selectCategory(c.id)}
+                >
+                  <span className="shop-cat-chip-icon">{CATEGORY_ICONS[c.id] || CATEGORY_ICONS.other}</span>
+                  <span className="shop-cat-chip-label">{c.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+
+          {browsingHome && newestItems.length > 0 ? (
+            <section className="shop-rail-section" aria-labelledby="shop-newest-heading">
+              <div className="shop-section-head">
+                <h2 id="shop-newest-heading" className="shop-section-title">
+                  새로 들어왔어요
+                </h2>
+                <p className="shop-section-desc">최신 등록</p>
+              </div>
+              <div className="shop-rail">
+                {newestItems.map((item) => (
+                  <ProductCard
+                    key={`new-${item.id}`}
+                    item={item}
+                    showSellerLink={showSellerLink}
+                    favSet={favSet}
+                    setFavSet={setFavSet}
+                    compact
                   />
-                </div>
-                <div className="shop-card-body">
-                  <div className="shop-card-price">{formatPriceCents(item.price_cents)}</div>
-                  <Link href={`/shop/${item.id}`} className="shop-card-title">
-                    {item.title}
-                  </Link>
-                  <div className="shop-card-meta shop-card-meta--row">
-                    {showSellerLink && seller?.id && seller?.business_name ? (
-                      <Link href={`/shop/seller/${seller.id}`} className="shop-card-seller">
-                        {seller.business_name}
-                      </Link>
-                    ) : (
-                      <span>{seller?.business_name || (showSellerLink ? '판매자' : '')}</span>
-                    )}
-                    {seller?.city || item.shipping_scope ? (
-                      <span className="shop-card-shipping">
-                        {[seller?.city, shopShippingLabel(item.shipping_scope)]
-                          .filter(Boolean)
-                          .join(' · ')}
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="card empty-state shop-empty">
-          {items.length ? (
-            <p>검색 조건에 맞는 상품이 없습니다.</p>
-          ) : (
-            <>
-              <p>아직 등록된 상품이 없습니다.</p>
-              {showSellerLink ? (
-                <p className="hint-text" style={{ marginTop: 10 }}>
-                  판매자이신가요?{' '}
-                  <Link href="/mypage/shop" className="shop-seller-link">
-                    마이페이지에서 입점하기
-                  </Link>
-                </p>
-              ) : null}
-            </>
-          )}
-        </div>
-      )}
+                ))}
+              </div>
+            </section>
+          ) : null}
+        </>
+      ) : null}
+
+      <div ref={productsRef} id="shop-products" className="shop-products-anchor">
+        {showBrandHeader ? (
+          <div className="shop-section-head">
+            <h2 className="shop-section-title">
+              {categoryActive ? categoryLabel : '전체 상품'}
+            </h2>
+            <p className="shop-section-desc">{filtered.length}개</p>
+          </div>
+        ) : null}
+
+        {filtered.length ? (
+          <div className="shop-grid">
+            {filtered.map((item) => (
+              <ProductCard
+                key={item.id}
+                item={item}
+                showSellerLink={showSellerLink}
+                favSet={favSet}
+                setFavSet={setFavSet}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="card empty-state shop-empty">
+            {items.length ? (
+              <p>검색 조건에 맞는 상품이 없습니다.</p>
+            ) : (
+              <>
+                <p>아직 등록된 상품이 없습니다.</p>
+                {showSellerLink ? (
+                  <p className="hint-text" style={{ marginTop: 10 }}>
+                    판매자이신가요?{' '}
+                    <Link href="/mypage/shop" className="shop-seller-link">
+                      마이페이지에서 입점하기
+                    </Link>
+                  </p>
+                ) : null}
+              </>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

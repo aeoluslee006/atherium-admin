@@ -36,7 +36,7 @@ export default async function ShopPage() {
   const [items, favoriteIds] = await Promise.all([loadShopProducts(), loadFavoriteProductIds()]);
 
   return (
-    <div className="shop-page shop-page--product-first">
+    <div className="shop-page shop-page--product-first shop-page--yami-home">
       <div className="container shop-top" id="shop-grid">
         <ShopCatalog items={items} favoriteIds={favoriteIds} showBrandHeader />
       </div>

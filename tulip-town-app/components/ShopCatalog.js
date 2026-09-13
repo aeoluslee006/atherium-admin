@@ -62,19 +62,19 @@ export default function ShopCatalog({
   return (
     <div className="shop-catalog">
       {showToolbar ? (
-        <div className="shop-toolbar" role="search">
+        <div className="shop-toolbar shop-toolbar--slim" role="search">
           <label className="shop-toolbar-field shop-toolbar-field--search">
-            <span className="shop-toolbar-label">검색</span>
+            <span className="sr-only">검색</span>
             <input
               type="search"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="상품명 · 판매자"
+              placeholder="상품명 · 판매자 검색"
               aria-label="상품 검색"
             />
           </label>
           <label className="shop-toolbar-field">
-            <span className="shop-toolbar-label">카테고리</span>
+            <span className="sr-only">카테고리</span>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
@@ -88,7 +88,7 @@ export default function ShopCatalog({
             </select>
           </label>
           <label className="shop-toolbar-field">
-            <span className="shop-toolbar-label">정렬</span>
+            <span className="sr-only">정렬</span>
             <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="정렬">
               {SHOP_SORTS.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -99,7 +99,6 @@ export default function ShopCatalog({
           </label>
 
           <div className="shop-toolbar-filter" ref={filterRef}>
-            <span className="shop-toolbar-label">추가</span>
             <button
               type="button"
               className={`shop-filter-trigger${extraFilterCount ? ' is-active' : ''}`}
@@ -107,7 +106,6 @@ export default function ShopCatalog({
               aria-haspopup="dialog"
               onClick={() => setFilterOpen((open) => !open)}
             >
-              <span aria-hidden="true">▾</span>
               필터
               {extraFilterCount ? (
                 <span className="shop-filter-badge">{extraFilterCount}</span>
@@ -155,13 +153,17 @@ export default function ShopCatalog({
               </div>
             ) : null}
           </div>
-        </div>
-      ) : null}
 
-      <div className="shop-section-head">
-        <h2 className="shop-section-title">{sectionTitle}</h2>
-        <p className="shop-section-desc">{filtered.length}개</p>
-      </div>
+          <p className="shop-toolbar-count" aria-live="polite">
+            {filtered.length}개
+          </p>
+        </div>
+      ) : (
+        <div className="shop-section-head">
+          <h2 className="shop-section-title">{sectionTitle}</h2>
+          <p className="shop-section-desc">{filtered.length}개</p>
+        </div>
+      )}
 
       {filtered.length ? (
         <div className="shop-grid">
@@ -194,26 +196,26 @@ export default function ShopCatalog({
                   />
                 </div>
                 <div className="shop-card-body">
+                  <div className="shop-card-price">{formatPriceCents(item.price_cents)}</div>
                   <Link href={`/shop/${item.id}`} className="shop-card-title">
                     {item.title}
                   </Link>
-                  {showSellerLink && seller?.id && seller?.business_name ? (
-                    <Link
-                      href={`/shop/seller/${seller.id}`}
-                      className="shop-card-meta shop-card-seller"
-                    >
-                      {seller.business_name}
-                    </Link>
-                  ) : seller?.business_name ? (
-                    <div className="shop-card-meta">{seller.business_name}</div>
-                  ) : showSellerLink ? (
-                    <div className="shop-card-meta">판매자</div>
-                  ) : null}
-                  <div className="shop-card-meta shop-card-shipping">
-                    {shopShippingLabel(item.shipping_scope)}
-                    {seller?.city ? ` · ${seller.city}` : ''}
+                  <div className="shop-card-meta shop-card-meta--row">
+                    {showSellerLink && seller?.id && seller?.business_name ? (
+                      <Link href={`/shop/seller/${seller.id}`} className="shop-card-seller">
+                        {seller.business_name}
+                      </Link>
+                    ) : (
+                      <span>{seller?.business_name || (showSellerLink ? '판매자' : '')}</span>
+                    )}
+                    {seller?.city || item.shipping_scope ? (
+                      <span className="shop-card-shipping">
+                        {[seller?.city, shopShippingLabel(item.shipping_scope)]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </span>
+                    ) : null}
                   </div>
-                  <div className="shop-card-price">{formatPriceCents(item.price_cents)}</div>
                 </div>
               </article>
             );

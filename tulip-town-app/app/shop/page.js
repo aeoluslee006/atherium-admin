@@ -36,18 +36,18 @@ export default async function ShopPage() {
   const [items, favoriteIds] = await Promise.all([loadShopProducts(), loadFavoriteProductIds()]);
 
   return (
-    <div className="shop-page">
-      <section className="shop-hero shop-hero--compact">
-        <div className="container shop-hero-inner">
-          <p className="shop-kicker">Tulip Town Marketplace</p>
-          <h1 className="shop-brand">튤립가게</h1>
+    <div className="shop-page shop-page--product-first">
+      <div className="container shop-top" id="shop-grid">
+        <header className="shop-page-head">
+          <div className="shop-page-head-text">
+            <p className="shop-kicker">Tulip Town Marketplace</p>
+            <h1 className="shop-brand">튤립가게</h1>
+          </div>
           <p className="shop-lead">
             승인된 사업자 판매자의 상품입니다. 판매자에게 직접 연락해 거래하세요.
           </p>
-        </div>
-      </section>
+        </header>
 
-      <div className="container" id="shop-grid">
         <ShopCatalog items={items} favoriteIds={favoriteIds} />
       </div>
     </div>

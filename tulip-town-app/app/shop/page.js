@@ -1,4 +1,5 @@
 import ShopCatalog from '../../components/ShopCatalog';
+import { loadFavoriteProductIds } from '../../lib/shopFavorites';
 import { supabaseRest } from '../../lib/supabaseRest';
 
 export const dynamic = 'force-dynamic';
@@ -32,7 +33,7 @@ async function loadShopProducts() {
 }
 
 export default async function ShopPage() {
-  const items = await loadShopProducts();
+  const [items, favoriteIds] = await Promise.all([loadShopProducts(), loadFavoriteProductIds()]);
 
   return (
     <div className="shop-page">
@@ -51,7 +52,7 @@ export default async function ShopPage() {
       </section>
 
       <div className="container" id="shop-grid">
-        <ShopCatalog items={items} />
+        <ShopCatalog items={items} favoriteIds={favoriteIds} />
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import MemberTierBadge from '../../components/MemberTierBadge';
 import MyPageAccountPanel from '../../components/MyPageAccountPanel';
 import MyPageAdminContact from '../../components/MyPageAdminContact';
+import ShopCatalog from '../../components/ShopCatalog';
 import { CATEGORIES } from '../../lib/categories';
 import {
   PRODUCT_LABELS,
@@ -17,6 +18,7 @@ import {
   SELLER_STATUS_LABEL,
   hasActiveShopSubscription,
 } from '../../lib/sellerConstants';
+import { loadFavoriteProducts } from '../../lib/shopFavorites';
 import { createServerSupabase } from '../../lib/supabaseServer';
 
 export const dynamic = 'force-dynamic';
@@ -179,6 +181,9 @@ export default async function MyPage() {
   const showShopManage =
     Boolean(shopSponsor) || hasActiveShopSubscription(subscriptions);
 
+  const favoriteProducts = await loadFavoriteProducts();
+  const favoriteIds = favoriteProducts.map((item) => item.id);
+
   return (
     <div className="container mypage">
       <header className="mypage-hero">
@@ -199,6 +204,30 @@ export default async function MyPage() {
       />
 
       <MyPageAdminContact />
+
+      <section className="mypage-section card" aria-labelledby="mypage-favorites-title">
+        <div className="mypage-section-head">
+          <h2 id="mypage-favorites-title">찜한 상품</h2>
+          <span className="mypage-count">{favoriteProducts.length}개</span>
+        </div>
+        {favoriteProducts.length ? (
+          <div className="mypage-favorites">
+            <ShopCatalog
+              items={favoriteProducts}
+              sectionTitle="찜 목록"
+              showToolbar={false}
+              favoriteIds={favoriteIds}
+            />
+          </div>
+        ) : (
+          <div className="mypage-empty">
+            <p>찜한 상품이 없습니다.</p>
+            <Link href="/shop" className="btn btn-outline">
+              튤립가게 둘러보기
+            </Link>
+          </div>
+        )}
+      </section>
 
       <section className="mypage-section card" aria-labelledby="mypage-shop-title">
         <div className="mypage-section-head">

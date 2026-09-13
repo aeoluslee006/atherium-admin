@@ -1,26 +1,105 @@
 import React, { useEffect, useState } from 'react'
+import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
 import Topbar from './components/Topbar'
+import StickersPanel from './components/StickersPanel'
+import { usePharmaNotes } from './hooks/usePharmaNotes'
 import Dashboard from './pages/Dashboard'
 import Customers from './pages/Customers'
 import Reports from './pages/Reports'
+import CalendarPage from './pages/CalendarPage'
+import CommunitySites from './pages/CommunitySites'
 import TtkcAdmin from './pages/TtkcAdmin'
 import Login from './pages/Login'
+import { useIdleLogout } from './hooks/useIdleLogout'
+import { isOtpPending, setOtpPending } from './lib/otpGate'
 import { supabase } from './lib/supabase'
 
+function AdminLayout({ userEmail, onSignOut }) {
+  const location = useLocation()
+  const [stickersOpen, setStickersOpen] = useState(false)
+  const sticker = usePharmaNotes()
+  const pathPage = location.pathname.replace(/^\//, '') || 'dashboard'
+  const activePage = ['dashboard', 'customers', 'reports', 'community', 'ttkc'].includes(pathPage)
+    ? pathPage
+    : 'dashboard'
+
+  const stickerPanelProps = {
+    notes: sticker.notes,
+    noteColor: sticker.noteColor,
+    setNoteColor: sticker.setNoteColor,
+    onAdd: sticker.addNote,
+    onDelete: sticker.deleteNote,
+    onUpdateContent: sticker.updateNoteContent,
+    boardRef: sticker.boardRef,
+    onMouseDown: sticker.onMouseDown,
+    onResizeMouseDown: sticker.onResizeMouseDown,
+    onMouseMove: sticker.onMouseMove,
+    onMouseUp: sticker.onMouseUp,
+    dragging: sticker.dragging,
+    resizing: sticker.resizing,
+  }
+
+  return (
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+      <Sidebar activePage={activePage} userEmail={userEmail} />
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Topbar
+          activePage={activePage}
+          userEmail={userEmail}
+          onSignOut={onSignOut}
+          stickersOpen={stickersOpen}
+          onToggleStickers={() => setStickersOpen(o => !o)}
+        />
+        <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
+          <main style={{ flex: 1, overflowY: 'auto', padding: 24, minWidth: 0 }}>
+            <Outlet />
+          </main>
+          {stickersOpen && (
+            <StickersPanel {...stickerPanelProps} width={320} title="📌 Stickers" constrainBoard />
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function AuthenticatedRoutes({ userEmail, onSignOut }) {
+  const navigate = useNavigate()
+
+  return (
+    <Routes>
+      <Route path="/calendar" element={<CalendarPage userEmail={userEmail} />} />
+      <Route path="/stickers" element={<CalendarPage userEmail={userEmail} />} />
+      <Route element={<AdminLayout userEmail={userEmail} onSignOut={onSignOut} />}>
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/customers" element={<Customers />} />
+        <Route path="/reports" element={<Reports />} />
+        <Route path="/community" element={<CommunitySites onOpenAdmin={(page) => navigate(`/${page}`)} />} />
+        <Route path="/ttkc" element={<TtkcAdmin />} />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
+  )
+}
+
 export default function App() {
-  const [activePage, setActivePage] = useState('dashboard')
   const [session, setSession] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
+  const [idleTimedOut, setIdleTimedOut] = useState(false)
 
   useEffect(() => {
     let alive = true
     supabase.auth.getSession().then(({ data }) => {
       if (!alive) return
-      setSession(data.session)
+      setSession(isOtpPending() ? null : data.session)
       setAuthLoading(false)
     })
     const { data: sub } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (isOtpPending() && nextSession) {
+        return
+      }
       setSession(nextSession)
       setAuthLoading(false)
     })
@@ -31,9 +110,15 @@ export default function App() {
   }, [])
 
   const handleSignOut = async () => {
+    setOtpPending(false)
     await supabase.auth.signOut()
     setSession(null)
   }
+
+  useIdleLogout(!!session, async () => {
+    setIdleTimedOut(true)
+    await handleSignOut()
+  }, 20 * 60 * 1000)
 
   if (authLoading) {
     return (
@@ -44,32 +129,19 @@ export default function App() {
   }
 
   if (!session) {
-    return <Login onSignedIn={setSession} />
-  }
-
-  const pages = {
-    dashboard: <Dashboard />,
-    customers: <Customers />,
-    reports: <Reports />,
-    ttkc: <TtkcAdmin />,
+    return (
+      <Login
+        onSignedIn={(next) => {
+          setIdleTimedOut(false)
+          setOtpPending(false)
+          setSession(next)
+        }}
+        timedOut={idleTimedOut}
+      />
+    )
   }
 
   const userEmail = session.user?.email || 'Admin'
 
-  return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-      <Sidebar activePage={activePage} setActivePage={setActivePage} userEmail={userEmail} onSignOut={handleSignOut} />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar
-          activePage={activePage}
-          userEmail={userEmail}
-          onSignOut={handleSignOut}
-          onNavigate={setActivePage}
-        />
-        <main style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
-          {pages[activePage] || <Dashboard />}
-        </main>
-      </div>
-    </div>
-  )
+  return <AuthenticatedRoutes userEmail={userEmail} onSignOut={handleSignOut} />
 }

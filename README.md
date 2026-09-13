@@ -21,6 +21,15 @@ npm run dev
 2. In [Supabase SQL Editor](https://supabase.com/dashboard/project/hgsuzanclpnzlskttkok/sql/new), run:
    `supabase/migrations/20260602120000_atherium_customers.sql`
 3. Create an admin user in **Authentication → Users** (email/password) for login.
+4. **Email OTP (2FA)** — Login uses password then a 6-digit email code (`signInWithOtp` + `verifyOtp`).
+   Open **Authentication → Email Templates → Magic Link** and make sure the body includes `{{ .Token }}`.
+   Link-only templates will not show a code. Recommended body:
+
+   ```html
+   <h2>ATHERIUM security code</h2>
+   <p>Your one-time code is: <strong>{{ .Token }}</strong></p>
+   <p>This code expires shortly. If you did not request it, ignore this email.</p>
+   ```
 
 ## Deploy to Vercel
 

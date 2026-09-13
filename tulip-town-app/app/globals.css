@@ -5575,7 +5575,8 @@ main:has(.home-page) {
   max-width: 100%;
   min-width: 0;
   min-height: 0;
-  object-fit: cover;
+  /* Stretch to slot edges so nothing is cropped, even if aspect ratios differ */
+  object-fit: fill;
   object-position: center;
   display: block;
   background: #1a1a1a;
@@ -5878,7 +5879,7 @@ main:has(.home-page) {
 .dir-ad-slider .dir-ad-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: fill;
   object-position: center;
   display: block;
   background: #1a1a1a;

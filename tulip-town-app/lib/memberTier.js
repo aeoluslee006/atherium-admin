@@ -114,6 +114,24 @@ export function formatJoinedDate(value) {
   }
 }
 
+/** Whole months since profiles.created_at (for seller trust line). */
+export function membershipMonthsFrom(createdAt) {
+  if (!createdAt) return null;
+  const start = new Date(createdAt);
+  if (Number.isNaN(start.getTime())) return null;
+  const now = new Date();
+  let months =
+    (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+  if (now.getDate() < start.getDate()) months -= 1;
+  return Math.max(0, months);
+}
+
+export function formatMembershipMonths(createdAt) {
+  const months = membershipMonthsFrom(createdAt);
+  if (months == null) return null;
+  return `가입 ${months}개월`;
+}
+
 export function formatDateTime(value) {
   if (!value) return '—';
   try {

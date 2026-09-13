@@ -1,9 +1,15 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import MemberTierBadge from '../../../components/MemberTierBadge';
+import ShopDetailGallery from '../../../components/ShopDetailGallery';
+import {
+  TIER,
+  formatMembershipMonths,
+  getTierMeta,
+} from '../../../lib/memberTier';
 import { formatPriceCents } from '../../../lib/sellerConstants';
 import { productImageList, shopCategoryLabel } from '../../../lib/shopCatalog';
 import { supabaseRest } from '../../../lib/supabaseRest';
-import ShopDetailGallery from '../../../components/ShopDetailGallery';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,10 +19,10 @@ function placeholderImage(seed) {
 
 async function loadProduct(id) {
   const selects = [
-    `products?select=id,title,description,price_cents,image_url,image_urls,category,created_at,is_active,sponsor_id,sponsors(id,business_name,city,status,listing_type,contact,description)&id=eq.${encodeURIComponent(id)}&is_active=eq.true&limit=1`,
-    `products?select=id,title,description,price_cents,image_url,category,created_at,is_active,sponsor_id,sponsors(id,business_name,city,status,listing_type,contact,description)&id=eq.${encodeURIComponent(id)}&is_active=eq.true&limit=1`,
-    `products?select=id,title,description,price_cents,image_url,created_at,is_active,sponsor_id,sponsors(id,business_name,city,status,listing_type,contact)&id=eq.${encodeURIComponent(id)}&is_active=eq.true&limit=1`,
-    `products?select=id,title,description,price_cents,image_url,created_at,is_active,sponsor_id,sponsors(id,business_name,city,status,listing_type)&id=eq.${encodeURIComponent(id)}&is_active=eq.true&limit=1`,
+    `products?select=id,title,description,price_cents,image_url,image_urls,category,created_at,is_active,sponsor_id,sponsors(id,business_name,city,status,listing_type,contact,description,submitted_by)&id=eq.${encodeURIComponent(id)}&is_active=eq.true&limit=1`,
+    `products?select=id,title,description,price_cents,image_url,category,created_at,is_active,sponsor_id,sponsors(id,business_name,city,status,listing_type,contact,description,submitted_by)&id=eq.${encodeURIComponent(id)}&is_active=eq.true&limit=1`,
+    `products?select=id,title,description,price_cents,image_url,created_at,is_active,sponsor_id,sponsors(id,business_name,city,status,listing_type,contact,submitted_by)&id=eq.${encodeURIComponent(id)}&is_active=eq.true&limit=1`,
+    `products?select=id,title,description,price_cents,image_url,created_at,is_active,sponsor_id,sponsors(id,business_name,city,status,listing_type,submitted_by)&id=eq.${encodeURIComponent(id)}&is_active=eq.true&limit=1`,
   ];
 
   for (const path of selects) {
@@ -34,6 +40,41 @@ async function loadProduct(id) {
   return null;
 }
 
+async function loadSellerTrust(seller) {
+  const profileId = seller?.submitted_by;
+  if (!profileId) {
+    return { tier: TIER.BRONZE, tenureLabel: null };
+  }
+
+  let tier = TIER.BRONZE;
+  let createdAt = null;
+
+  try {
+    const rows = await supabaseRest(
+      `member_tier_view?select=profile_id,tier&profile_id=eq.${encodeURIComponent(profileId)}&limit=1`
+    );
+    if (Array.isArray(rows) && rows[0]?.tier) {
+      tier = rows[0].tier;
+    }
+  } catch {
+    // fall back to bronze
+  }
+
+  try {
+    const rows = await supabaseRest(
+      `profiles?select=id,created_at&id=eq.${encodeURIComponent(profileId)}&limit=1`
+    );
+    createdAt = Array.isArray(rows) ? rows[0]?.created_at || null : null;
+  } catch {
+    // tenure optional
+  }
+
+  return {
+    tier,
+    tenureLabel: formatMembershipMonths(createdAt),
+  };
+}
+
 export async function generateMetadata({ params }) {
   const item = await loadProduct(params.id);
   if (!item) return { title: '튤립가게' };
@@ -49,6 +90,8 @@ export default async function ShopDetailPage({ params }) {
 
   const images = productImageList(item);
   const gallery = images.length ? images : [placeholderImage(item.id)];
+  const sellerTrust = await loadSellerTrust(item.seller);
+  const tierMeta = getTierMeta(sellerTrust.tier);
 
   return (
     <div className="container shop-detail">
@@ -60,7 +103,7 @@ export default async function ShopDetailPage({ params }) {
 
       <div className="shop-detail-grid">
         <ShopDetailGallery images={gallery} title={item.title} />
-        <div className="shop-detail-info">
+        <div>
           <div className="shop-detail-price">{formatPriceCents(item.price_cents)}</div>
           <h1 className="shop-detail-title">{item.title}</h1>
           <div className="shop-detail-meta">
@@ -71,6 +114,15 @@ export default async function ShopDetailPage({ params }) {
             {item.seller.city ? ` · ${item.seller.city}` : ''}
             {item.category ? ` · ${shopCategoryLabel(item.category)}` : ''}
           </div>
+
+          <div className="shop-seller-trust" aria-label="판매자 등급">
+            <MemberTierBadge tier={sellerTrust.tier} />
+            <span className="shop-seller-trust-text">
+              {tierMeta.labelKo} 등급
+              {sellerTrust.tenureLabel ? ` · ${sellerTrust.tenureLabel}` : ''}
+            </span>
+          </div>
+
           <p className="shop-detail-desc">{item.description || '설명이 없습니다.'}</p>
 
           <div className="shop-contact-box">
@@ -91,6 +143,9 @@ export default async function ShopDetailPage({ params }) {
             </Link>
             <p className="hint-text" style={{ marginTop: 8 }}>
               앱에서 결제하지 않습니다. 판매자와 직접 거래하세요.
+            </p>
+            <p className="shop-safety-note">
+              안전한 거래를 위해 공공장소에서 만나 직접 확인 후 거래하시길 권장합니다.
             </p>
           </div>
         </div>

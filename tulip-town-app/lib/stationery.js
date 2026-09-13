@@ -95,17 +95,11 @@ export function isValidStationeryId(id) {
   return STATIONERY_OPTIONS.some((s) => s.id === id) || Boolean(LEGACY_STATIONERY_MAP[id]);
 }
 
-export function stationeryClassName(id) {
-  const s = getStationeryById(id);
-  return `letter-paper letter-paper--svg letter-paper--${s.id}`;
+export function stationeryClassName(_id) {
+  // 노트/편지지 배경은 더 이상 표시하지 않음
+  return '';
 }
 
-export function stationeryBackgroundStyle(id) {
-  const s = getStationeryById(id);
-  return {
-    backgroundImage: `url('${s.file}')`,
-    backgroundSize: 'contain',
-    backgroundPosition: 'top center',
-    backgroundRepeat: 'no-repeat',
-  };
+export function stationeryBackgroundStyle(_id) {
+  return null;
 }

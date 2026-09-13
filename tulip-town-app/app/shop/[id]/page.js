@@ -4,6 +4,7 @@ import MemberTierBadge from '../../../components/MemberTierBadge';
 import ProductFavoriteButton from '../../../components/ProductFavoriteButton';
 import ProductReviewSection from '../../../components/ProductReviewSection';
 import ShopDetailGallery from '../../../components/ShopDetailGallery';
+import ShopPaymentLinkButton from '../../../components/ShopPaymentLinkButton';
 import { getTierMeta } from '../../../lib/memberTier';
 import { formatPriceCents } from '../../../lib/sellerConstants';
 import { productImageList, shopCategoryLabel } from '../../../lib/shopCatalog';
@@ -21,8 +22,19 @@ function placeholderImage(seed) {
   return `https://images.unsplash.com/photo-1513885535751-8b9238bd345a?auto=format&fit=crop&w=1200&q=80&sig=${encodeURIComponent(seed || 'shop')}`;
 }
 
+function contactActionHref(contact) {
+  const raw = String(contact || '').trim();
+  if (!raw) return '#shop-seller-contact';
+  const emailMatch = raw.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+  if (emailMatch) return `mailto:${emailMatch[0]}`;
+  const digits = raw.replace(/[^\d+]/g, '');
+  if (digits.replace(/\D/g, '').length >= 7) return `tel:${digits}`;
+  return '#shop-seller-contact';
+}
+
 async function loadProduct(id) {
   const selects = [
+    `products?select=id,title,description,price_cents,image_url,image_urls,category,shipping_scope,payment_link,created_at,is_active,sponsor_id,sponsors(id,business_name,city,status,listing_type,contact,description,submitted_by)&id=eq.${encodeURIComponent(id)}&limit=1`,
     `products?select=id,title,description,price_cents,image_url,image_urls,category,shipping_scope,created_at,is_active,sponsor_id,sponsors(id,business_name,city,status,listing_type,contact,description,submitted_by)&id=eq.${encodeURIComponent(id)}&limit=1`,
     `products?select=id,title,description,price_cents,image_url,image_urls,category,created_at,is_active,sponsor_id,sponsors(id,business_name,city,status,listing_type,contact,description,submitted_by)&id=eq.${encodeURIComponent(id)}&limit=1`,
     `products?select=id,title,description,price_cents,image_url,category,created_at,is_active,sponsor_id,sponsors(id,business_name,city,status,listing_type,contact,description,submitted_by)&id=eq.${encodeURIComponent(id)}&limit=1`,
@@ -119,12 +131,31 @@ export default async function ShopDetailPage({ params }) {
                 이 상품은 판매가 완료되었습니다.
               </p>
             ) : item.seller.contact ? (
-              <div className="shop-contact-value">{item.seller.contact}</div>
+              <div id="shop-seller-contact" className="shop-contact-value">
+                {item.seller.contact}
+              </div>
             ) : (
-              <p className="hint-text" style={{ marginTop: 8 }}>
+              <p id="shop-seller-contact" className="hint-text" style={{ marginTop: 8 }}>
                 연락처는 판매자 스토어에서 확인해 주세요.
               </p>
             )}
+
+            {!isSold ? (
+              <div className="shop-contact-actions">
+                <a
+                  href={contactActionHref(item.seller.contact)}
+                  className="btn shop-contact-cta"
+                >
+                  판매자에게 연락하기
+                </a>
+                <ShopPaymentLinkButton paymentLink={item.payment_link || null} />
+              </div>
+            ) : null}
+
+            <p className="shop-safety-note">
+              안전한 거래를 위해 공공장소에서 만나 직접 확인 후 거래하시길 권장합니다.
+            </p>
+
             <Link
               href={`/shop/seller/${item.seller.id}`}
               className="btn btn-outline"
@@ -134,9 +165,6 @@ export default async function ShopDetailPage({ params }) {
             </Link>
             <p className="hint-text" style={{ marginTop: 8 }}>
               앱에서 결제하지 않습니다. 판매자와 직접 거래하세요.
-            </p>
-            <p className="shop-safety-note">
-              안전한 거래를 위해 공공장소에서 만나 직접 확인 후 거래하시길 권장합니다.
             </p>
           </div>
         </div>

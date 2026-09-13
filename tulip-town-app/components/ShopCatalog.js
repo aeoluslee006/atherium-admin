@@ -110,7 +110,10 @@ const CATEGORY_ICONS = {
   ),
 };
 
-/** Yami-like dense shortcut rail (maps onto category / shipping filters). */
+/**
+ * Top icon rail — keep to real shop categories (+ 신상).
+ * Shipping filters stay in the toolbar filter icon, not here.
+ */
 const SHOP_NAV_SHORTCUTS = [
   { id: 'all', label: '전체', category: 'all' },
   { id: 'new', label: '신상', category: 'all', emphasize: true },
@@ -119,9 +122,6 @@ const SHOP_NAV_SHORTCUTS = [
   { id: 'home', label: '생활', category: 'home' },
   { id: 'beauty', label: '뷰티', category: 'beauty' },
   { id: 'kids', label: '키즈', category: 'kids' },
-  { id: 'gift', label: '선물', category: 'all' },
-  { id: 'local', label: '로컬', category: 'all', shipping: 'local' },
-  { id: 'nationwide', label: '전국', category: 'all', shipping: 'nationwide' },
   { id: 'other', label: '기타', category: 'other' },
 ];
 

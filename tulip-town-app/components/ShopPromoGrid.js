@@ -6,7 +6,7 @@ import { productImageList } from '../lib/shopCatalog';
 
 const PAGE_SIZE = 4;
 
-/** 12 Yami-style promo panels → 3 pages × 4 tiles */
+/** 12 curated panels → 3 pages × 4 equal tiles */
 export const SHOP_PROMO_PANELS = [
   {
     id: 'food-fresh',
@@ -33,7 +33,7 @@ export const SHOP_PROMO_PANELS = [
     kicker: '생활·인테리어',
     title: '집을 채우는 소품',
     image:
-      'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=1200&q=80',
   },
   {
     id: 'beauty-care',
@@ -66,7 +66,7 @@ export const SHOP_PROMO_PANELS = [
     id: 'local-taste',
     category: 'food',
     tone: 'sand',
-    kicker: '로컬 맛집 감성',
+    kicker: '간식 픽',
     title: '동네에서 고른 간식',
     image:
       'https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?auto=format&fit=crop&w=1200&q=80',
@@ -125,11 +125,18 @@ function thumbsForPanel(items, panel, limit = 3) {
       ? pool.filter((item) => String(item.category || 'other') === panel.category)
       : pool;
   const source = matched.length ? matched : pool;
-  return source.slice(0, limit).map((item) => ({
+  const thumbs = source.slice(0, limit).map((item) => ({
     id: item.id,
     src: productImageList(item)[0] || panel.image,
-    title: item.title || '',
   }));
+  while (thumbs.length < limit) {
+    thumbs.push({
+      id: `${panel.id}-ghost-${thumbs.length}`,
+      src: panel.image,
+      ghost: true,
+    });
+  }
+  return thumbs;
 }
 
 export default function ShopPromoGrid({ items = [], onSelectCategory }) {
@@ -137,21 +144,30 @@ export default function ShopPromoGrid({ items = [], onSelectCategory }) {
   const [page, setPage] = useState(0);
   const [paused, setPaused] = useState(false);
 
+  const pages = useMemo(() => {
+    const chunks = [];
+    for (let i = 0; i < SHOP_PROMO_PANELS.length; i += PAGE_SIZE) {
+      chunks.push(
+        SHOP_PROMO_PANELS.slice(i, i + PAGE_SIZE).map((panel) => ({
+          ...panel,
+          thumbs: thumbsForPanel(items, panel),
+        }))
+      );
+    }
+    return chunks;
+  }, [items]);
+
   useEffect(() => {
     if (paused || pageCount < 2) return undefined;
     const timer = window.setInterval(() => {
       setPage((current) => (current + 1) % pageCount);
-    }, 6000);
+    }, 6500);
     return () => window.clearInterval(timer);
   }, [paused, pageCount]);
 
-  const pagePanels = useMemo(() => {
-    const start = page * PAGE_SIZE;
-    return SHOP_PROMO_PANELS.slice(start, start + PAGE_SIZE).map((panel) => ({
-      ...panel,
-      thumbs: thumbsForPanel(items, panel),
-    }));
-  }, [items, page]);
+  function goTo(next) {
+    setPage(((next % pageCount) + pageCount) % pageCount);
+  }
 
   return (
     <section
@@ -165,41 +181,48 @@ export default function ShopPromoGrid({ items = [], onSelectCategory }) {
         if (!event.currentTarget.contains(event.relatedTarget)) setPaused(false);
       }}
     >
-      <div className="shop-promo-grid-pages" aria-live="polite">
-        <div key={page} className="shop-promo-grid-row">
-          {pagePanels.map((panel) => (
-            <button
-              key={panel.id}
-              type="button"
-              className={`shop-promo-tile shop-promo-tile--${panel.tone}`}
-              onClick={() => onSelectCategory?.(panel.category || 'all')}
+      <div className="shop-promo-viewport">
+        <div
+          className="shop-promo-track"
+          style={{ transform: `translate3d(-${page * 100}%, 0, 0)` }}
+        >
+          {pages.map((pagePanels, pageIndex) => (
+            <div
+              key={`promo-page-${pageIndex}`}
+              className="shop-promo-page"
+              aria-hidden={pageIndex !== page}
             >
-              <div className="shop-promo-tile-copy">
-                <p className="shop-promo-tile-kicker">{panel.kicker}</p>
-                <h3 className="shop-promo-tile-title">{panel.title}</h3>
-              </div>
-              <div
-                className="shop-promo-tile-hero"
-                style={{ backgroundImage: `url('${panel.image}')` }}
-                aria-hidden="true"
-              />
-              {panel.thumbs.length ? (
-                <div className="shop-promo-tile-thumbs" aria-hidden="true">
-                  {panel.thumbs.map((thumb) => (
-                    <span key={thumb.id} className="shop-promo-tile-thumb">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={thumb.src} alt="" loading="lazy" />
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <div className="shop-promo-tile-thumbs shop-promo-tile-thumbs--empty" aria-hidden="true">
-                  <span className="shop-promo-tile-thumb shop-promo-tile-thumb--ghost" />
-                  <span className="shop-promo-tile-thumb shop-promo-tile-thumb--ghost" />
-                  <span className="shop-promo-tile-thumb shop-promo-tile-thumb--ghost" />
-                </div>
-              )}
-            </button>
+              {pagePanels.map((panel) => (
+                <button
+                  key={panel.id}
+                  type="button"
+                  className={`shop-promo-tile shop-promo-tile--${panel.tone}`}
+                  tabIndex={pageIndex === page ? 0 : -1}
+                  onClick={() => onSelectCategory?.(panel.category || 'all')}
+                >
+                  <div className="shop-promo-tile-copy">
+                    <p className="shop-promo-tile-kicker">{panel.kicker}</p>
+                    <h3 className="shop-promo-tile-title">{panel.title}</h3>
+                  </div>
+                  <div
+                    className="shop-promo-tile-hero"
+                    style={{ backgroundImage: `url('${panel.image}')` }}
+                    aria-hidden="true"
+                  />
+                  <div className="shop-promo-tile-thumbs" aria-hidden="true">
+                    {panel.thumbs.map((thumb) => (
+                      <span
+                        key={thumb.id}
+                        className={`shop-promo-tile-thumb${thumb.ghost ? ' is-ghost' : ''}`}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={thumb.src} alt="" loading="lazy" />
+                      </span>
+                    ))}
+                  </div>
+                </button>
+              ))}
+            </div>
           ))}
         </div>
       </div>
@@ -211,13 +234,13 @@ export default function ShopPromoGrid({ items = [], onSelectCategory }) {
         <div className="shop-promo-grid-dots" role="tablist" aria-label="기획전 페이지">
           {Array.from({ length: pageCount }, (_, i) => (
             <button
-              key={`promo-page-${i}`}
+              key={`promo-dot-${i}`}
               type="button"
               role="tab"
               aria-selected={i === page}
               aria-label={`${i + 1}페이지`}
               className={`shop-promo-grid-dot${i === page ? ' is-active' : ''}`}
-              onClick={() => setPage(i)}
+              onClick={() => goTo(i)}
             />
           ))}
         </div>
@@ -226,7 +249,7 @@ export default function ShopPromoGrid({ items = [], onSelectCategory }) {
             type="button"
             className="shop-promo-grid-arrow"
             aria-label="이전 기획전"
-            onClick={() => setPage((current) => (current - 1 + pageCount) % pageCount)}
+            onClick={() => goTo(page - 1)}
           >
             ‹
           </button>
@@ -234,7 +257,7 @@ export default function ShopPromoGrid({ items = [], onSelectCategory }) {
             type="button"
             className="shop-promo-grid-arrow"
             aria-label="다음 기획전"
-            onClick={() => setPage((current) => (current + 1) % pageCount)}
+            onClick={() => goTo(page + 1)}
           >
             ›
           </button>

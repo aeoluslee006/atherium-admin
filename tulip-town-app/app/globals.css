@@ -3760,18 +3760,20 @@ body:has(.shop-shell) .site-header {
 
 .shop-cat-rail--dense {
   display: flex;
-  gap: 4px 2px;
+  justify-content: space-between;
+  gap: 4px;
   overflow-x: auto;
   grid-template-columns: none;
-  padding: 4px 0 10px;
+  padding: 4px 0 12px;
   margin-bottom: 14px;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
 }
 
 .shop-cat-rail--dense .shop-cat-chip {
-  flex: 0 0 auto;
+  flex: 1 1 0;
   min-width: 64px;
+  max-width: 88px;
   padding: 6px 4px;
   gap: 6px;
 }
@@ -3810,20 +3812,35 @@ body:has(.shop-shell) .site-header {
   margin: 0 0 22px;
 }
 
-.shop-promo-grid-pages {
+.shop-promo-viewport {
+  overflow: hidden;
+  width: 100%;
   min-width: 0;
+  border-radius: 4px;
 }
 
-.shop-promo-grid-row {
+.shop-promo-track {
+  display: flex;
+  width: 100%;
+  will-change: transform;
+  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.shop-promo-page {
+  flex: 0 0 100%;
+  width: 100%;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
-  animation: shop-promo-in 0.35s ease-out both;
+  align-items: stretch;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 0;
 }
 
 .shop-promo-tile {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
   gap: 10px;
   margin: 0;
   padding: 14px 12px 12px;
@@ -3834,11 +3851,11 @@ body:has(.shop-shell) .site-header {
   color: inherit;
   font: inherit;
   min-width: 0;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  height: 100%;
+  transition: box-shadow 0.18s ease;
 }
 
 .shop-promo-tile:hover {
-  transform: translateY(-2px);
   box-shadow: 0 10px 24px rgba(20, 48, 34, 0.1);
 }
 
@@ -3846,12 +3863,11 @@ body:has(.shop-shell) .site-header {
 .shop-promo-tile--sand { background: #f3efe4; }
 .shop-promo-tile--clay { background: #f2ebe3; }
 .shop-promo-tile--rose { background: #f6ecec; }
-.shop-promo-tile--sky,
 .shop-promo-tile--sky { background: #e8f1f6; }
 .shop-promo-tile--leaf { background: #e9f2e8; }
 
 .shop-promo-tile-copy {
-  min-height: 3.2em;
+  min-height: 3.4em;
 }
 
 .shop-promo-tile-kicker {
@@ -3875,13 +3891,17 @@ body:has(.shop-shell) .site-header {
   width: 100%;
   aspect-ratio: 4 / 3;
   border-radius: 12px;
-  background: center / cover no-repeat #d7e5db;
+  background-color: #d7e5db;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
 }
 
 .shop-promo-tile-thumbs {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
+  margin-top: auto;
 }
 
 .shop-promo-tile-thumb {
@@ -3899,8 +3919,8 @@ body:has(.shop-shell) .site-header {
   display: block;
 }
 
-.shop-promo-tile-thumb--ghost {
-  background: rgba(255, 255, 255, 0.55);
+.shop-promo-tile-thumb.is-ghost {
+  opacity: 0.55;
 }
 
 .shop-promo-grid-nav {
@@ -3973,14 +3993,15 @@ body:has(.shop-shell) .site-header {
 }
 
 @media (max-width: 900px) {
-  .shop-promo-grid-row {
+  .shop-promo-page {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
   }
 }
 
 @media (max-width: 560px) {
-  .shop-promo-grid-row {
-    grid-template-columns: 1fr 1fr;
+  .shop-promo-page {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
   }
 
@@ -3991,6 +4012,10 @@ body:has(.shop-shell) .site-header {
 
   .shop-promo-tile-title {
     font-size: 14px;
+  }
+
+  .shop-promo-track {
+    transition-duration: 0.45s;
   }
 }
 
@@ -5184,7 +5209,7 @@ body:has(.shop-shell) .site-header {
   .shop-promo-media,
   .shop-promo-slide,
   .shop-promo-cta,
-  .shop-promo-grid-row,
+  .shop-promo-track,
   .shop-promo-tile,
   .shop-cat-chip-icon {
     animation: none !important;

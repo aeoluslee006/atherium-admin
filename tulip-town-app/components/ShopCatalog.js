@@ -9,7 +9,11 @@ import {
   SHOP_SHIPPING_FILTERS,
   SHOP_SORTS,
   filterShopItems,
+  isNewShopProduct,
+  isPopularShopProduct,
+  presentShopCategories,
   productImageList,
+  shopCategoryLabel,
   shopShippingLabel,
 } from '../lib/shopCatalog';
 import ProductFavoriteButton from './ProductFavoriteButton';
@@ -110,20 +114,15 @@ const CATEGORY_ICONS = {
   ),
 };
 
-/**
- * Top icon rail — keep to real shop categories (+ 신상).
- * Shipping filters stay in the toolbar filter icon, not here.
- */
-const SHOP_NAV_SHORTCUTS = [
-  { id: 'all', label: '전체', category: 'all' },
-  { id: 'new', label: '신상', category: 'all', emphasize: true },
-  { id: 'food', label: '식품', category: 'food' },
-  { id: 'fashion', label: '패션', category: 'fashion' },
-  { id: 'home', label: '생활', category: 'home' },
-  { id: 'beauty', label: '뷰티', category: 'beauty' },
-  { id: 'kids', label: '키즈', category: 'kids' },
-  { id: 'other', label: '기타', category: 'other' },
-];
+const SHORT_CATEGORY_LABELS = {
+  food: '식품',
+  fashion: '패션',
+  home: '생활',
+  beauty: '뷰티',
+  kids: '키즈',
+  other: '기타',
+};
+
 
 function ProductCard({
   item,
@@ -135,6 +134,8 @@ function ProductCard({
   const seller = item.sponsor || item.sponsors;
   const thumb = productImageList(item)[0] || placeholderImage(item.id);
   const isSold = item.is_active === false;
+  const isNew = !isSold && isNewShopProduct(item);
+  const isPopular = !isSold && isPopularShopProduct(item);
 
   return (
     <article className={`shop-card${isSold ? ' is-sold' : ''}${compact ? ' shop-card--rail' : ''}`}>
@@ -145,6 +146,12 @@ function ProductCard({
             <img src={thumb} alt="" loading="lazy" />
           </div>
           {isSold ? <span className="shop-card-sold-badge">판매완료</span> : null}
+          {!isSold && (isNew || isPopular) ? (
+            <div className="shop-card-badges" aria-hidden="true">
+              {isNew ? <span className="shop-card-badge shop-card-badge--new">NEW</span> : null}
+              {isPopular ? <span className="shop-card-badge shop-card-badge--hot">인기</span> : null}
+            </div>
+          ) : null}
         </Link>
         <ProductFavoriteButton
           productId={item.id}
@@ -231,6 +238,23 @@ export default function ShopCatalog({
     shipping === 'all' &&
     city === 'all';
 
+  const liveCategories = useMemo(() => presentShopCategories(items), [items]);
+  const showCategoryStrip = liveCategories.length >= 3;
+  const categoryShortcuts = useMemo(() => {
+    if (!showCategoryStrip) return [];
+    return [
+      { id: 'all', label: '전체', category: 'all' },
+      { id: 'new', label: '신상', category: 'all', emphasize: true },
+      ...liveCategories.map((c) => ({
+        id: c.id,
+        label: SHORT_CATEGORY_LABELS[c.id] || c.label,
+        category: c.id,
+      })),
+    ];
+  }, [liveCategories, showCategoryStrip]);
+
+  const showNewestRail = browsingHome && newestItems.length >= 3 && items.length >= 4;
+
   const extraFilterCount = (shipping !== 'all' ? 1 : 0) + (city !== 'all' ? 1 : 0);
   const categoryActive = category !== 'all';
   const categoryLabel =
@@ -291,9 +315,8 @@ export default function ShopCatalog({
   function selectShortcut(shortcut) {
     setActiveShortcut(shortcut.id);
     setCategory(shortcut.category || shortcut.id || 'all');
-    if (shortcut.shipping) setShipping(shortcut.shipping);
-    else setShipping('all');
-    if (shortcut.id === 'new') setSort('newest');
+    setShipping('all');
+    if (shortcut.id === 'new' || shortcut.emphasize) setSort('newest');
     setCategoryOpen(false);
     scrollToProducts();
   }
@@ -538,7 +561,7 @@ export default function ShopCatalog({
               </div>
 
               <p className="shop-toolbar-count" aria-live="polite">
-                {filtered.length}개
+                상품 {filtered.length}개
               </p>
             </div>
           </div>
@@ -546,36 +569,42 @@ export default function ShopCatalog({
       ) : (
         <div className="shop-section-head">
           <h2 className="shop-section-title">{sectionTitle}</h2>
-          <p className="shop-section-desc">{filtered.length}개</p>
+          <p className="shop-section-desc">상품 {filtered.length}개</p>
         </div>
       )}
 
       {showBrandHeader ? (
         <>
-          <nav className="shop-cat-rail shop-cat-rail--dense" aria-label="카테고리 바로가기">
-            {SHOP_NAV_SHORTCUTS.map((c) => {
-              const selected = activeShortcut === c.id;
-              return (
-                <button
-                  key={c.id}
-                  type="button"
-                  className={`shop-cat-chip${selected ? ' is-selected' : ''}${c.emphasize ? ' is-hot' : ''}`}
-                  aria-pressed={selected}
-                  onClick={() => selectShortcut(c)}
-                >
-                  <span className="shop-cat-chip-icon">
-                    {CATEGORY_ICONS[c.id] || CATEGORY_ICONS[c.category] || CATEGORY_ICONS.other}
-                    {c.emphasize ? <span className="shop-cat-chip-badge">N</span> : null}
-                  </span>
-                  <span className="shop-cat-chip-label">{c.label}</span>
-                </button>
-              );
-            })}
-          </nav>
+          <p className="shop-trust-line">
+            승인된 사업자 판매자의 상품입니다. 판매자에게 직접 연락해 거래하세요.
+          </p>
+
+          {showCategoryStrip ? (
+            <nav className="shop-cat-rail shop-cat-rail--dense" aria-label="카테고리 바로가기">
+              {categoryShortcuts.map((c) => {
+                const selected = activeShortcut === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className={`shop-cat-chip${selected ? ' is-selected' : ''}${c.emphasize ? ' is-hot' : ''}`}
+                    aria-pressed={selected}
+                    onClick={() => selectShortcut(c)}
+                  >
+                    <span className="shop-cat-chip-icon">
+                      {CATEGORY_ICONS[c.id] || CATEGORY_ICONS[c.category] || CATEGORY_ICONS.other}
+                      {c.emphasize ? <span className="shop-cat-chip-badge">N</span> : null}
+                    </span>
+                    <span className="shop-cat-chip-label">{c.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          ) : null}
 
           <ShopPromoGrid items={items} onSelectCategory={selectCategory} />
 
-          {browsingHome && newestItems.length > 0 ? (
+          {showNewestRail ? (
             <section className="shop-rail-section" aria-labelledby="shop-newest-heading">
               <div className="shop-section-head">
                 <h2 id="shop-newest-heading" className="shop-section-title">
@@ -606,7 +635,7 @@ export default function ShopCatalog({
             <h2 className="shop-section-title">
               {categoryActive ? categoryLabel : '전체 상품'}
             </h2>
-            <p className="shop-section-desc">{filtered.length}개</p>
+            <p className="shop-section-desc">상품 {filtered.length}개</p>
           </div>
         ) : null}
 

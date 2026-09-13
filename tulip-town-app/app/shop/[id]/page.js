@@ -152,6 +152,10 @@ export default async function ShopDetailPage({ params }) {
               </div>
             ) : null}
 
+            <p className="shop-safety-note">
+              안전한 거래를 위해 공공장소에서 만나 직접 확인 후 거래하시길 권장합니다.
+            </p>
+
             <Link
               href={`/shop/seller/${item.seller.id}`}
               className="btn btn-outline"
@@ -161,9 +165,6 @@ export default async function ShopDetailPage({ params }) {
             </Link>
             <p className="hint-text" style={{ marginTop: 8 }}>
               앱에서 결제하지 않습니다. 판매자와 직접 거래하세요.
-            </p>
-            <p className="shop-safety-note">
-              안전한 거래를 위해 공공장소에서 만나 직접 확인 후 거래하시길 권장합니다.
             </p>
           </div>
         </div>

@@ -14,6 +14,7 @@ begin
   insert into public.sponsors (
     id,
     business_name,
+    category,
     business_address,
     ein,
     sos_document_path,
@@ -31,6 +32,7 @@ begin
   values (
     'a2000000-0000-4000-8000-0000000000b1'::uuid,
     '[샘플] BANEE 양말샵',
+    'other',
     '100 Sample St, Holland, MI',
     '55-5555555',
     'sample/sos-banee-socks.pdf',
@@ -47,6 +49,7 @@ begin
   )
   on conflict (id) do update set
     business_name = excluded.business_name,
+    category = excluded.category,
     business_address = excluded.business_address,
     city = excluded.city,
     contact = excluded.contact,
@@ -63,6 +66,7 @@ exception
     insert into public.sponsors (
       id,
       business_name,
+      category,
       city,
       contact,
       description,
@@ -74,6 +78,7 @@ exception
     values (
       'a2000000-0000-4000-8000-0000000000b1'::uuid,
       '[샘플] BANEE 양말샵',
+      'other',
       'Holland',
       '문자 616-555-0199 (샘플)',
       'baneebanee.com 스타일 양말 샘플 판매자입니다. 실제 거래가 아닙니다.',
@@ -84,6 +89,7 @@ exception
     )
     on conflict (id) do update set
       business_name = excluded.business_name,
+      category = excluded.category,
       city = excluded.city,
       contact = excluded.contact,
       description = excluded.description,

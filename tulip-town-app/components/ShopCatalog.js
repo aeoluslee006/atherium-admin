@@ -31,8 +31,10 @@ export default function ShopCatalog({
   const [shipping, setShipping] = useState('all');
   const [city, setCity] = useState('all');
   const [filterOpen, setFilterOpen] = useState(false);
+  const [categoryOpen, setCategoryOpen] = useState(false);
   const [favSet, setFavSet] = useState(() => new Set(favoriteIds));
   const filterRef = useRef(null);
+  const categoryRef = useRef(null);
 
   const filtered = useMemo(
     () => filterShopItems(items, { category, sort, q, shipping, city }),
@@ -40,16 +42,25 @@ export default function ShopCatalog({
   );
 
   const extraFilterCount = (shipping !== 'all' ? 1 : 0) + (city !== 'all' ? 1 : 0);
+  const categoryActive = category !== 'all';
+  const categoryLabel =
+    SHOP_CATEGORIES.find((c) => c.id === category)?.label || '카테고리';
 
   useEffect(() => {
-    if (!filterOpen) return undefined;
+    if (!filterOpen && !categoryOpen) return undefined;
     const onPointerDown = (event) => {
-      if (filterRef.current && !filterRef.current.contains(event.target)) {
+      if (filterOpen && filterRef.current && !filterRef.current.contains(event.target)) {
         setFilterOpen(false);
+      }
+      if (categoryOpen && categoryRef.current && !categoryRef.current.contains(event.target)) {
+        setCategoryOpen(false);
       }
     };
     const onKeyDown = (event) => {
-      if (event.key === 'Escape') setFilterOpen(false);
+      if (event.key === 'Escape') {
+        setFilterOpen(false);
+        setCategoryOpen(false);
+      }
     };
     document.addEventListener('mousedown', onPointerDown);
     document.addEventListener('keydown', onKeyDown);
@@ -57,37 +68,75 @@ export default function ShopCatalog({
       document.removeEventListener('mousedown', onPointerDown);
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [filterOpen]);
+  }, [filterOpen, categoryOpen]);
 
   return (
     <div className="shop-catalog">
       {showToolbar ? (
-        <div className="shop-toolbar shop-toolbar--slim" role="search">
-          <label className="shop-toolbar-field shop-toolbar-field--search">
-            <span className="sr-only">검색</span>
-            <input
-              type="search"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="상품명 · 판매자 검색"
-              aria-label="상품 검색"
-            />
-          </label>
-          <label className="shop-toolbar-field">
-            <span className="sr-only">카테고리</span>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              aria-label="카테고리"
-            >
-              {SHOP_CATEGORIES.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="shop-toolbar-field">
+        <div className="shop-toolbar shop-toolbar--slim shop-toolbar--icon-row" role="search">
+          <div className="shop-toolbar-search-row">
+            <label className="shop-toolbar-field shop-toolbar-field--search">
+              <span className="sr-only">검색</span>
+              <input
+                type="search"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="상품명 · 판매자 검색"
+                aria-label="상품 검색"
+              />
+            </label>
+            <div className="shop-toolbar-category" ref={categoryRef}>
+              <button
+                type="button"
+                className={`shop-icon-trigger${categoryActive ? ' is-active' : ''}`}
+                aria-expanded={categoryOpen}
+                aria-haspopup="dialog"
+                aria-label={`카테고리${categoryActive ? `: ${categoryLabel}` : ''}`}
+                title={categoryLabel}
+                onClick={() => {
+                  setCategoryOpen((open) => !open);
+                  setFilterOpen(false);
+                }}
+              >
+                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                  <path
+                    fill="currentColor"
+                    d="M4 4h7v7H4V4zm9 0h7v7h-7V4zM4 13h7v7H4v-7zm9 0h7v7h-7v-7z"
+                  />
+                </svg>
+                {categoryActive ? <span className="shop-filter-badge">1</span> : null}
+              </button>
+              {categoryOpen ? (
+                <div
+                  className="shop-filter-popover shop-category-popover"
+                  role="dialog"
+                  aria-label="카테고리"
+                >
+                  <div className="shop-category-options" role="listbox" aria-label="카테고리 선택">
+                    {SHOP_CATEGORIES.map((c) => {
+                      const selected = category === c.id;
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          role="option"
+                          aria-selected={selected}
+                          className={`shop-category-option${selected ? ' is-selected' : ''}`}
+                          onClick={() => {
+                            setCategory(c.id);
+                            setCategoryOpen(false);
+                          }}
+                        >
+                          {c.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
+          <label className="shop-toolbar-field shop-toolbar-field--sort">
             <span className="sr-only">정렬</span>
             <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="정렬">
               {SHOP_SORTS.map((s) => (
@@ -104,7 +153,10 @@ export default function ShopCatalog({
               className={`shop-filter-trigger${extraFilterCount ? ' is-active' : ''}`}
               aria-expanded={filterOpen}
               aria-haspopup="dialog"
-              onClick={() => setFilterOpen((open) => !open)}
+              onClick={() => {
+                setFilterOpen((open) => !open);
+                setCategoryOpen(false);
+              }}
             >
               필터
               {extraFilterCount ? (

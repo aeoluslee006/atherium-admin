@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getUserFromRequest, tryAdminSupabase } from '../../../../lib/apiAuth';
+import { normalizePaymentLink } from '../../../../lib/paymentLink';
 import {
   canManageShopProducts,
   shopProductLimit,
@@ -90,12 +91,28 @@ export async function POST(request) {
     const imageUrl = String(body.image_url || '').trim() || null;
     const category = String(body.category || 'other').trim() || 'other';
     const shippingScope = normalizeShippingScope(body.shipping_scope);
+    const paymentParsed = normalizePaymentLink(body.payment_link);
+    if (!paymentParsed.ok) {
+      return NextResponse.json({ error: paymentParsed.error }, { status: 400 });
+    }
+    const paymentLink = paymentParsed.value;
 
     if (!title || !description || !Number.isFinite(priceCents) || priceCents < 0) {
       return NextResponse.json({ error: '상품명, 설명, 가격을 확인해 주세요.' }, { status: 400 });
     }
 
     const payloads = [
+      {
+        sponsor_id: sponsor.id,
+        title,
+        description,
+        price_cents: priceCents,
+        image_url: imageUrl,
+        category,
+        shipping_scope: shippingScope,
+        payment_link: paymentLink,
+        is_active: body.is_active !== false,
+      },
       {
         sponsor_id: sponsor.id,
         title,
@@ -135,7 +152,7 @@ export async function POST(request) {
         const result = await insertProduct(client, payload);
         if (!result.error) return result;
         lastError = result.error;
-        if (!/(category|shipping_scope)/i.test(result.error.message || '')) {
+        if (!/(category|shipping_scope|payment_link)/i.test(result.error.message || '')) {
           return result;
         }
       }
@@ -182,6 +199,13 @@ export async function PATCH(request) {
     if ('image_url' in body) patch.image_url = String(body.image_url || '').trim() || null;
     if ('category' in body) patch.category = String(body.category || 'other').trim() || 'other';
     if ('shipping_scope' in body) patch.shipping_scope = normalizeShippingScope(body.shipping_scope);
+    if ('payment_link' in body) {
+      const paymentParsed = normalizePaymentLink(body.payment_link);
+      if (!paymentParsed.ok) {
+        return NextResponse.json({ error: paymentParsed.error }, { status: 400 });
+      }
+      patch.payment_link = paymentParsed.value;
+    }
     if ('is_active' in body) patch.is_active = !!body.is_active;
 
     async function updateWithFallback(client, payload) {
@@ -194,6 +218,17 @@ export async function PATCH(request) {
         .select('*')
         .single();
 
+      if (result.error && 'payment_link' in current && /payment_link/i.test(result.error.message || '')) {
+        const { payment_link: _ignored, ...rest } = current;
+        current = rest;
+        result = await client
+          .from('products')
+          .update(current)
+          .eq('id', body.id)
+          .eq('sponsor_id', sponsor.id)
+          .select('*')
+          .single();
+      }
       if (result.error && current.shipping_scope && /shipping_scope/i.test(result.error.message || '')) {
         const { shipping_scope: _ignored, ...rest } = current;
         current = rest;

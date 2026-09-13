@@ -5125,6 +5125,70 @@ body:has(.shop-shell) .site-header {
   word-break: break-word;
 }
 
+.shop-contact-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.shop-contact-cta,
+.shop-pay-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.shop-pay-btn {
+  background: #1f4f3d;
+}
+
+.shop-pay-disclaimer {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+
+.shop-pay-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(20, 28, 24, 0.48);
+}
+
+.shop-pay-modal {
+  width: min(100%, 420px);
+  padding: 22px 20px 18px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 16px 40px rgba(20, 28, 24, 0.22);
+}
+
+.shop-pay-modal-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.shop-pay-modal-body {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.shop-pay-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+
 .shop-safety-note {
   margin: 12px 0 0;
   padding: 10px 12px;

@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '../../../../../../lib/supabaseClient';
 import { formatPriceCents } from '../../../../../../lib/sellerConstants';
+import { normalizePaymentLink } from '../../../../../../lib/paymentLink';
 import { SHOP_CATEGORIES, SHOP_SHIPPING_FILTERS } from '../../../../../../lib/shopCatalog';
 
 export default function MyPageShopProductEditPage() {
@@ -21,6 +22,7 @@ export default function MyPageShopProductEditPage() {
     image_url: '',
     category: 'other',
     shipping_scope: 'local',
+    payment_link: '',
     description: '',
     is_active: true,
   });
@@ -54,6 +56,7 @@ export default function MyPageShopProductEditPage() {
             image_url: product.image_url || '',
             category: product.category || 'other',
             shipping_scope: product.shipping_scope === 'nationwide' ? 'nationwide' : 'local',
+            payment_link: product.payment_link || '',
             description: product.description || '',
             is_active: product.is_active !== false,
           });
@@ -86,6 +89,10 @@ export default function MyPageShopProductEditPage() {
       if (!Number.isFinite(priceUsd) || priceUsd < 0) {
         throw new Error('가격을 확인해 주세요.');
       }
+      const paymentParsed = normalizePaymentLink(form.payment_link);
+      if (!paymentParsed.ok) {
+        throw new Error(paymentParsed.error);
+      }
       const res = await fetch('/api/seller/products', {
         method: 'PATCH',
         headers: await authHeaders(),
@@ -97,6 +104,7 @@ export default function MyPageShopProductEditPage() {
           image_url: form.image_url.trim() || null,
           category: form.category,
           shipping_scope: form.shipping_scope,
+          payment_link: paymentParsed.value,
           is_active: form.is_active,
         }),
       });
@@ -188,6 +196,20 @@ export default function MyPageShopProductEditPage() {
               </option>
             ))}
           </select>
+
+          <label htmlFor="payment_link">온라인 결제 링크 (선택)</label>
+          <input
+            id="payment_link"
+            type="url"
+            inputMode="url"
+            placeholder="https://square.link/… 또는 PayPal / Stripe / Venmo"
+            value={form.payment_link}
+            onChange={(e) => update('payment_link', e.target.value)}
+          />
+          <p className="hint-text">
+            Square, PayPal, Stripe 등에서 이 상품에 대한 결제 링크를 만들어 붙여넣으면, 구매자가
+            온라인으로 바로 결제할 수 있습니다. 비워두면 지금처럼 직접 연락해서 거래합니다.
+          </p>
 
           <label htmlFor="image_url">사진 URL</label>
           <input

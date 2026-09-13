@@ -58,7 +58,7 @@ export async function POST(request) {
     const sponsor = await getShopSponsor(db, user.id);
     if (!sponsor) {
       return NextResponse.json(
-        { error: '입점 신청이 없습니다. 먼저 사업자 입점을 신청해 주세요.' },
+        { error: '판매자 등록이 없습니다. 먼저 마이페이지에서 판매자 등록을 해 주세요.' },
         { status: 404 }
       );
     }

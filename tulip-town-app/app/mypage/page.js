@@ -3,7 +3,16 @@ import { redirect } from 'next/navigation';
 import MemberTierBadge from '../../components/MemberTierBadge';
 import MyPageAccountPanel from '../../components/MyPageAccountPanel';
 import MyPageAdminContact from '../../components/MyPageAdminContact';
-import ShopCatalog from '../../components/ShopCatalog';
+import {
+  IconAd,
+  IconCard,
+  IconChat,
+  IconHeart,
+  IconPencil,
+  IconPost,
+  IconStore,
+  IconUser,
+} from '../../components/MyPageIcons';
 import { CATEGORIES } from '../../lib/categories';
 import {
   PRODUCT_LABELS,
@@ -16,8 +25,10 @@ import {
 import { isLoginBlocked } from '../../lib/memberStatus';
 import {
   SELLER_STATUS_LABEL,
+  formatPriceCents,
   hasActiveShopSubscription,
 } from '../../lib/sellerConstants';
+import { productImageList } from '../../lib/shopCatalog';
 import { loadFavoriteProducts } from '../../lib/shopFavorites';
 import { createServerSupabase } from '../../lib/supabaseServer';
 
@@ -37,15 +48,17 @@ function excerpt(text, max = 80) {
   return `${plain.slice(0, max).trim()}…`;
 }
 
+function favoriteThumb(item) {
+  return productImageList(item)[0] || '';
+}
+
 export default async function MyPage() {
   const supabase = createServerSupabase();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    redirect('/login?next=/mypage');
-  }
+  if (!user) redirect('/login?next=/mypage');
 
   let profile = null;
   {
@@ -56,9 +69,7 @@ export default async function MyPage() {
       )
       .eq('id', user.id)
       .maybeSingle();
-
     if (full.error) {
-      // Migration not applied yet — fall back to existing columns only.
       const basic = await supabase
         .from('profiles')
         .select('id, display_name, username, first_name, last_name, email, is_admin, created_at')
@@ -74,7 +85,6 @@ export default async function MyPage() {
     redirect('/login?error=account_deleted');
   }
 
-  // New columns may be missing until SQL migration is applied.
   const safeProfile = {
     ...(profile || { id: user.id }),
     is_admin: !!profile?.is_admin,
@@ -90,10 +100,7 @@ export default async function MyPage() {
     .select('id, product_type, status, period_start, period_end, created_at')
     .eq('profile_id', user.id)
     .order('created_at', { ascending: false });
-
-  if (!subError && Array.isArray(subRows)) {
-    subscriptions = subRows;
-  }
+  if (!subError && Array.isArray(subRows)) subscriptions = subRows;
 
   let tier = resolveMemberTier(safeProfile, subscriptions);
   const { data: tierRow } = await supabase
@@ -101,17 +108,14 @@ export default async function MyPage() {
     .select('tier')
     .eq('profile_id', user.id)
     .maybeSingle();
-  if (tierRow?.tier) {
-    tier = tierRow.tier;
-  }
+  if (tierRow?.tier) tier = tierRow.tier;
 
   const { data: myPosts } = await supabase
     .from('posts')
     .select('id, title, category_slug, created_at, view_count')
     .eq('author_id', user.id)
     .order('created_at', { ascending: false })
-    .limit(30);
-
+    .limit(20);
   const posts = Array.isArray(myPosts) ? myPosts : [];
   const postIds = posts.map((p) => p.id);
   const postTitleById = Object.fromEntries(posts.map((p) => [p.id, p.title]));
@@ -123,7 +127,7 @@ export default async function MyPage() {
       .select('id, post_id, body, author_id, created_at')
       .in('post_id', postIds)
       .order('created_at', { ascending: false })
-      .limit(40);
+      .limit(20);
     commentsOnMyPosts = Array.isArray(commentRows) ? commentRows : [];
   }
 
@@ -148,14 +152,14 @@ export default async function MyPage() {
       )
       .eq('submitted_by', user.id)
       .order('created_at', { ascending: false })
-      .limit(30);
+      .limit(20);
     if (fullAds.error) {
       const basicAds = await supabase
         .from('directory_slot_ads')
         .select('id,ad_title,status,period_end,directory_slots(page_number,position_label,size_tier)')
         .eq('submitted_by', user.id)
         .order('created_at', { ascending: false })
-        .limit(30);
+        .limit(20);
       myDirectoryAds = Array.isArray(basicAds.data) ? basicAds.data : [];
     } else {
       myDirectoryAds = Array.isArray(fullAds.data) ? fullAds.data : [];
@@ -167,22 +171,33 @@ export default async function MyPage() {
 
   let shopSponsor = null;
   {
-    const { data: sponsorRow } = await supabase
+    const withKind = await supabase
       .from('sponsors')
-      .select('id,business_name,status,plan_tier,product_limit,listing_type')
+      .select('id,business_name,status,plan_tier,product_limit,listing_type,seller_kind')
       .eq('listing_type', 'shop')
       .eq('submitted_by', user.id)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
-    shopSponsor = sponsorRow || null;
+    if (withKind.error) {
+      const basic = await supabase
+        .from('sponsors')
+        .select('id,business_name,status,plan_tier,product_limit,listing_type')
+        .eq('listing_type', 'shop')
+        .eq('submitted_by', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      shopSponsor = basic.data || null;
+    } else {
+      shopSponsor = withKind.data || null;
+    }
   }
 
   const showShopManage =
     Boolean(shopSponsor) || hasActiveShopSubscription(subscriptions);
-
   const favoriteProducts = await loadFavoriteProducts();
-  const favoriteIds = favoriteProducts.map((item) => item.id);
+  const isIndividualSeller = shopSponsor?.seller_kind === 'individual';
 
   return (
     <div className="container mypage">
@@ -195,6 +210,42 @@ export default async function MyPage() {
         <MemberTierBadge tier={tier} />
       </header>
 
+      <nav className="mypage-quick-nav" aria-label="마이페이지 바로가기">
+        <a href="#mypage-account" className="mypage-quick-item">
+          <span className="mypage-quick-icon"><IconUser /></span>
+          <span>내 정보</span>
+        </a>
+        <a href="#mypage-favorites" className="mypage-quick-item">
+          <span className="mypage-quick-icon"><IconHeart /></span>
+          <span>찜</span>
+          {favoriteProducts.length ? <em>{favoriteProducts.length}</em> : null}
+        </a>
+        <a href="#mypage-shop" className="mypage-quick-item">
+          <span className="mypage-quick-icon"><IconStore /></span>
+          <span>가게</span>
+        </a>
+        <a href="#mypage-ads" className="mypage-quick-item">
+          <span className="mypage-quick-icon"><IconAd /></span>
+          <span>광고</span>
+          {myDirectoryAds.length ? <em>{myDirectoryAds.length}</em> : null}
+        </a>
+        <a href="#mypage-subs" className="mypage-quick-item">
+          <span className="mypage-quick-icon"><IconCard /></span>
+          <span>구독</span>
+          {activeSubs.length ? <em>{activeSubs.length}</em> : null}
+        </a>
+        <a href="#mypage-posts" className="mypage-quick-item">
+          <span className="mypage-quick-icon"><IconPost /></span>
+          <span>내 글</span>
+          {posts.length ? <em>{posts.length}</em> : null}
+        </a>
+        <a href="#mypage-comments" className="mypage-quick-item">
+          <span className="mypage-quick-icon"><IconChat /></span>
+          <span>댓글</span>
+          {commentsOnMyPosts.length ? <em>{commentsOnMyPosts.length}</em> : null}
+        </a>
+      </nav>
+
       <MyPageAccountPanel
         initialNickname={safeProfile.display_name || name || ''}
         email={safeProfile.email || user.email || ''}
@@ -203,70 +254,80 @@ export default async function MyPage() {
         lastName={safeProfile.last_name || ''}
       />
 
-      <MyPageAdminContact />
-
-      <section className="mypage-section card" aria-labelledby="mypage-favorites-title">
+      <section id="mypage-favorites" className="mypage-section card" aria-labelledby="mypage-favorites-title">
         <div className="mypage-section-head">
-          <h2 id="mypage-favorites-title">찜한 상품</h2>
-          <span className="mypage-count">{favoriteProducts.length}개</span>
+          <h2 id="mypage-favorites-title" className="mypage-section-title">
+            <span className="mypage-section-icon" aria-hidden="true"><IconHeart /></span>
+            찜한 상품
+          </h2>
+          <span className="mypage-count">{favoriteProducts.length}</span>
         </div>
         {favoriteProducts.length ? (
-          <div className="mypage-favorites">
-            <ShopCatalog
-              items={favoriteProducts}
-              sectionTitle="찜 목록"
-              showToolbar={false}
-              favoriteIds={favoriteIds}
-            />
+          <div className="mypage-fav-strip">
+            {favoriteProducts.slice(0, 12).map((item) => {
+              const thumb = favoriteThumb(item);
+              return (
+                <Link key={item.id} href={`/shop/${item.id}`} className="mypage-fav-card">
+                  <span
+                    className="mypage-fav-thumb"
+                    style={thumb ? { backgroundImage: `url(${thumb})` } : undefined}
+                  />
+                  <span className="mypage-fav-meta">
+                    <strong>{item.title || '상품'}</strong>
+                    <em>{formatPriceCents(item.price_cents)}</em>
+                  </span>
+                </Link>
+              );
+            })}
           </div>
         ) : (
           <div className="mypage-empty">
             <p>찜한 상품이 없습니다.</p>
-            <Link href="/shop" className="btn btn-outline">
-              튤립가게 둘러보기
-            </Link>
+            <Link href="/shop" className="btn btn-outline">튤립가게</Link>
           </div>
         )}
       </section>
 
-      <section className="mypage-section card" aria-labelledby="mypage-shop-title">
+      <section id="mypage-shop" className="mypage-section card" aria-labelledby="mypage-shop-title">
         <div className="mypage-section-head">
-          <h2 id="mypage-shop-title">내 가게 관리</h2>
+          <h2 id="mypage-shop-title" className="mypage-section-title">
+            <span className="mypage-section-icon" aria-hidden="true"><IconStore /></span>
+            내 가게
+          </h2>
           <span className="mypage-count">
             {shopSponsor
-              ? SELLER_STATUS_LABEL[shopSponsor.status] || shopSponsor.status
+              ? `${SELLER_STATUS_LABEL[shopSponsor.status] || shopSponsor.status}${
+                  isIndividualSeller ? ' · 개인' : shopSponsor.seller_kind === 'business' ? ' · 사업자' : ''
+                }`
               : showShopManage
                 ? '구독 중'
-                : '입점'}
+                : '미등록'}
           </span>
         </div>
         {showShopManage ? (
-          <>
-            <p className="mypage-list-sub" style={{ marginBottom: 12 }}>
-              {shopSponsor?.business_name
-                ? `${shopSponsor.business_name} · 상품 등록 · 요금제 · 승인 상태`
-                : '튤립가게 판매자 요금제와 상품을 관리합니다.'}
-            </p>
-            <div className="mypage-empty-actions">
-              <Link href="/mypage/shop" className="btn">
-                가게 관리 열기
-              </Link>
-              <Link href="/shop" className="btn btn-outline">
-                공개 튤립가게
-              </Link>
-            </div>
-          </>
+          <div className="mypage-action-row">
+            <Link href="/mypage/shop" className="mypage-action-chip">
+              <IconStore />
+              <span>가게 관리</span>
+            </Link>
+            <Link href="/shop" className="mypage-action-chip mypage-action-chip--ghost">
+              <IconHeart />
+              <span>공개 가게</span>
+            </Link>
+          </div>
         ) : (
           <>
             <p className="mypage-list-sub" style={{ marginBottom: 12 }}>
-              판매자이신가요? 마이페이지에서 사업자 입점을 신청하고 상품을 등록하세요.
+              개인·사업자 모두 상품을 올릴 수 있습니다. 직접 연락·외부 결제 링크로 거래하세요.
             </p>
-            <div className="mypage-empty-actions">
-              <Link href="/mypage/shop/apply" className="btn">
-                사업자 입점
+            <div className="mypage-action-row">
+              <Link href="/mypage/shop/apply" className="mypage-action-chip">
+                <IconStore />
+                <span>판매 시작</span>
               </Link>
-              <Link href="/mypage/shop" className="btn btn-outline">
-                가게 관리
+              <Link href="/mypage/shop" className="mypage-action-chip mypage-action-chip--ghost">
+                <IconPost />
+                <span>가게 관리</span>
               </Link>
             </div>
           </>
@@ -276,27 +337,25 @@ export default async function MyPage() {
       {safeProfile.is_admin || safeProfile.is_moderator ? (
         <section className="mypage-section card" aria-labelledby="mypage-dir-title">
           <div className="mypage-section-head">
-            <h2 id="mypage-dir-title">지면 광고 관리</h2>
-            <span className="mypage-count">블랙</span>
+            <h2 id="mypage-dir-title" className="mypage-section-title">
+              <span className="mypage-section-icon" aria-hidden="true"><IconAd /></span>
+              지면 관리
+            </h2>
           </div>
-          <p className="mypage-list-sub" style={{ marginBottom: 12 }}>
-            업체 디렉토리 맨 끝 <strong>+</strong> 탭에서 슬롯을 드래그해 새 페이지를 만들 수 있습니다.
-          </p>
-          <div className="mypage-empty-actions">
-            <Link href="/directory" className="btn">
-              디렉토리에서 추가
-            </Link>
-            <Link href="/mypage/directory-pages" className="btn btn-outline">
-              배치 화면 열기
-            </Link>
+          <div className="mypage-action-row">
+            <Link href="/directory" className="mypage-action-chip">디렉토리</Link>
+            <Link href="/mypage/directory-pages" className="mypage-action-chip mypage-action-chip--ghost">배치</Link>
           </div>
         </section>
       ) : null}
 
-      <section className="mypage-section card" aria-labelledby="mypage-dir-ads-title">
+      <section id="mypage-ads" className="mypage-section card" aria-labelledby="mypage-dir-ads-title">
         <div className="mypage-section-head">
-          <h2 id="mypage-dir-ads-title">내 지면 광고</h2>
-          <span className="mypage-count">{myDirectoryAds.length}건</span>
+          <h2 id="mypage-dir-ads-title" className="mypage-section-title">
+            <span className="mypage-section-icon" aria-hidden="true"><IconAd /></span>
+            내 광고
+          </h2>
+          <span className="mypage-count">{myDirectoryAds.length}</span>
         </div>
         {myDirectoryAds.length ? (
           <ul className="mypage-list">
@@ -306,32 +365,27 @@ export default async function MyPage() {
                 slot?.page_number != null
                   ? `${slot.page_number}면 ${slot.position_label || ''}`.trim()
                   : '슬롯';
-              const specialQueued =
-                ad.is_special &&
-                ad.special_queue_position != null &&
-                Number(ad.special_queue_position) > 0;
-              const specialLive = ad.is_special && !specialQueued;
               return (
                 <li key={ad.id} className="mypage-list-row">
                   <div>
                     <strong>{ad.ad_title || pageLabel}</strong>
                     <p className="mypage-list-sub">
                       {pageLabel}
-                      {slot?.size_tier ? ` · ${slot.size_tier}` : ''}
-                      {ad.period_end ? ` · 만료 ${formatJoinedDate(ad.period_end)}` : ''}
-                      {specialLive ? ' · 특별광고 슬라이드 노출 중' : ''}
-                      {specialQueued
-                        ? ` · 특별광고 대기 순번 ${ad.special_queue_position}`
-                        : ''}
+                      {ad.period_end ? ` · ${formatJoinedDate(ad.period_end)}` : ''}
                     </p>
                   </div>
-                  <div className="mypage-empty-actions" style={{ gap: 8 }}>
+                  <div className="mypage-row-actions">
                     <span className={`mypage-status mypage-status--${ad.status || 'expired'}`}>
                       {STATUS_LABELS[ad.status] || ad.status}
                     </span>
                     {ad.status === 'active' ? (
-                      <Link href={`/directory/pages/edit?ad=${ad.id}`} className="btn btn-outline">
-                        수정
+                      <Link
+                        href={`/directory/pages/edit?ad=${ad.id}`}
+                        className="mypage-icon-btn"
+                        title="수정"
+                        aria-label="수정"
+                      >
+                        <IconPencil />
                       </Link>
                     ) : null}
                   </div>
@@ -342,17 +396,18 @@ export default async function MyPage() {
         ) : (
           <div className="mypage-empty">
             <p>신청한 지면 광고가 없습니다.</p>
-            <Link href="/directory" className="btn btn-outline">
-              업체 디렉토리
-            </Link>
+            <Link href="/directory" className="btn btn-outline">업체 디렉토리</Link>
           </div>
         )}
       </section>
 
-      <section className="mypage-section card" aria-labelledby="mypage-subs-title">
+      <section id="mypage-subs" className="mypage-section card" aria-labelledby="mypage-subs-title">
         <div className="mypage-section-head">
-          <h2 id="mypage-subs-title">구독 현황</h2>
-          <span className="mypage-count">{activeSubs.length}건 이용 중</span>
+          <h2 id="mypage-subs-title" className="mypage-section-title">
+            <span className="mypage-section-icon" aria-hidden="true"><IconCard /></span>
+            구독
+          </h2>
+          <span className="mypage-count">{activeSubs.length}</span>
         </div>
         {subscriptions.length ? (
           <ul className="mypage-list">
@@ -362,7 +417,7 @@ export default async function MyPage() {
                   <strong>{PRODUCT_LABELS[sub.product_type] || sub.product_type}</strong>
                   <p className="mypage-list-sub">
                     {STATUS_LABELS[sub.status] || sub.status}
-                    {sub.period_end ? ` · 만료 ${formatJoinedDate(sub.period_end)}` : ''}
+                    {sub.period_end ? ` · ${formatJoinedDate(sub.period_end)}` : ''}
                   </p>
                 </div>
                 <span className={`mypage-status mypage-status--${sub.status || 'expired'}`}>
@@ -374,22 +429,17 @@ export default async function MyPage() {
         ) : (
           <div className="mypage-empty">
             <p>구독 중인 상품이 없습니다.</p>
-            <div className="mypage-empty-actions">
-              <Link href="/shop" className="btn btn-outline">
-                튤립가게 보기
-              </Link>
-              <Link href="/directory" className="btn btn-outline">
-                업체 디렉토리
-              </Link>
-            </div>
           </div>
         )}
       </section>
 
-      <section className="mypage-section card" aria-labelledby="mypage-posts-title">
+      <section id="mypage-posts" className="mypage-section card" aria-labelledby="mypage-posts-title">
         <div className="mypage-section-head">
-          <h2 id="mypage-posts-title">내가 쓴 글</h2>
-          <span className="mypage-count">{posts.length}편</span>
+          <h2 id="mypage-posts-title" className="mypage-section-title">
+            <span className="mypage-section-icon" aria-hidden="true"><IconPost /></span>
+            내가 쓴 글
+          </h2>
+          <span className="mypage-count">{posts.length}</span>
         </div>
         {posts.length ? (
           <ul className="mypage-list">
@@ -401,7 +451,6 @@ export default async function MyPage() {
                   </Link>
                   <p className="mypage-list-sub">
                     {boardLabel(post.category_slug)} · {formatDateTime(post.created_at)}
-                    {typeof post.view_count === 'number' ? ` · 조회 ${post.view_count}` : ''}
                   </p>
                 </div>
               </li>
@@ -409,43 +458,40 @@ export default async function MyPage() {
           </ul>
         ) : (
           <div className="mypage-empty">
-            <p>아직 작성한 글이 없습니다.</p>
-            <Link href="/board/free/new" className="btn btn-outline">
-              글쓰기
-            </Link>
+            <p>작성한 글이 없습니다.</p>
+            <Link href="/board/free/new" className="btn btn-outline">글쓰기</Link>
           </div>
         )}
       </section>
 
-      <section className="mypage-section card" aria-labelledby="mypage-comments-title">
+      <section id="mypage-comments" className="mypage-section card" aria-labelledby="mypage-comments-title">
         <div className="mypage-section-head">
-          <h2 id="mypage-comments-title">내 글에 달린 댓글</h2>
-          <span className="mypage-count">{commentsOnMyPosts.length}개</span>
+          <h2 id="mypage-comments-title" className="mypage-section-title">
+            <span className="mypage-section-icon" aria-hidden="true"><IconChat /></span>
+            내 글 댓글
+          </h2>
+          <span className="mypage-count">{commentsOnMyPosts.length}</span>
         </div>
         {commentsOnMyPosts.length ? (
           <ul className="mypage-list">
             {commentsOnMyPosts.map((c) => (
               <li key={c.id} className="mypage-list-row mypage-list-row--stack">
-                <p className="mypage-comment-body">{excerpt(c.body, 120)}</p>
+                <p className="mypage-comment-body">{excerpt(c.body, 100)}</p>
                 <p className="mypage-list-sub">
                   {authorNameById[c.author_id] || '회원'} · {formatDateTime(c.created_at)} ·{' '}
-                  <Link href={`/post/${c.post_id}`}>
-                    {postTitleById[c.post_id] || '원글 보기'}
-                  </Link>
+                  <Link href={`/post/${c.post_id}`}>{postTitleById[c.post_id] || '원글'}</Link>
                 </p>
               </li>
             ))}
           </ul>
         ) : (
           <div className="mypage-empty">
-            <p>내 글에 달린 댓글이 아직 없습니다.</p>
+            <p>아직 댓글이 없습니다.</p>
           </div>
         )}
       </section>
 
-      <p className="mypage-footnote">
-        닉네임·비밀번호는 이 페이지에서 변경할 수 있습니다. 글·댓글 수정은 각 게시글 화면에서 해 주세요.
-      </p>
+      <MyPageAdminContact />
     </div>
   );
 }

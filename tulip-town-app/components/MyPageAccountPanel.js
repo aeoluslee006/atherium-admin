@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { IconLock, IconUser } from './MyPageIcons';
 
 export default function MyPageAccountPanel({
   initialNickname = '',
@@ -88,56 +89,66 @@ export default function MyPageAccountPanel({
     }
   }
 
+  const fullName = [firstName, lastName].filter(Boolean).join(' ');
+
   return (
-    <>
-      <section className="mypage-section card" aria-labelledby="mypage-account-title">
-        <div className="mypage-section-head">
-          <h2 id="mypage-account-title">내 정보</h2>
-        </div>
-        <dl className="mypage-dl">
-          <div>
-            <dt>이메일</dt>
-            <dd>{email || '—'}</dd>
-          </div>
-          <div>
-            <dt>아이디</dt>
-            <dd>{username || '—'}</dd>
-          </div>
-          {(firstName || lastName) && (
-            <div>
-              <dt>이름</dt>
-              <dd>{[firstName, lastName].filter(Boolean).join(' ') || '—'}</dd>
-            </div>
-          )}
-        </dl>
+    <section id="mypage-account" className="mypage-section card" aria-labelledby="mypage-account-title">
+      <div className="mypage-section-head">
+        <h2 id="mypage-account-title" className="mypage-section-title">
+          <span className="mypage-section-icon" aria-hidden="true">
+            <IconUser />
+          </span>
+          내 정보
+        </h2>
+      </div>
 
-        <form className="mypage-account-form" onSubmit={saveNickname}>
-          <label htmlFor="mypage-nickname">
-            닉네임
-            <input
-              id="mypage-nickname"
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              maxLength={40}
-              required
-            />
-          </label>
-          {profileErr ? <p className="error-text">{profileErr}</p> : null}
-          {profileMsg ? <p className="hint-text" style={{ color: '#176b3a' }}>{profileMsg}</p> : null}
-          <button type="submit" className="btn" disabled={savingProfile}>
-            {savingProfile ? '저장 중…' : '닉네임 저장'}
-          </button>
-        </form>
-      </section>
-
-      <section className="mypage-section card" aria-labelledby="mypage-password-title">
-        <div className="mypage-section-head">
-          <h2 id="mypage-password-title">비밀번호 재설정</h2>
+      <div className="mypage-account-meta">
+        <div>
+          <span className="mypage-account-label">이메일</span>
+          <strong>{email || '—'}</strong>
         </div>
-        <p className="mypage-list-sub" style={{ marginBottom: 12 }}>
-          로그인 상태에서 새 비밀번호로 바로 바꾸거나, 이메일로 재설정 링크를 받을 수 있습니다.
-        </p>
-        <form className="mypage-account-form" onSubmit={changePassword}>
+        <div>
+          <span className="mypage-account-label">아이디</span>
+          <strong>{username || '—'}</strong>
+        </div>
+        {fullName ? (
+          <div>
+            <span className="mypage-account-label">이름</span>
+            <strong>{fullName}</strong>
+          </div>
+        ) : null}
+      </div>
+
+      <form className="mypage-account-form mypage-account-form--compact" onSubmit={saveNickname}>
+        <label htmlFor="mypage-nickname">
+          닉네임
+          <input
+            id="mypage-nickname"
+            value={nickname}
+            onChange={(e) => setNickname(e.target.value)}
+            maxLength={40}
+            required
+          />
+        </label>
+        {profileErr ? <p className="error-text">{profileErr}</p> : null}
+        {profileMsg ? (
+          <p className="hint-text" style={{ color: '#176b3a' }}>
+            {profileMsg}
+          </p>
+        ) : null}
+        <button type="submit" className="btn" disabled={savingProfile}>
+          {savingProfile ? '저장 중…' : '닉네임 저장'}
+        </button>
+      </form>
+
+      <details className="mypage-details">
+        <summary>
+          <span className="mypage-section-icon" aria-hidden="true">
+            <IconLock />
+          </span>
+          비밀번호 변경
+        </summary>
+        <form className="mypage-account-form mypage-account-form--compact" onSubmit={changePassword}>
           <label htmlFor="mypage-password">
             새 비밀번호
             <input
@@ -163,7 +174,11 @@ export default function MyPageAccountPanel({
             />
           </label>
           {pwErr ? <p className="error-text">{pwErr}</p> : null}
-          {pwMsg ? <p className="hint-text" style={{ color: '#176b3a' }}>{pwMsg}</p> : null}
+          {pwMsg ? (
+            <p className="hint-text" style={{ color: '#176b3a' }}>
+              {pwMsg}
+            </p>
+          ) : null}
           <div className="mypage-empty-actions">
             <button type="submit" className="btn" disabled={savingPw}>
               {savingPw ? '변경 중…' : '비밀번호 변경'}
@@ -174,11 +189,11 @@ export default function MyPageAccountPanel({
               disabled={sendingReset || !email}
               onClick={sendResetEmail}
             >
-              {sendingReset ? '메일 발송 중…' : '이메일로 재설정 링크 받기'}
+              {sendingReset ? '메일 발송 중…' : '이메일로 재설정'}
             </button>
           </div>
         </form>
-      </section>
-    </>
+      </details>
+    </section>
   );
 }

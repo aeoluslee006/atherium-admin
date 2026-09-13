@@ -7651,6 +7651,233 @@ body:has(.shop-shell) .site-header {
   border-color: #d8b4fe;
 }
 
+
+
+/* mypage simplify icons */
+.mypage-quick-nav {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 16px;
+}
+
+.mypage-quick-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(47, 93, 74, 0.12);
+  background: #fff;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.mypage-quick-item:hover {
+  border-color: rgba(47, 93, 74, 0.28);
+  background: rgba(47, 93, 74, 0.04);
+}
+
+.mypage-quick-icon {
+  display: inline-flex;
+  color: var(--shop-leaf, #2f5d4a);
+}
+
+.mypage-quick-item em {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  min-width: 18px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: #2f5d4a;
+  color: #fff;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 700;
+  text-align: center;
+}
+
+.mypage-section-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.mypage-section-icon,
+.mypage-details summary .mypage-section-icon {
+  display: inline-flex;
+  color: var(--shop-leaf, #2f5d4a);
+}
+
+.mypage-account-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.mypage-account-meta > div {
+  display: grid;
+  gap: 2px;
+}
+
+.mypage-account-label {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.mypage-account-meta strong {
+  font-size: 14px;
+  font-weight: 650;
+  word-break: break-all;
+}
+
+.mypage-account-form--compact {
+  gap: 10px;
+}
+
+.mypage-details {
+  margin-top: 14px;
+  border-top: 1px solid rgba(20, 28, 24, 0.08);
+  padding-top: 10px;
+}
+
+.mypage-details--bare {
+  margin-top: 0;
+  border-top: 0;
+  padding-top: 0;
+}
+
+.mypage-details summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.mypage-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.mypage-details[open] summary {
+  margin-bottom: 12px;
+}
+
+.mypage-fav-strip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(132px, 150px);
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mypage-fav-card {
+  display: grid;
+  gap: 8px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.mypage-fav-thumb {
+  display: block;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  background: #eef2ef center/cover no-repeat;
+  border: 1px solid rgba(47, 93, 74, 0.1);
+}
+
+.mypage-fav-meta {
+  display: grid;
+  gap: 2px;
+}
+
+.mypage-fav-meta strong {
+  font-size: 13px;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mypage-fav-meta em {
+  font-style: normal;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.mypage-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mypage-action-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--accent, #2f5d4a);
+  color: #fff;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.mypage-action-chip--ghost {
+  background: #fff;
+  color: var(--ink);
+  border: 1px solid rgba(47, 93, 74, 0.18);
+}
+
+.mypage-row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mypage-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid rgba(47, 93, 74, 0.16);
+  color: var(--ink);
+  background: #fff;
+  text-decoration: none;
+}
+
+.mypage-icon-btn:hover {
+  border-color: rgba(47, 93, 74, 0.35);
+  color: var(--shop-leaf, #2f5d4a);
+}
+
+.mypage-shop-icon-actions {
+  display: inline-flex;
+  gap: 6px;
+}
+
+@media (max-width: 640px) {
+  .mypage-quick-nav {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 .auth-area .mypage-link {
   font-weight: 650;
 }

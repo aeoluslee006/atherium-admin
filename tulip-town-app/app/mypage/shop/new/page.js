@@ -145,10 +145,10 @@ export default function MyPageShopNewPage() {
     return (
       <div className="container">
         <div className="card empty-state">
-          사업자 입점 신청 후 상품을 등록할 수 있습니다.
+          판매자 등록 후 상품을 등록할 수 있습니다.
           <div style={{ marginTop: 12 }}>
             <Link href="/mypage/shop/apply" className="btn">
-              입점 신청하기
+              판매자 등록하기
             </Link>
           </div>
         </div>
@@ -163,7 +163,7 @@ export default function MyPageShopNewPage() {
           {sponsor.status === 'pending'
             ? '관리자 검토 중입니다. 승인되면 상품을 등록할 수 있습니다.'
             : sponsor.status === 'rejected'
-              ? `입점 신청이 거절되었습니다.${sponsor.review_notes ? ` 사유: ${sponsor.review_notes}` : ''}`
+              ? `판매자 등록이 거절되었습니다.${sponsor.review_notes ? ` 사유: ${sponsor.review_notes}` : ''}`
               : '상품을 등록할 수 없는 상태입니다.'}
           <div style={{ marginTop: 12, display: 'flex', gap: 10, justifyContent: 'center' }}>
             <Link href="/mypage/shop" className="btn btn-outline">

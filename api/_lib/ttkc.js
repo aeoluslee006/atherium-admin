@@ -58,7 +58,8 @@ export function isSchemaMissing(error) {
     msg.includes('could not find the function') ||
     msg.includes('atherium_ttkc') ||
     msg.includes('site_visits') ||
-    msg.includes('points_purchased') ||
+    msg.includes('member_promotions') ||
+    msg.includes('admin_messages') ||
     msg.includes('schema cache')
   )
 }

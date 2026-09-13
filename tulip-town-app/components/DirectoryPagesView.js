@@ -1,0 +1,601 @@
+'use client';
+
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+import DirectoryAdSlider from './DirectoryAdSlider';
+import DirectoryPageComposer from './DirectoryPageComposer';
+import { listDirectoryCategories, getDirectoryCategoryLabel } from '../lib/directoryCategories';
+import {
+  buildDirectorySpreads,
+  computePageGridSize,
+  DIRECTORY_GRID_COLS,
+  DIRECTORY_GRID_ROWS,
+  directorySpreadLabel,
+  displayCellLabel,
+  formatSlotPrice,
+  getDisplayMergeFactor,
+  mergeSlotsForDisplay,
+  sizeTierLabel,
+} from '../lib/directorySlots';
+import { supabase } from '../lib/supabaseClient';
+
+const ZOOM_MIN = 0.75;
+const ZOOM_MAX = 2.5;
+const ZOOM_STEP = 0.25;
+const COMPOSE_SPREAD_KEY = '__compose__';
+
+function clampZoom(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 1;
+  return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(n / ZOOM_STEP) * ZOOM_STEP));
+}
+
+function activeAd(slot) {
+  const ads = slot.directory_slot_ads || slot.ads || [];
+  const list = Array.isArray(ads) ? ads : ads ? [ads] : [];
+  return list.find((a) => a && a.status === 'active') || null;
+}
+
+function SideMenu({ side, categories, category, onSelect, showAll, showList }) {
+  return (
+    <aside className={`dir-side-menu dir-side-menu--${side}`} aria-label={`카테고리 필터 (${side})`}>
+      {showAll ? (
+        <button
+          type="button"
+          className={`dir-side-cat${category === 'all' ? ' is-active' : ''}`}
+          onClick={() => onSelect('all')}
+          title="전체"
+        >
+          <span className="dir-side-cat-icon" aria-hidden="true">
+            📋
+          </span>
+          <span className="dir-side-cat-label">전체</span>
+        </button>
+      ) : null}
+      {categories.map((c) => (
+        <button
+          key={c.slug}
+          type="button"
+          className={`dir-side-cat${category === c.slug ? ' is-active' : ''}`}
+          onClick={() => onSelect(c.slug)}
+          title={c.nameKo}
+        >
+          <span className="dir-side-cat-icon" aria-hidden="true">
+            {c.icon}
+          </span>
+          <span className="dir-side-cat-label">{c.nameKo}</span>
+        </button>
+      ))}
+      {showList ? (
+        <Link href="/directory" className="dir-side-list" title="리스트 보기">
+          리스트
+        </Link>
+      ) : null}
+    </aside>
+  );
+}
+
+function DirectoryPaper({ pageData, category, currentUserId }) {
+  const pageNumber = pageData?.pageNumber || 1;
+  const slots = pageData?.slots || [];
+  const rawSize = computePageGridSize(slots);
+  const mergeFactor = getDisplayMergeFactor(pageNumber, rawSize.cols, rawSize.rows, slots);
+  const displayCells = useMemo(
+    () => mergeSlotsForDisplay(slots, mergeFactor),
+    [slots, mergeFactor]
+  );
+  const usesSpans = slots.some(
+    (s) => (Number(s.span_cols) || 1) > 1 || (Number(s.span_rows) || 1) > 1
+  );
+  const displayCols =
+    mergeFactor > 1
+      ? Math.ceil(rawSize.cols / mergeFactor)
+      : usesSpans
+        ? Math.max(rawSize.cols, DIRECTORY_GRID_COLS)
+        : Math.max(rawSize.cols, 1);
+  const displayRows =
+    mergeFactor > 1
+      ? Math.ceil(rawSize.rows / mergeFactor)
+      : usesSpans
+        ? Math.max(rawSize.rows, DIRECTORY_GRID_ROWS)
+        : Math.max(rawSize.rows, 1);
+
+  return (
+    <div className="dir-spread-paper">
+      <div
+        className={`dir-paper${mergeFactor > 1 ? ' is-merged-display' : ''}`}
+        style={{ '--dir-cols': displayCols, '--dir-rows': displayRows }}
+      >
+        <div className="dir-paper-label">
+          {pageNumber}면 · {displayCols}열×{displayRows}행
+        </div>
+        <div className="dir-grid" aria-label={`${pageNumber}면 광고 지면`}>
+          {displayCells.map((cell) => {
+            const slot = cell.primary;
+            const ad = activeAd(slot);
+            const occupied = slot.status === 'occupied' && ad;
+            const isMine = Boolean(
+              occupied && currentUserId && ad.submitted_by && ad.submitted_by === currentUserId
+            );
+            const applySlot = !occupied
+              ? cell.slots.find((s) => s.status === 'available') || slot
+              : null;
+            const canApply = Boolean(applySlot?.id && applySlot.status === 'available');
+            const dim =
+              category !== 'all' && occupied && ad.category_slug && ad.category_slug !== category;
+            const highlight =
+              category !== 'all' && occupied && ad.category_slug === category;
+            const isMerged = cell.slots.length > 1;
+            const cellLabel = cell.label || displayCellLabel(cell.displayRow, cell.displayCol);
+
+            const emptyBody = (
+              <>
+                <div className="dir-slot-position">{cellLabel}</div>
+                <div className="dir-slot-vacant">빈 자리</div>
+                <div className="dir-slot-meta">
+                  {sizeTierLabel(slot.size_tier)} · {formatSlotPrice(slot.base_price_cents)}
+                </div>
+                {canApply ? <div className="dir-slot-cta">광고 신청</div> : null}
+              </>
+            );
+
+            return (
+              <div
+                key={cell.key}
+                className={[
+                  'dir-cell',
+                  occupied ? 'is-occupied' : 'is-empty',
+                  isMine ? 'is-mine' : '',
+                  canApply ? 'is-applyable' : '',
+                  dim ? 'is-dimmed' : '',
+                  highlight ? 'is-highlight' : '',
+                  isMerged ? 'is-merged-block' : '',
+                  `tier-${slot.size_tier || 'small'}`,
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                style={{
+                  gridColumn: `${cell.displayCol + 1} / span ${cell.spanCols || 1}`,
+                  gridRow: `${cell.displayRow + 1} / span ${cell.spanRows || 1}`,
+                }}
+              >
+                {occupied ? (
+                  isMine ? (
+                    <Link
+                      href={`/directory/pages/edit?ad=${encodeURIComponent(ad.id)}`}
+                      className="dir-ad dir-ad--mine"
+                      aria-label={`${ad.ad_title || cellLabel} 수정`}
+                    >
+                      <DirectoryAdSlider ad={ad} />
+                      <div className="dir-ad-body">
+                        <div className="dir-ad-title">{ad.ad_title}</div>
+                        {ad.ad_body ? <div className="dir-ad-copy">{ad.ad_body}</div> : null}
+                        <div className="dir-ad-cat">
+                          {getDirectoryCategoryLabel(ad.category_slug)}
+                        </div>
+                        {ad.ad_phone ? <div className="dir-ad-phone">{ad.ad_phone}</div> : null}
+                        <div className="dir-slot-cta">내 광고 수정</div>
+                      </div>
+                    </Link>
+                  ) : (
+                    <div className="dir-ad" aria-disabled="true">
+                      <DirectoryAdSlider ad={ad} />
+                      <div className="dir-ad-body">
+                        <div className="dir-ad-title">{ad.ad_title}</div>
+                        {ad.ad_body ? <div className="dir-ad-copy">{ad.ad_body}</div> : null}
+                        <div className="dir-ad-cat">
+                          {getDirectoryCategoryLabel(ad.category_slug)}
+                        </div>
+                        {ad.ad_phone ? <div className="dir-ad-phone">{ad.ad_phone}</div> : null}
+                      </div>
+                    </div>
+                  )
+                ) : canApply ? (
+                  <Link
+                    href={`/directory/pages/apply?slot=${encodeURIComponent(applySlot.id)}`}
+                    className="dir-cell-empty dir-cell-empty--link"
+                    aria-label={`${cellLabel} 광고 신청`}
+                  >
+                    {emptyBody}
+                  </Link>
+                ) : (
+                  <div className="dir-cell-empty">{emptyBody}</div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Empty slots link to /directory/pages/apply for image upload + checkout. */
+export default function DirectoryPagesView({ pages: initialPages = [], initialPage = 1 }) {
+  const router = useRouter();
+  const [livePages, setLivePages] = useState(initialPages);
+  const [canCompose, setCanCompose] = useState(false);
+  const [composeMode, setComposeMode] = useState(false);
+
+  useEffect(() => {
+    setLivePages(initialPages);
+  }, [initialPages]);
+
+  const pageNumbers = livePages.map((p) => p.pageNumber);
+  const spreads = useMemo(() => buildDirectorySpreads(pageNumbers), [pageNumbers]);
+  const pageByNumber = useMemo(
+    () => new Map(livePages.map((p) => [p.pageNumber, p])),
+    [livePages]
+  );
+
+  const navItems = useMemo(() => {
+    const items = spreads.map((s, i) => ({
+      key: `${s.left}-${s.right ?? 'x'}`,
+      kind: 'spread',
+      index: i,
+      label: directorySpreadLabel(s),
+    }));
+    if (canCompose) {
+      items.push({
+        key: COMPOSE_SPREAD_KEY,
+        kind: 'compose',
+        index: spreads.length,
+        label: '+',
+      });
+    }
+    return items;
+  }, [spreads, canCompose]);
+
+  const initialSpreadIndex = useMemo(() => {
+    const n = Number(initialPage) || 1;
+    const idx = spreads.findIndex((s) => s.left === n || s.right === n);
+    return idx >= 0 ? idx : 0;
+  }, [spreads, initialPage]);
+
+  const [spreadIndex, setSpreadIndex] = useState(initialSpreadIndex);
+  const [category, setCategory] = useState('all');
+  const [mobileMode, setMobileMode] = useState('grid');
+  const [zoom, setZoom] = useState(1);
+  const [currentUserId, setCurrentUserId] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadComposePermission(userId) {
+      if (!userId) {
+        if (!cancelled) setCanCompose(false);
+        return;
+      }
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_admin,is_moderator')
+        .eq('id', userId)
+        .maybeSingle();
+      if (!cancelled) {
+        setCanCompose(Boolean(profile?.is_admin || profile?.is_moderator));
+      }
+    }
+
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      const user = data.session?.user;
+      if (!cancelled) setCurrentUserId(user?.id || '');
+      await loadComposePermission(user?.id);
+    })();
+
+    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setCurrentUserId(session?.user?.id || '');
+      if (!session?.user) {
+        setCanCompose(false);
+        setComposeMode(false);
+        return;
+      }
+      await loadComposePermission(session.user.id);
+    });
+
+    return () => {
+      cancelled = true;
+      sub?.subscription?.unsubscribe?.();
+    };
+  }, []);
+
+  const spread = (!composeMode && spreads[spreadIndex]) || spreads[0] || { left: 1, right: null };
+  const leftPage = composeMode ? null : pageByNumber.get(spread.left);
+  const rightPage = composeMode || spread.right == null ? null : pageByNumber.get(spread.right);
+  const isSingleSpread = composeMode || rightPage == null;
+
+  const allCategories = listDirectoryCategories();
+  const categoryHalf = Math.ceil(allCategories.length / 2);
+  const leftCategories = allCategories.slice(0, categoryHalf);
+  const rightCategories = allCategories.slice(categoryHalf);
+
+  const listSlots = useMemo(() => {
+    if (composeMode) return [];
+    const nums = [spread.left, spread.right].filter((n) => n != null);
+    const rows = [];
+    for (const n of nums) {
+      const p = pageByNumber.get(n);
+      for (const slot of p?.slots || []) rows.push(slot);
+    }
+    return rows;
+  }, [spread, pageByNumber, composeMode]);
+
+  function selectNav(item) {
+    if (item.kind === 'compose') {
+      setComposeMode(true);
+      return;
+    }
+    setComposeMode(false);
+    setSpreadIndex(item.index);
+  }
+
+  function goPrev() {
+    if (composeMode) {
+      setComposeMode(false);
+      setSpreadIndex(Math.max(0, spreads.length - 1));
+      return;
+    }
+    if (spreadIndex > 0) setSpreadIndex(spreadIndex - 1);
+  }
+
+  function goNext() {
+    if (composeMode) return;
+    if (spreadIndex < spreads.length - 1) {
+      setSpreadIndex(spreadIndex + 1);
+      return;
+    }
+    if (canCompose) setComposeMode(true);
+  }
+
+  function handlePageCreated(payload) {
+    const slots = payload?.slots || [];
+    const pageNumber = Number(payload?.page_number);
+    if (!pageNumber || !slots.length) {
+      router.refresh();
+      return;
+    }
+    const nums = [...new Set([...pageNumbers, pageNumber])].sort((a, b) => a - b);
+    setLivePages((prev) => {
+      const without = prev.filter((p) => p.pageNumber !== pageNumber);
+      return [...without, { pageNumber, slots }].sort((a, b) => a.pageNumber - b.pageNumber);
+    });
+    setComposeMode(false);
+    const rebuilt = buildDirectorySpreads(nums);
+    const idx = rebuilt.findIndex((s) => s.left === pageNumber || s.right === pageNumber);
+    setSpreadIndex(idx >= 0 ? idx : Math.max(0, rebuilt.length - 1));
+    router.refresh();
+  }
+
+  const atStart = !composeMode && spreadIndex <= 0;
+  const atEnd = composeMode || (!canCompose && spreadIndex >= spreads.length - 1);
+
+  return (
+    <div className={`dir-pages${mobileMode === 'list' ? ' is-list-mode' : ''}`}>
+      <div className="dir-cat-rail" role="toolbar" aria-label="카테고리 필터">
+        <button
+          type="button"
+          className={`dir-cat-rail-item${category === 'all' ? ' is-active' : ''}`}
+          onClick={() => setCategory('all')}
+        >
+          <span aria-hidden="true">📋</span>
+          <span>전체</span>
+        </button>
+        {allCategories.map((c) => (
+          <button
+            key={c.slug}
+            type="button"
+            className={`dir-cat-rail-item${category === c.slug ? ' is-active' : ''}`}
+            onClick={() => setCategory(c.slug)}
+          >
+            <span aria-hidden="true">{c.icon}</span>
+            <span>{c.nameKo}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="dir-spread-stage">
+        <SideMenu
+          side="left"
+          categories={leftCategories}
+          category={category}
+          onSelect={setCategory}
+          showAll
+        />
+
+        <div
+          className={`dir-spread-viewport${zoom > 1 ? ' is-zoomed' : ''}`}
+          style={{ '--dir-zoom': zoom }}
+        >
+          <div
+            className={`dir-spread-papers${isSingleSpread ? ' is-single' : ''}`}
+            style={{ '--spread-page-count': isSingleSpread ? 1 : 2 }}
+          >
+            {composeMode && canCompose ? (
+              <DirectoryPageComposer
+                onCreated={handlePageCreated}
+                onCancel={() => {
+                  setComposeMode(false);
+                  setSpreadIndex(Math.max(0, spreads.length - 1));
+                }}
+              />
+            ) : (
+              <>
+                {leftPage ? (
+                  <DirectoryPaper
+                    pageData={leftPage}
+                    category={category}
+                    currentUserId={currentUserId}
+                  />
+                ) : null}
+                {rightPage ? (
+                  <DirectoryPaper
+                    pageData={rightPage}
+                    category={category}
+                    currentUserId={currentUserId}
+                  />
+                ) : null}
+              </>
+            )}
+          </div>
+        </div>
+
+        <SideMenu
+          side="right"
+          categories={rightCategories}
+          category={category}
+          onSelect={setCategory}
+          showList={false}
+        />
+      </div>
+
+      <div className="dir-pages-controls">
+        <div className="dir-pages-nav" role="tablist" aria-label="지면 페이지">
+          <button
+            type="button"
+            className="btn btn-outline dir-pages-arrow"
+            onClick={goPrev}
+            disabled={atStart}
+          >
+            ←
+          </button>
+          {navItems.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              role="tab"
+              aria-selected={
+                item.kind === 'compose' ? composeMode : !composeMode && item.index === spreadIndex
+              }
+              className={`dir-pages-tab${
+                item.kind === 'compose'
+                  ? ` dir-pages-tab--plus${composeMode ? ' is-active' : ''}`
+                  : !composeMode && item.index === spreadIndex
+                    ? ' is-active'
+                    : ''
+              }`}
+              onClick={() => selectNav(item)}
+              title={item.kind === 'compose' ? '새 페이지 추가 (블랙)' : undefined}
+            >
+              {item.label}
+            </button>
+          ))}
+          <button
+            type="button"
+            className="btn btn-outline dir-pages-arrow"
+            onClick={goNext}
+            disabled={atEnd}
+          >
+            →
+          </button>
+        </div>
+        <div className="dir-zoom" role="group" aria-label="지면 확대">
+          <button
+            type="button"
+            className="btn btn-outline dir-zoom-btn"
+            onClick={() => setZoom((z) => clampZoom(z - ZOOM_STEP))}
+            disabled={zoom <= ZOOM_MIN}
+            aria-label="축소"
+          >
+            −
+          </button>
+          <input
+            className="dir-zoom-slider"
+            type="range"
+            min={ZOOM_MIN}
+            max={ZOOM_MAX}
+            step={ZOOM_STEP}
+            value={zoom}
+            onChange={(e) => setZoom(clampZoom(e.target.value))}
+            aria-label="확대 비율"
+          />
+          <button
+            type="button"
+            className="btn btn-outline dir-zoom-btn"
+            onClick={() => setZoom((z) => clampZoom(z + ZOOM_STEP))}
+            disabled={zoom >= ZOOM_MAX}
+            aria-label="확대"
+          >
+            +
+          </button>
+          <span className="dir-zoom-pct">{Math.round(zoom * 100)}%</span>
+        </div>
+        <div className="dir-mobile-toggle" role="group" aria-label="모바일 보기 방식">
+          <button
+            type="button"
+            className={`dir-pages-tab${mobileMode === 'grid' ? ' is-active' : ''}`}
+            onClick={() => setMobileMode('grid')}
+          >
+            그리드
+          </button>
+          <button
+            type="button"
+            className={`dir-pages-tab${mobileMode === 'list' ? ' is-active' : ''}`}
+            onClick={() => setMobileMode('list')}
+          >
+            리스트
+          </button>
+        </div>
+      </div>
+
+      {mobileMode === 'list' && !composeMode ? (
+        <div className="dir-mobile-list card" aria-label="현재 면 슬롯 리스트">
+          {listSlots.map((slot) => {
+            const ad = activeAd(slot);
+            const occupied = slot.status === 'occupied' && ad;
+            const isMine = Boolean(
+              occupied && currentUserId && ad.submitted_by && ad.submitted_by === currentUserId
+            );
+            const canApply = !occupied && slot.status === 'available';
+            const row = (
+              <>
+                <strong>{slot.position_label}</strong>
+                <span>{sizeTierLabel(slot.size_tier)}</span>
+                <span>
+                  {occupied
+                    ? `${ad.ad_title} · ${getDirectoryCategoryLabel(ad.category_slug)}${
+                        isMine ? ' · 내 광고' : ''
+                      }`
+                    : canApply
+                      ? '빈 자리 · 신청'
+                      : '빈 자리'}
+                </span>
+                <span>{formatSlotPrice(slot.base_price_cents)}</span>
+              </>
+            );
+            if (canApply) {
+              return (
+                <Link
+                  key={slot.id}
+                  href={`/directory/pages/apply?slot=${encodeURIComponent(slot.id)}`}
+                  className="dir-mobile-list-row dir-mobile-list-row--link"
+                >
+                  {row}
+                </Link>
+              );
+            }
+            if (isMine) {
+              return (
+                <Link
+                  key={slot.id}
+                  href={`/directory/pages/edit?ad=${encodeURIComponent(ad.id)}`}
+                  className="dir-mobile-list-row dir-mobile-list-row--link is-mine"
+                >
+                  {row}
+                </Link>
+              );
+            }
+            return (
+              <div
+                key={slot.id}
+                className={`dir-mobile-list-row${occupied ? ' is-occupied' : ''}`}
+                aria-disabled={occupied ? 'true' : undefined}
+              >
+                {row}
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+}

@@ -1,0 +1,37 @@
+import Link from 'next/link';
+
+const LINKS = [
+  { href: '/admin', label: '대시보드' },
+  { href: '/admin/members', label: '회원 관리' },
+  { href: '/admin/sellers', label: '사업자 입점' },
+  { href: '/admin/directory-pages', label: '지면 광고' },
+  { href: '/admin/shop', label: '리스팅(구)' },
+  { href: '/admin/pricing', label: '요금 설정' },
+  { href: '/admin/payments', label: '결제 확인' },
+];
+
+export default function AdminLayout({ children }) {
+  return (
+    <div className="container admin-wrap">
+      <div className="row-between" style={{ marginBottom: 18 }}>
+        <div>
+          <h2 className="section-title" style={{ marginBottom: 4 }}>
+            ATHERIUM · 튤립타운 관리
+          </h2>
+          <div className="hint-text">최고관리자(is_admin) 전용 · /admin</div>
+        </div>
+        <Link href="/" className="btn btn-outline">
+          사이트로
+        </Link>
+      </div>
+      <nav className="admin-nav">
+        {LINKS.map((link) => (
+          <Link key={link.href} href={link.href} className="admin-nav-link">
+            {link.label}
+          </Link>
+        ))}
+      </nav>
+      {children}
+    </div>
+  );
+}

@@ -16,11 +16,61 @@ export const SHOP_SORTS = [
   { id: 'price_desc', label: '높은 가격순' },
 ];
 
+/** Shipping scope filter (products.shipping_scope). */
+export const SHOP_SHIPPING_FILTERS = [
+  { id: 'all', label: '전체' },
+  { id: 'local', label: '로컬만' },
+  { id: 'nationwide', label: '전국배송만' },
+];
+
+/**
+ * City filter groups on sponsors.city.
+ * West Michigan covers nearby West MI cities already used on seller apply.
+ */
+export const SHOP_CITY_FILTERS = [
+  { id: 'all', label: '전체 지역' },
+  { id: 'Holland', label: 'Holland' },
+  { id: 'Grand Rapids', label: 'Grand Rapids' },
+  { id: 'West Michigan', label: 'West Michigan' },
+  { id: 'Other', label: 'Other' },
+];
+
+const WEST_MICHIGAN_CITIES = new Set(['west michigan', 'zeeland', 'hudsonville']);
+
 export function shopCategoryLabel(id) {
   return SHOP_CATEGORIES.find((c) => c.id === id)?.label || id || '기타';
 }
 
-export function filterShopItems(items, { category = 'all', sort = 'newest', q = '' } = {}) {
+export function shopShippingLabel(scope) {
+  if (scope === 'nationwide') return '전국배송';
+  return '로컬';
+}
+
+export function normalizeShippingScope(value) {
+  return value === 'nationwide' ? 'nationwide' : 'local';
+}
+
+function sellerCity(item) {
+  const seller = item?.sponsor || item?.sponsors;
+  return String(seller?.city || '').trim();
+}
+
+function matchesCityFilter(item, cityFilter) {
+  if (!cityFilter || cityFilter === 'all') return true;
+  const city = sellerCity(item);
+  const lower = city.toLowerCase();
+
+  if (cityFilter === 'Holland') return lower === 'holland';
+  if (cityFilter === 'Grand Rapids') return lower === 'grand rapids';
+  if (cityFilter === 'Other') return lower === 'other' || !city;
+  if (cityFilter === 'West Michigan') return WEST_MICHIGAN_CITIES.has(lower);
+  return city === cityFilter;
+}
+
+export function filterShopItems(
+  items,
+  { category = 'all', sort = 'newest', q = '', shipping = 'all', city = 'all' } = {}
+) {
   const query = String(q || '')
     .trim()
     .toLowerCase();
@@ -28,6 +78,16 @@ export function filterShopItems(items, { category = 'all', sort = 'newest', q = 
 
   if (category && category !== 'all') {
     list = list.filter((item) => String(item.category || 'other') === category);
+  }
+
+  if (shipping && shipping !== 'all') {
+    list = list.filter(
+      (item) => normalizeShippingScope(item.shipping_scope) === shipping
+    );
+  }
+
+  if (city && city !== 'all') {
+    list = list.filter((item) => matchesCityFilter(item, city));
   }
 
   if (query) {
@@ -39,6 +99,7 @@ export function filterShopItems(items, { category = 'all', sort = 'newest', q = 
         seller?.business_name,
         seller?.city,
         shopCategoryLabel(item.category),
+        shopShippingLabel(item.shipping_scope),
       ]
         .filter(Boolean)
         .join(' ')

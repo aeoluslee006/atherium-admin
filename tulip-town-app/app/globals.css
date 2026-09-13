@@ -3686,6 +3686,11 @@ main:has(.home-page) {
   color: var(--ink);
 }
 
+.shop-card-shipping {
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
 .shop-seller-link {
   color: var(--accent-dark, #2f5d4a);
   font-weight: 650;

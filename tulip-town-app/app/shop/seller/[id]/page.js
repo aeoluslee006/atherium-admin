@@ -4,6 +4,7 @@ import MemberTierBadge from '../../../../components/MemberTierBadge';
 import ShopCatalog from '../../../../components/ShopCatalog';
 import { getTierMeta } from '../../../../lib/memberTier';
 import { loadFavoriteProductIds } from '../../../../lib/shopFavorites';
+import { loadSellerReviewCount } from '../../../../lib/shopReviews';
 import { loadSellerTrust } from '../../../../lib/shopSellerTrust';
 import { supabaseRest } from '../../../../lib/supabaseRest';
 
@@ -69,10 +70,11 @@ export default async function ShopSellerPage({ params }) {
   const seller = await loadSeller(params.id);
   if (!seller) notFound();
 
-  const [products, sellerTrust, favoriteIds] = await Promise.all([
+  const [products, sellerTrust, favoriteIds, reviewCount] = await Promise.all([
     loadSellerProducts(seller.id, seller),
     loadSellerTrust(seller),
     loadFavoriteProductIds(),
+    loadSellerReviewCount(seller.id),
   ]);
   const tierMeta = getTierMeta(sellerTrust.tier);
 
@@ -89,6 +91,8 @@ export default async function ShopSellerPage({ params }) {
             {seller.city ? <span>{seller.city}</span> : null}
             {seller.city ? <span aria-hidden="true"> · </span> : null}
             <span>상품 {products.length}개</span>
+            <span aria-hidden="true"> · </span>
+            <span>거래 좋아요 {reviewCount}</span>
           </div>
 
           <div className="shop-seller-trust" aria-label="판매자 등급">

@@ -5125,52 +5125,24 @@ main:has(.home-page) {
   padding: 18px 20px !important;
 }
 
-.letter-paper {
-  --letter-ink: #2a261f;
-  color: var(--letter-ink);
-  background-color: #f7f1e4;
-  background-repeat: no-repeat;
-  background-size: contain;
-  background-position: top center;
-}
-
-.letter-paper--svg {
-  background-color: #fffaf3;
+/* 노트/편지지 배경 제거 — 남은 letter-paper 클래스도 일반 카드처럼 */
+.letter-paper,
+.letter-paper--svg,
+.card.letter-paper,
+.post-body-html.letter-paper,
+.wf-featured-letter.letter-paper {
+  color: inherit;
+  background: none !important;
+  background-image: none !important;
+  background-color: transparent !important;
+  aspect-ratio: auto;
+  max-width: none;
+  box-shadow: none;
+  border-color: inherit;
 }
 
 .letter-paper-label {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  opacity: 0.55;
-  margin-bottom: 10px;
-}
-
-/* 옵션 A: 글 상세 편지지는 SVG 원본 비율(600x800) 그대로 */
-.card.letter-paper,
-.post-body-html.letter-paper {
-  max-width: 640px;
-  width: 100%;
-  aspect-ratio: 600 / 800;
-  margin-left: auto;
-  margin-right: auto;
-  overflow: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-  border-color: rgba(40, 30, 20, 0.1);
-  box-shadow: 0 8px 24px rgba(40, 30, 20, 0.06);
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: top center;
-}
-
-/* 홈 좋은글 창구는 고정 높이 유지 — 원본 비율로 contain (잘림 방지) */
-.wf-featured-letter.letter-paper {
-  border-radius: 0 0 14px 14px;
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: top center;
+  display: none;
 }
 
 .wf-featured-letter.letter-paper .wf-featured-name,

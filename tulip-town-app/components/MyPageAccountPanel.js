@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { IconLock, IconUser } from './MyPageIcons';
+import { useLocale } from './LocaleProvider';
 
 export default function MyPageAccountPanel({
   initialNickname = '',
@@ -11,6 +12,7 @@ export default function MyPageAccountPanel({
   firstName = '',
   lastName = '',
 }) {
+  const { t } = useLocale();
   const [nickname, setNickname] = useState(initialNickname || '');
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMsg, setProfileMsg] = useState('');
@@ -30,20 +32,20 @@ export default function MyPageAccountPanel({
     setSavingProfile(true);
     try {
       const next = nickname.trim();
-      if (!next) throw new Error('닉네임을 입력해 주세요.');
+      if (!next) throw new Error(t('mypage.needNickname'));
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) throw new Error('로그인이 필요합니다.');
+      if (!user) throw new Error(t('mypage.needLogin'));
 
       const { error } = await supabase
         .from('profiles')
         .update({ display_name: next })
         .eq('id', user.id);
       if (error) throw error;
-      setProfileMsg('닉네임이 저장되었습니다.');
+      setProfileMsg(t('mypage.nicknameSaved'));
     } catch (err) {
-      setProfileErr(err?.message || '저장에 실패했습니다.');
+      setProfileErr(err?.message || t('mypage.saveFailed'));
     } finally {
       setSavingProfile(false);
     }
@@ -55,15 +57,15 @@ export default function MyPageAccountPanel({
     setPwErr('');
     setSavingPw(true);
     try {
-      if (password.length < 6) throw new Error('비밀번호는 6자 이상이어야 합니다.');
-      if (password !== passwordConfirm) throw new Error('비밀번호 확인이 일치하지 않습니다.');
+      if (password.length < 6) throw new Error(t('mypage.passwordMin'));
+      if (password !== passwordConfirm) throw new Error(t('auth.passwordMismatch'));
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
       setPassword('');
       setPasswordConfirm('');
-      setPwMsg('비밀번호가 변경되었습니다.');
+      setPwMsg(t('mypage.passwordChanged'));
     } catch (err) {
-      setPwErr(err?.message || '비밀번호 변경에 실패했습니다.');
+      setPwErr(err?.message || t('mypage.passwordChangeFailed'));
     } finally {
       setSavingPw(false);
     }
@@ -73,7 +75,7 @@ export default function MyPageAccountPanel({
     setPwMsg('');
     setPwErr('');
     if (!email) {
-      setPwErr('이메일 주소가 없습니다.');
+      setPwErr(t('mypage.noEmail'));
       return;
     }
     setSendingReset(true);
@@ -81,9 +83,9 @@ export default function MyPageAccountPanel({
       const redirectTo = `${window.location.origin}/login`;
       const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
       if (error) throw error;
-      setPwMsg('비밀번호 재설정 메일을 보냈습니다. 메일함을 확인해 주세요.');
+      setPwMsg(t('mypage.resetSent'));
     } catch (err) {
-      setPwErr(err?.message || '재설정 메일 발송에 실패했습니다.');
+      setPwErr(err?.message || t('mypage.resetFailed'));
     } finally {
       setSendingReset(false);
     }
@@ -98,22 +100,22 @@ export default function MyPageAccountPanel({
           <span className="mypage-section-icon" aria-hidden="true">
             <IconUser />
           </span>
-          내 정보
+          {t('mypage.account')}
         </h2>
       </div>
 
       <div className="mypage-account-meta">
         <div>
-          <span className="mypage-account-label">이메일</span>
+          <span className="mypage-account-label">{t('auth.email')}</span>
           <strong>{email || '—'}</strong>
         </div>
         <div>
-          <span className="mypage-account-label">아이디</span>
+          <span className="mypage-account-label">{t('auth.username')}</span>
           <strong>{username || '—'}</strong>
         </div>
         {fullName ? (
           <div>
-            <span className="mypage-account-label">이름</span>
+            <span className="mypage-account-label">{t('mypage.name')}</span>
             <strong>{fullName}</strong>
           </div>
         ) : null}
@@ -121,7 +123,7 @@ export default function MyPageAccountPanel({
 
       <form className="mypage-account-form mypage-account-form--compact" onSubmit={saveNickname}>
         <label htmlFor="mypage-nickname">
-          닉네임
+          {t('mypage.nickname')}
           <input
             id="mypage-nickname"
             value={nickname}
@@ -137,7 +139,7 @@ export default function MyPageAccountPanel({
           </p>
         ) : null}
         <button type="submit" className="btn" disabled={savingProfile}>
-          {savingProfile ? '저장 중…' : '닉네임 저장'}
+          {savingProfile ? t('common.saving') : t('mypage.saveNickname')}
         </button>
       </form>
 
@@ -146,11 +148,11 @@ export default function MyPageAccountPanel({
           <span className="mypage-section-icon" aria-hidden="true">
             <IconLock />
           </span>
-          비밀번호 변경
+          {t('mypage.changePassword')}
         </summary>
         <form className="mypage-account-form mypage-account-form--compact" onSubmit={changePassword}>
           <label htmlFor="mypage-password">
-            새 비밀번호
+            {t('mypage.newPassword')}
             <input
               id="mypage-password"
               type="password"
@@ -162,7 +164,7 @@ export default function MyPageAccountPanel({
             />
           </label>
           <label htmlFor="mypage-password-confirm">
-            새 비밀번호 확인
+            {t('mypage.newPasswordConfirm')}
             <input
               id="mypage-password-confirm"
               type="password"
@@ -181,7 +183,7 @@ export default function MyPageAccountPanel({
           ) : null}
           <div className="mypage-empty-actions">
             <button type="submit" className="btn" disabled={savingPw}>
-              {savingPw ? '변경 중…' : '비밀번호 변경'}
+              {savingPw ? t('mypage.changing') : t('mypage.changePassword')}
             </button>
             <button
               type="button"
@@ -189,7 +191,7 @@ export default function MyPageAccountPanel({
               disabled={sendingReset || !email}
               onClick={sendResetEmail}
             >
-              {sendingReset ? '메일 발송 중…' : '이메일로 재설정'}
+              {sendingReset ? t('mypage.sendingMail') : t('mypage.resetByEmail')}
             </button>
           </div>
         </form>

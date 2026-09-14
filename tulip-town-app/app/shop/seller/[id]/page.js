@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import AutoTranslatedText from '../../../../components/AutoTranslatedText';
 import MemberTierBadge from '../../../../components/MemberTierBadge';
 import ShopCatalog from '../../../../components/ShopCatalog';
 import ShopContactChannels from '../../../../components/ShopContactChannels';
+import { createServerT, getServerLocale } from '../../../../lib/i18n/server';
 import { getTierMeta } from '../../../../lib/memberTier';
 import { loadFavoriteProductIds } from '../../../../lib/shopFavorites';
 import { loadSellerReviewCount } from '../../../../lib/shopReviews';
@@ -61,53 +63,64 @@ async function loadSellerProducts(sponsorId, seller) {
 }
 
 export async function generateMetadata({ params }) {
+  const locale = getServerLocale();
+  const t = createServerT(locale);
   const seller = await loadSeller(params.id);
-  if (!seller) return { title: '판매자 · 튤립가게' };
+  if (!seller) return { title: t('shop.sellerTitle') };
   return {
-    title: `${seller.business_name} · 튤립가게`,
-    description: seller.description || `${seller.business_name} 상품`,
+    title: `${seller.business_name} · ${t('shop.home')}`,
+    description: seller.description || t('shop.sellerProducts', { name: seller.business_name }),
   };
 }
 
 export default async function ShopSellerPage({ params }) {
+  const locale = getServerLocale();
+  const t = createServerT(locale);
   const seller = await loadSeller(params.id);
   if (!seller) notFound();
 
   const [products, sellerTrust, favoriteIds, reviewCount] = await Promise.all([
     loadSellerProducts(seller.id, seller),
-    loadSellerTrust(seller),
+    loadSellerTrust(seller, locale),
     loadFavoriteProductIds(),
     loadSellerReviewCount(seller.id),
   ]);
   const tierMeta = getTierMeta(sellerTrust.tier);
+  const tierLabel = t(`tier.${sellerTrust.tier}`) !== `tier.${sellerTrust.tier}`
+    ? t(`tier.${sellerTrust.tier}`)
+    : (locale === 'en' ? tierMeta.labelEn : tierMeta.labelKo);
 
   return (
     <div className="shop-page">
       <div className="container" style={{ paddingTop: 28, paddingBottom: 8 }}>
         <Link href="/shop" className="btn btn-outline">
-          튤립가게
+          {t('shop.home')}
         </Link>
 
         <header className="shop-seller-profile">
-          <h1 className="shop-seller-profile-name">{seller.business_name}</h1>
+          <h1 className="shop-seller-profile-name">
+            <AutoTranslatedText text={seller.business_name} />
+          </h1>
           <div className="shop-seller-profile-meta">
             {seller.city ? <span>{seller.city}</span> : null}
             {seller.city ? <span aria-hidden="true"> · </span> : null}
-            <span>상품 {products.length}개</span>
+            <span>{t('shop.sellerMeta', { count: products.length })}</span>
             <span aria-hidden="true"> · </span>
-            <span>거래 좋아요 {reviewCount}</span>
+            <span>{t('shop.sellerLikes', { count: reviewCount })}</span>
           </div>
 
-          <div className="shop-seller-trust" aria-label="판매자 등급">
+          <div className="shop-seller-trust" aria-label={t('shop.sellerTierLabel')}>
             <MemberTierBadge tier={sellerTrust.tier} />
             <span className="shop-seller-trust-text">
-              {tierMeta.labelKo} 등급
+              {t('shop.sellerTierText', { tier: tierLabel })}
               {sellerTrust.tenureLabel ? ` · ${sellerTrust.tenureLabel}` : ''}
             </span>
           </div>
 
           {seller.description ? (
-            <p className="shop-seller-profile-bio">{seller.description}</p>
+            <p className="shop-seller-profile-bio">
+              <AutoTranslatedText text={seller.description} />
+            </p>
           ) : null}
 
           <ShopContactChannels
@@ -121,7 +134,7 @@ export default async function ShopSellerPage({ params }) {
       <div className="container" id="shop-grid">
         <ShopCatalog
           items={products}
-          sectionTitle={`${seller.business_name} 상품`}
+          sectionTitle={t('shop.sellerProducts', { name: seller.business_name })}
           showSellerLink={false}
           favoriteIds={favoriteIds}
         />

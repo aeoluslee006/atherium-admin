@@ -2,9 +2,11 @@ import Link from 'next/link';
 import CommentForm from '../../../components/CommentForm';
 import HousingPhotoGallery from '../../../components/HousingPhotoGallery';
 import LocalizedPostContent from '../../../components/LocalizedPostContent';
+import LocalizedPostTitle from '../../../components/LocalizedPostTitle';
 import { getCategory } from '../../../lib/categories';
 import { getFreeBoardTagLabel } from '../../../lib/freeBoardTags';
 import { getHousingTagLabel, getHousingTypeLabel } from '../../../lib/housingTags';
+import { createServerT, getServerLocale } from '../../../lib/i18n/server';
 import { formatWorkStatus, getJobTagLabel, getIndustryRoleTags } from '../../../lib/jobTags';
 import { getMarketTagLabel } from '../../../lib/marketTags';
 import {
@@ -47,13 +49,18 @@ function sanitizePostHtml(html) {
     .replace(/javascript:/gi, '');
 }
 
-function formatPostDate(value) {
+function formatPostDate(value, locale) {
   if (!value) return '';
   try {
-    return new Date(value).toLocaleString('ko-KR');
+    return new Date(value).toLocaleString(locale === 'en' ? 'en-US' : 'ko-KR');
   } catch {
     return '';
   }
+}
+
+function roleLabel(tagItem, locale) {
+  if (!tagItem) return '';
+  return locale === 'en' ? tagItem.nameEn || tagItem.nameKo : tagItem.nameKo;
 }
 
 async function safeRest(path) {
@@ -65,6 +72,8 @@ async function safeRest(path) {
 }
 
 export default async function PostPage({ params }) {
+  const locale = getServerLocale();
+  const t = createServerT(locale);
   let post = null;
   let comments = [];
   let authorLabel = '';
@@ -74,19 +83,19 @@ export default async function PostPage({ params }) {
   try {
     if (isSampleHousingPostId(params.id)) {
       post = getSampleHousingPost();
-      authorLabel = '예시';
+      authorLabel = t('post.sampleAuthor');
     } else if (isSampleJobsPostId(params.id)) {
       post = getSampleJobsPost();
-      authorLabel = '예시';
+      authorLabel = t('post.sampleAuthor');
     } else if (isSampleMarketPostId(params.id)) {
       post = getSampleMarketPost();
-      authorLabel = '예시';
+      authorLabel = t('post.sampleAuthor');
     } else if (isSampleClassesPostId(params.id)) {
       post = getSampleClassesPost();
-      authorLabel = '예시';
+      authorLabel = t('post.sampleAuthor');
     } else if (isSampleFreeClubPostId(params.id)) {
       post = getSampleFreeClubPost();
-      authorLabel = '예시';
+      authorLabel = t('post.sampleAuthor');
     } else {
       const rows = await supabaseRest(
         `posts?select=*&id=eq.${encodeURIComponent(params.id)}&limit=1`
@@ -134,12 +143,12 @@ export default async function PostPage({ params }) {
       ) {
         const slug = post.category_slug;
         const newer = await safeRest(
-          `posts?select=id,title,created_at&category_slug=eq.${slug}&created_at=gt.${encodeURIComponent(
+          `posts?select=id,title,title_en,created_at&category_slug=eq.${slug}&created_at=gt.${encodeURIComponent(
             post.created_at
           )}&order=created_at.asc&limit=1`
         );
         const older = await safeRest(
-          `posts?select=id,title,created_at&category_slug=eq.${slug}&created_at=lt.${encodeURIComponent(
+          `posts?select=id,title,title_en,created_at&category_slug=eq.${slug}&created_at=lt.${encodeURIComponent(
             post.created_at
           )}&order=created_at.desc&limit=1`
         );
@@ -154,7 +163,7 @@ export default async function PostPage({ params }) {
   if (!post) {
     return (
       <div className="container">
-        <div className="card empty-state">게시글을 찾을 수 없습니다.</div>
+        <div className="card empty-state">{t('post.notFound')}</div>
       </div>
     );
   }
@@ -164,28 +173,41 @@ export default async function PostPage({ params }) {
   const isJobs = post.category_slug === 'jobs';
   const isHousing = post.category_slug === 'housing';
   const isClasses = post.category_slug === 'classes';
-  const freeTagLabel = post.category_slug === 'free' ? getFreeBoardTagLabel(post.subcategory) : '';
+  const freeTagLabel =
+    post.category_slug === 'free' ? getFreeBoardTagLabel(post.subcategory, locale) : '';
   const marketTagLabel = isMarket ? getMarketTagLabel(post.subcategory) : '';
   const jobTagLabel = isJobs ? getJobTagLabel(post.subcategory) : '';
   const housingTagLabel = isHousing ? getHousingTagLabel(post.subcategory) : '';
   const housingTypeLabel = isHousing ? getHousingTypeLabel(post.housing_type) : '';
   const htmlBody = isHtmlBody(post.body);
+  const categoryName = category
+    ? locale === 'en'
+      ? category.nameEn || category.nameKo
+      : category.nameKo
+    : post.category_slug;
 
   const housingSpecs = isHousing
     ? [
-        ['구분', housingTagLabel || '—'],
-        ['유형', housingTypeLabel || '—'],
-        ['월세/가격', post.rent_price_text || '—'],
-        ['보증금', post.deposit_text || '—'],
-        ['침실/욕실', [post.beds && `${post.beds} bed`, post.baths && `${post.baths} bath`].filter(Boolean).join(' · ') || '—'],
-        ['주소', post.address_text || '—'],
-        ['지역', post.city || '—'],
-        ['입주', post.available_text || '—'],
-        ['연락처', post.contact_text || '—'],
+        [t('post.field.category'), housingTagLabel || '—'],
+        [t('post.field.type'), housingTypeLabel || '—'],
+        [t('post.field.rent'), post.rent_price_text || '—'],
+        [t('post.field.deposit'), post.deposit_text || '—'],
+        [
+          t('post.field.bedsBaths'),
+          [post.beds && `${post.beds} bed`, post.baths && `${post.baths} bath`].filter(Boolean).join(' · ') ||
+            '—',
+        ],
+        [t('post.field.address'), post.address_text || '—'],
+        [t('post.field.location'), post.city || '—'],
+        [t('post.field.available'), post.available_text || '—'],
+        [t('post.field.contact'), post.contact_text || '—'],
       ]
     : [];
 
   const hasHousingLocation = Boolean(post.address_text || post.city);
+  const addressLabel = t('post.field.address');
+  const locationLabel = t('post.field.location');
+  const availableLabel = t('post.field.available');
 
   const jobContact =
     [post.contact_name, post.contact_phone, post.contact_email].filter(Boolean).join(' · ') ||
@@ -193,14 +215,19 @@ export default async function PostPage({ params }) {
     '';
   const jobSpecs = isJobs
     ? [
-        ['구분', jobTagLabel || '—'],
-        ['회사', post.company_name || '—'],
-        ['급여/조건', post.pay_text || '—'],
-        ['근무 형태', formatWorkStatus(post.job_roles) || '—'],
-        ['직종', getIndustryRoleTags(post.job_roles).map((t) => t.nameKo).join(', ') || '—'],
-        ['지역', post.city || '—'],
-        ['주소', post.address_text || '—'],
-        ['연락처', jobContact || '—'],
+        [t('post.field.category'), jobTagLabel || '—'],
+        [t('post.field.company'), post.company_name || '—'],
+        [t('post.field.pay'), post.pay_text || '—'],
+        [t('post.field.workType'), formatWorkStatus(post.job_roles) || '—'],
+        [
+          t('post.field.roles'),
+          getIndustryRoleTags(post.job_roles)
+            .map((tagItem) => roleLabel(tagItem, locale))
+            .join(', ') || '—',
+        ],
+        [t('post.field.location'), post.city || '—'],
+        [t('post.field.address'), post.address_text || '—'],
+        [t('post.field.contact'), jobContact || '—'],
       ].filter(([, value]) => value && value !== '—')
     : [];
 
@@ -228,18 +255,18 @@ export default async function PostPage({ params }) {
 
   const marketSpecs = isMarket
     ? [
-        ['구분', marketTagLabel || '—'],
-        ['가격', post.price_text || '—'],
-        ['지역', post.city || '—'],
-        ['연락처', post.contact_text || '—'],
+        [t('post.field.category'), marketTagLabel || '—'],
+        [t('post.field.price'), post.price_text || '—'],
+        [t('post.field.location'), post.city || '—'],
+        [t('post.field.contact'), post.contact_text || '—'],
       ].filter(([, value]) => value && value !== '—')
     : [];
 
   const classSpecs = isClasses
     ? [
-        ['수업 장소', post.address_text || '—'],
-        ['지역', post.city || '—'],
-        ['연락처', post.contact_text || '—'],
+        [t('post.field.classVenue'), post.address_text || '—'],
+        [t('post.field.location'), post.city || '—'],
+        [t('post.field.contact'), post.contact_text || '—'],
       ].filter(([, value]) => value && value !== '—')
     : [];
 
@@ -249,11 +276,7 @@ export default async function PostPage({ params }) {
         <div>
           <div className="hint-text" style={{ marginBottom: 6 }}>
             {category ? (
-              <Link href={`/board/${category.slug}`}>
-                {isMarket || isJobs || isHousing || isClasses
-                  ? category.nameKo
-                  : `${category.nameKo} · ${category.nameEn}`}
-              </Link>
+              <Link href={`/board/${category.slug}`}>{categoryName}</Link>
             ) : (
               post.category_slug
             )}
@@ -287,7 +310,7 @@ export default async function PostPage({ params }) {
             </div>
           ) : (
             <h2 className="section-title" style={{ marginBottom: 4 }}>
-              {post.is_pinned ? <span className="post-pinned">[공지]</span> : null}
+              {post.is_pinned ? <span className="post-pinned">[{t('post.notice')}]</span> : null}
               {freeTagLabel ? <span className="subcat-badge">{freeTagLabel}</span> : null}
               {marketTagLabel ? (
                 <span className={`market-badge market-badge--${post.subcategory}`}>{marketTagLabel}</span>
@@ -311,11 +334,15 @@ export default async function PostPage({ params }) {
             {typeof post.view_count === 'number' ? (
               <>
                 <span aria-hidden="true"> · </span>
-                <span>조회 {post.view_count}</span>
+                <span>
+                  {t('post.views')} {post.view_count}
+                </span>
               </>
             ) : null}
             <span aria-hidden="true"> · </span>
-            <span>댓글 {comments?.length || 0}</span>
+            <span>
+              {t('post.comments')} {comments?.length || 0}
+            </span>
             {post.city && !isHousing && !isMarket && !isClasses ? (
               <>
                 <span aria-hidden="true"> · </span>
@@ -323,12 +350,12 @@ export default async function PostPage({ params }) {
               </>
             ) : null}
             <span aria-hidden="true"> · </span>
-            <span>{formatPostDate(post.created_at)}</span>
+            <span>{formatPostDate(post.created_at, locale)}</span>
           </div>
         </div>
         {category ? (
           <Link href={`/board/${category.slug}`} className="btn btn-outline">
-            목록
+            {t('board.list')}
           </Link>
         ) : null}
       </div>
@@ -338,24 +365,28 @@ export default async function PostPage({ params }) {
           <div className="housing-detail-info">
             {hasHousingLocation ? (
               <aside className="housing-detail-aside">
-                <div className="housing-aside-label">위치</div>
+                <div className="housing-aside-label">{t('post.location')}</div>
                 {post.address_text ? (
                   <div className="housing-aside-address">{post.address_text}</div>
                 ) : null}
                 {post.city ? <div className="housing-aside-city">{post.city}</div> : null}
                 {post.available_text ? (
-                  <div className="housing-aside-meta">입주 {post.available_text}</div>
+                  <div className="housing-aside-meta">
+                    {t('post.moveIn', { date: post.available_text })}
+                  </div>
                 ) : null}
               </aside>
             ) : null}
             {housingSpecs.length ? (
               <div className="card housing-spec-card">
-                <h3 className="housing-spec-title">매물 정보</h3>
+                <h3 className="housing-spec-title">{t('post.section.housing')}</h3>
                 <dl className="housing-spec-list">
                   {housingSpecs
                     .filter(([label]) => {
                       if (!hasHousingLocation) return true;
-                      return label !== '주소' && label !== '지역' && label !== '입주';
+                      return (
+                        label !== addressLabel && label !== locationLabel && label !== availableLabel
+                      );
                     })
                     .map(([label, value]) => (
                       <div key={label} className="housing-spec-row">
@@ -369,7 +400,10 @@ export default async function PostPage({ params }) {
           </div>
           {housingImages.length ? (
             <div className="housing-detail-media">
-              <HousingPhotoGallery images={housingImages} title={post.title || '매물 사진'} />
+              <HousingPhotoGallery
+                images={housingImages}
+                title={post.title || t('post.housingPhotos')}
+              />
             </div>
           ) : null}
         </div>
@@ -379,7 +413,7 @@ export default async function PostPage({ params }) {
         <div className={`market-detail-split${marketImages.length ? ' has-photos' : ''}`}>
           <div className="market-detail-info">
             <div className="card market-info-card">
-              <h3 className="market-info-title">상품 정보</h3>
+              <h3 className="market-info-title">{t('post.section.market')}</h3>
               <dl className="market-info-list">
                 {marketSpecs.map(([label, value]) => (
                   <div key={label} className="market-info-row">
@@ -390,7 +424,7 @@ export default async function PostPage({ params }) {
               </dl>
               {showListingTextBody ? (
                 <div className="market-info-desc">
-                  <div className="market-info-desc-label">상품 · 거래</div>
+                  <div className="market-info-desc-label">{t('post.marketDesc')}</div>
                   {htmlBody ? (
                     <div
                       className="market-info-desc-body post-body-html"
@@ -407,7 +441,7 @@ export default async function PostPage({ params }) {
           </div>
           {marketImages.length ? (
             <div className="market-detail-media">
-              <HousingPhotoGallery images={marketImages} title={post.title || '상품 사진'} />
+              <HousingPhotoGallery images={marketImages} title={post.title || t('post.itemPhotos')} />
             </div>
           ) : null}
         </div>
@@ -415,7 +449,7 @@ export default async function PostPage({ params }) {
 
       {isJobs && jobSpecs.length ? (
         <div className="card housing-spec-card job-spec-card">
-          <h3 className="housing-spec-title">채용 정보</h3>
+          <h3 className="housing-spec-title">{t('post.section.jobs')}</h3>
           <dl className="housing-spec-list">
             {jobSpecs.map(([label, value]) => (
               <div key={label} className="housing-spec-row">
@@ -429,7 +463,7 @@ export default async function PostPage({ params }) {
 
       {isClasses && classSpecs.length ? (
         <div className="card classes-info-card">
-          <h3 className="classes-info-title">수업 정보</h3>
+          <h3 className="classes-info-title">{t('post.section.classes')}</h3>
           <dl className="classes-info-list">
             {classSpecs.map(([label, value]) => (
               <div key={label} className="classes-info-row">
@@ -482,40 +516,40 @@ export default async function PostPage({ params }) {
         <div className="card market-adjacent">
           {prevPost ? (
             <Link href={`/post/${prevPost.id}`} className="market-adjacent-row">
-              <span className="market-adjacent-label">이전글</span>
-              <span className="market-adjacent-title">{prevPost.title}</span>
+              <span className="market-adjacent-label">{t('post.prev')}</span>
+              <LocalizedPostTitle post={prevPost} className="market-adjacent-title" />
             </Link>
           ) : null}
           {nextPost ? (
             <Link href={`/post/${nextPost.id}`} className="market-adjacent-row">
-              <span className="market-adjacent-label">다음글</span>
-              <span className="market-adjacent-title">{nextPost.title}</span>
+              <span className="market-adjacent-label">{t('post.next')}</span>
+              <LocalizedPostTitle post={nextPost} className="market-adjacent-title" />
             </Link>
           ) : null}
         </div>
       ) : null}
 
-      <h3 className="section-title">댓글 · Comments</h3>
+      <h3 className="section-title">{t('post.commentsTitle')}</h3>
       <div className="card">
         {isSampleHousingPostId(post.id) ||
         isSampleJobsPostId(post.id) ||
         isSampleMarketPostId(post.id) ||
         isSampleClassesPostId(post.id) ||
         isSampleFreeClubPostId(post.id) ? (
-          <div className="empty-state">예시 글에는 댓글을 남길 수 없습니다.</div>
+          <div className="empty-state">{t('post.example')}</div>
         ) : (
           <>
             {comments?.length ? (
               comments.map((c) => (
                 <div key={c.id} className="comment">
                   <div className="comment-meta">
-                    {c.created_at ? new Date(c.created_at).toLocaleString('ko-KR') : ''}
+                    {c.created_at ? formatPostDate(c.created_at, locale) : ''}
                   </div>
                   <div>{c.body}</div>
                 </div>
               ))
             ) : (
-              <div className="empty-state">아직 댓글이 없습니다.</div>
+              <div className="empty-state">{t('post.noComments')}</div>
             )}
             <CommentForm postId={post.id} />
           </>

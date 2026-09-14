@@ -1,23 +1,34 @@
 import Link from 'next/link';
 import GiftProductCard from '../../../components/GiftProductCard';
 import GiftShopNav from '../../../components/GiftShopNav';
+import { createServerT, getServerLocale } from '../../../lib/i18n/server';
 import { GIFT_SHOP, getBestProducts } from '../../../lib/giftShop';
 
-export const metadata = {
-  title: `인기 BEST · ${GIFT_SHOP.nameKo}`,
-  description: '남들은 뭘 선물했을까? 카테고리별 인기 상품',
-};
+export const dynamic = 'force-dynamic';
 
-export default function GiftBestPage() {
+export async function generateMetadata() {
+  const locale = getServerLocale();
+  const t = createServerT(locale);
+  const shopName = locale === 'en' ? GIFT_SHOP.nameEn : GIFT_SHOP.nameKo;
+  return {
+    title: `${t('gift.bestTitle')} · ${shopName}`,
+    description: t('gift.bestDesc'),
+  };
+}
+
+export default async function GiftBestPage() {
+  const locale = getServerLocale();
+  const t = createServerT(locale);
+  const shopName = locale === 'en' ? GIFT_SHOP.nameEn : GIFT_SHOP.nameKo;
   const best = getBestProducts(12);
 
   return (
     <div className="gift-page">
       <section className="gift-best-hero">
         <div className="container">
-          <p className="gift-hero-kicker">{GIFT_SHOP.nameKo}</p>
+          <p className="gift-hero-kicker">{shopName}</p>
           <h1 className="gift-best-title">BEST 12</h1>
-          <p className="gift-best-lead">남들은 뭘 선물했을까? 지금 반응이 좋은 상품만 모았어요.</p>
+          <p className="gift-best-lead">{t('gift.bestLead')}</p>
         </div>
       </section>
 
@@ -30,7 +41,7 @@ export default function GiftBestPage() {
         </div>
         <div className="gift-best-foot">
           <Link href="/gift" className="btn btn-outline">
-            {GIFT_SHOP.nameKo} 홈으로
+            {t('gift.backHome', { name: shopName })}
           </Link>
         </div>
       </div>

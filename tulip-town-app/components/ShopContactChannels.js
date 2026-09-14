@@ -1,15 +1,19 @@
+'use client';
+
 import {
   SELLER_CONTACT_CHANNELS,
   channelActionHref,
   displayContactPhone,
   normalizeContactChannels,
 } from '../lib/sellerContact';
+import { useLocale } from './LocaleProvider';
 
 export default function ShopContactChannels({
   contact = '',
   contactChannels = null,
   showHeading = false,
 }) {
+  const { t } = useLocale();
   const channels = normalizeContactChannels(contactChannels);
   const phone = displayContactPhone({ contact, channels });
   const messengerRows = SELLER_CONTACT_CHANNELS.filter((channel) => {
@@ -21,7 +25,9 @@ export default function ShopContactChannels({
 
   return (
     <div className="shop-contact-channels" id="shop-seller-contact">
-      {showHeading ? <div className="shop-contact-channels-title">연락처</div> : null}
+      {showHeading ? (
+        <div className="shop-contact-channels-title">{t('shop.contactTitle')}</div>
+      ) : null}
 
       {phone ? <div className="shop-contact-value">{phone}</div> : null}
 
@@ -43,7 +49,7 @@ export default function ShopContactChannels({
                       <span>{item.handle}</span>
                     )
                   ) : (
-                    <span className="hint-text">QR로 연락</span>
+                    <span className="hint-text">{t('shop.contactQr')}</span>
                   )}
                 </div>
                 {item.qr_url ? (
@@ -62,7 +68,7 @@ export default function ShopContactChannels({
 
       {email ? (
         <div className="shop-contact-email">
-          <strong>이메일</strong>
+          <strong>{t('shop.contactEmail')}</strong>
           <a href={`mailto:${email}`}>{email}</a>
         </div>
       ) : null}

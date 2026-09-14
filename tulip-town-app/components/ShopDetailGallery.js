@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { useLocale } from './LocaleProvider';
 
 export default function ShopDetailGallery({ images = [], title = '' }) {
+  const { t } = useLocale();
   const list = Array.isArray(images) && images.length ? images : [];
   const [index, setIndex] = useState(0);
   const current = list[Math.min(index, list.length - 1)] || '';
@@ -23,7 +25,7 @@ export default function ShopDetailGallery({ images = [], title = '' }) {
               type="button"
               className={`shop-detail-thumb${i === index ? ' is-active' : ''}`}
               onClick={() => setIndex(i)}
-              aria-label={`사진 ${i + 1}`}
+              aria-label={t('photo.n', { n: i + 1 })}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={src} alt="" />

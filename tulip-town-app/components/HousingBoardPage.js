@@ -1,16 +1,19 @@
 import Link from 'next/link';
+import LocalizedPostTitle from './LocalizedPostTitle';
 import {
   HOUSING_TAGS,
   getHousingTagLabel,
   getHousingTypeLabel,
   isValidHousingTag,
 } from '../lib/housingTags';
+import { createServerT, getServerLocale } from '../lib/i18n/server';
 import { getSampleHousingPost, SAMPLE_HOUSING_POST_ID } from '../lib/sampleHousingPost';
 import { collectPostImages } from '../lib/postImages';
 import { supabaseRest } from '../lib/supabaseRest';
 
-function formatListDate(value) {
+function formatListDate(value, locale) {
   if (!value) return '';
+  const loc = locale === 'en' ? 'en-US' : 'ko-KR';
   try {
     const d = new Date(value);
     const now = new Date();
@@ -19,9 +22,9 @@ function formatListDate(value) {
       d.getMonth() === now.getMonth() &&
       d.getDate() === now.getDate();
     if (sameDay) {
-      return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+      return d.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit', hour12: false });
     }
-    return d.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' });
+    return d.toLocaleDateString(loc, { month: '2-digit', day: '2-digit' });
   } catch {
     return '';
   }
@@ -40,7 +43,14 @@ function roomLabel(post) {
   return parts.join(' · ');
 }
 
+function tagLabel(tagItem, locale) {
+  if (!tagItem) return '';
+  return locale === 'en' ? tagItem.nameEn || tagItem.nameKo : tagItem.nameKo;
+}
+
 export default async function HousingBoardPage({ searchParams = {} }) {
+  const locale = getServerLocale();
+  const t = createServerT(locale);
   const rawTag = searchParams.tag || 'all';
   const tag = isValidHousingTag(rawTag) ? rawTag : 'all';
 
@@ -48,7 +58,7 @@ export default async function HousingBoardPage({ searchParams = {} }) {
 
   try {
     let path =
-      'posts?select=id,title,subcategory,is_pinned,created_at,city,view_count,rent_price_text,deposit_text,housing_type,beds,baths,address_text,available_text,image_urls,body&category_slug=eq.housing';
+      'posts?select=id,title,title_en,subcategory,is_pinned,created_at,city,view_count,rent_price_text,deposit_text,housing_type,beds,baths,address_text,available_text,image_urls,body&category_slug=eq.housing';
     if (tag !== 'all') path += `&subcategory=eq.${encodeURIComponent(tag)}`;
     path += '&order=is_pinned.desc,created_at.desc';
 
@@ -83,53 +93,53 @@ export default async function HousingBoardPage({ searchParams = {} }) {
   return (
     <div className="container">
       <header className="housing-board-head board-heading">
-        <h2 className="section-title">렌트/부동산</h2>
-        <p className="board-heading-desc">렌트 · 매매 · 룸메이트</p>
+        <h2 className="section-title">{t('board.housing.title')}</h2>
+        <p className="board-heading-desc">{t('board.housing.desc')}</p>
       </header>
 
       <div className="board-toolbar housing-toolbar">
-        <div className="tag-chips" role="list" aria-label="부동산 필터">
+        <div className="tag-chips" role="list" aria-label={t('board.housing.filterAria')}>
           <Link
             href={buildHref('all')}
             role="listitem"
             className={`free-board-chip${tag === 'all' ? ' is-active' : ''}`}
           >
-            전체
+            {t('board.all')}
           </Link>
-          {HOUSING_TAGS.map((t) => (
+          {HOUSING_TAGS.map((tagItem) => (
             <Link
-              key={t.slug}
-              href={buildHref(t.slug)}
+              key={tagItem.slug}
+              href={buildHref(tagItem.slug)}
               role="listitem"
-              className={`free-board-chip${tag === t.slug ? ' is-active' : ''}`}
+              className={`free-board-chip${tag === tagItem.slug ? ' is-active' : ''}`}
             >
-              {t.nameKo}
+              {tagLabel(tagItem, locale)}
             </Link>
           ))}
         </div>
         <Link href="/board/housing/new" className="btn">
-          글쓰기
+          {t('board.write')}
         </Link>
       </div>
 
       <div className="wf-box housing-board">
         <div className="housing-board-meta">
-          Total {(posts || []).length}건 · 사진은 상세에서 갤러리로 확인
+          {t('board.metaPhotos', { count: (posts || []).length })}
         </div>
 
-        <div className="housing-table" role="table" aria-label="렌트/부동산 목록">
+        <div className="housing-table" role="table" aria-label={t('board.housing.listAria')}>
           <div className="housing-table-head housing-table-head--photos" role="row">
-            <span role="columnheader">사진</span>
-            <span role="columnheader">구분</span>
-            <span role="columnheader">제목 / 요약</span>
-            <span role="columnheader">가격</span>
-            <span role="columnheader">지역</span>
-            <span role="columnheader">날짜</span>
+            <span role="columnheader">{t('board.col.photo')}</span>
+            <span role="columnheader">{t('board.col.category')}</span>
+            <span role="columnheader">{t('board.col.titleSummary')}</span>
+            <span role="columnheader">{t('board.col.price')}</span>
+            <span role="columnheader">{t('board.col.area')}</span>
+            <span role="columnheader">{t('board.col.date')}</span>
           </div>
 
           {(posts || []).length ? (
             posts.map((post) => {
-              const label = getHousingTagLabel(post.subcategory) || '기타';
+              const label = getHousingTagLabel(post.subcategory) || t('board.other');
               const rooms = roomLabel(post);
               const photos = collectPostImages(post);
               const cover = photos[0] || null;
@@ -160,12 +170,12 @@ export default async function HousingBoardPage({ searchParams = {} }) {
                   </span>
                   <span className="housing-row-main" role="cell">
                     <span className="housing-row-title">
-                      {post.is_pinned ? <span className="post-pinned">[공지]</span> : null}
-                      {post.title}
+                      {post.is_pinned ? <span className="post-pinned">[{t('board.pinned')}]</span> : null}
+                      <LocalizedPostTitle post={post} />
                     </span>
                     <span className="housing-row-sub">
                       {[rooms, post.address_text || post.available_text].filter(Boolean).join(' · ') ||
-                        '상세 보기'}
+                        t('board.viewDetail')}
                     </span>
                   </span>
                   <span className="housing-row-price" role="cell">
@@ -175,13 +185,13 @@ export default async function HousingBoardPage({ searchParams = {} }) {
                     {post.city || '—'}
                   </span>
                   <span className="housing-row-date" role="cell">
-                    {formatListDate(post.created_at)}
+                    {formatListDate(post.created_at, locale)}
                   </span>
                 </Link>
               );
             })
           ) : (
-            <div className="empty-state housing-empty">아직 매물이 없습니다. 첫 글을 남겨보세요!</div>
+            <div className="empty-state housing-empty">{t('board.emptyHousing')}</div>
           )}
         </div>
       </div>

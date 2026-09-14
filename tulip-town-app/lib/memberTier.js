@@ -126,9 +126,12 @@ export function membershipMonthsFrom(createdAt) {
   return Math.max(0, months);
 }
 
-export function formatMembershipMonths(createdAt) {
+export function formatMembershipMonths(createdAt, locale = 'ko') {
   const months = membershipMonthsFrom(createdAt);
   if (months == null) return null;
+  if (locale === 'en') {
+    return months === 1 ? 'Member 1 month' : `Member ${months} months`;
+  }
   return `가입 ${months}개월`;
 }
 

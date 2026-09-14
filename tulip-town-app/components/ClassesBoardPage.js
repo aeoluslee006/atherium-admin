@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import LocalizedPostTitle from './LocalizedPostTitle';
+import { createServerT, getServerLocale } from '../lib/i18n/server';
 import { getSampleClassesPost, SAMPLE_CLASSES_POST_ID } from '../lib/sampleClassesPost';
 import { supabaseRest } from '../lib/supabaseRest';
 
@@ -41,12 +43,15 @@ async function loadAuthorMap(posts) {
 }
 
 export default async function ClassesBoardPage({ searchParams = {} }) {
+  const locale = getServerLocale();
+  const t = createServerT(locale);
+  const numberLoc = locale === 'en' ? 'en-US' : 'ko-KR';
   const page = Math.max(1, parseInt(String(searchParams.page || '1'), 10) || 1);
 
   let posts = [];
   try {
     posts = await supabaseRest(
-      'posts?select=id,title,city,address_text,contact_text,is_pinned,created_at,author_id,view_count&category_slug=eq.classes&order=is_pinned.desc,created_at.desc'
+      'posts?select=id,title,title_en,city,address_text,contact_text,is_pinned,created_at,author_id,view_count&category_slug=eq.classes&order=is_pinned.desc,created_at.desc'
     );
   } catch {
     try {
@@ -84,38 +89,40 @@ export default async function ClassesBoardPage({ searchParams = {} }) {
     <div className="container">
       <div className="row-between classes-board-head">
         <div>
-          <h2 className="section-title">수업/교육</h2>
+          <h2 className="section-title">{t('board.classes.title')}</h2>
           <p className="classes-board-count">
-            Total {total.toLocaleString('ko-KR')}건
+            {t('board.totalCount', { count: total.toLocaleString(numberLoc) })}
             <span aria-hidden="true"> </span>
-            {safePage} 페이지
+            {t('common.page', { n: safePage })}
           </p>
         </div>
         <Link href="/board/classes/new" className="btn">
-          글쓰기
+          {t('board.write')}
         </Link>
       </div>
 
       <div className="card classes-bbs">
         <div className="classes-bbs-head" aria-hidden="true">
-          <span className="classes-bbs-num">번호</span>
-          <span className="classes-bbs-title">제목</span>
-          <span className="classes-bbs-author">글쓴이</span>
-          <span className="classes-bbs-views">조회</span>
-          <span className="classes-bbs-date">날짜</span>
+          <span className="classes-bbs-num">{t('board.col.no')}</span>
+          <span className="classes-bbs-title">{t('board.col.title')}</span>
+          <span className="classes-bbs-author">{t('board.col.author')}</span>
+          <span className="classes-bbs-views">{t('board.col.views')}</span>
+          <span className="classes-bbs-date">{t('board.col.date')}</span>
         </div>
 
         {pagePosts.length ? (
           <div className="classes-bbs-list">
             {pagePosts.map((post) => {
               const pinned = Boolean(post.is_pinned);
-              const numLabel = pinned ? '공지' : String(boardNumbers.get(post.id) || '');
+              const numLabel = pinned ? t('board.notice') : String(boardNumbers.get(post.id) || '');
               const author =
                 post.id === SAMPLE_CLASSES_POST_ID
-                  ? '예시'
-                  : authors[post.author_id] || '회원';
+                  ? t('board.sample')
+                  : authors[post.author_id] || t('board.member');
               const views =
-                typeof post.view_count === 'number' ? post.view_count.toLocaleString('ko-KR') : '—';
+                typeof post.view_count === 'number'
+                  ? post.view_count.toLocaleString(numberLoc)
+                  : '—';
               const showNew = isNewPost(post.created_at);
 
               return (
@@ -126,8 +133,12 @@ export default async function ClassesBoardPage({ searchParams = {} }) {
                 >
                   <span className={`classes-bbs-num${pinned ? ' is-notice' : ''}`}>{numLabel}</span>
                   <span className="classes-bbs-title">
-                    <span className="classes-bbs-title-text">{post.title}</span>
-                    {showNew ? <span className="classes-bbs-new" title="새 글">N</span> : null}
+                    <LocalizedPostTitle post={post} className="classes-bbs-title-text" />
+                    {showNew ? (
+                      <span className="classes-bbs-new" title={t('board.newBadge')}>
+                        N
+                      </span>
+                    ) : null}
                   </span>
                   <span className="classes-bbs-author">{author}</span>
                   <span className="classes-bbs-views">{views}</span>
@@ -137,12 +148,12 @@ export default async function ClassesBoardPage({ searchParams = {} }) {
             })}
           </div>
         ) : (
-          <div className="empty-state">아직 게시글이 없습니다. 첫 글을 남겨보세요!</div>
+          <div className="empty-state">{t('board.emptyClasses')}</div>
         )}
       </div>
 
       {totalPages > 1 ? (
-        <nav className="classes-bbs-pager" aria-label="페이지">
+        <nav className="classes-bbs-pager" aria-label={t('board.pagerAria')}>
           {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
             <Link
               key={p}

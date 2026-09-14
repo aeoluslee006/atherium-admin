@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { formatNewsDate, hostnameOf, isExampleLocalNews } from '../../lib/localNews';
+import { createServerT, getServerLocale } from '../../lib/i18n/server';
 import { supabaseRestPaged } from '../../lib/supabaseRest';
+import AutoTranslatedText from '../../components/AutoTranslatedText';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +13,8 @@ function buildPageHref(page) {
 }
 
 export default async function NewsArchivePage({ searchParams }) {
+  const locale = getServerLocale();
+  const t = createServerT(locale);
   const requested = Math.max(1, Number(searchParams?.page) || 1);
 
   let rows = [];
@@ -37,17 +41,15 @@ export default async function NewsArchivePage({ searchParams }) {
 
   return (
     <div className="container">
-      <section className="wf-box news-archive" aria-label="지역뉴스 전체">
+      <section className="wf-box news-archive" aria-label={t('news.archiveAria')}>
         <div className="panel-header">
-          <h1 className="panel-title">지역 뉴스</h1>
+          <h1 className="panel-title">{t('news.title')}</h1>
           <span className="panel-more" aria-hidden="true">
-            {total ? `${total}건` : ''}
+            {total ? t('news.count', { total }) : ''}
           </span>
         </div>
 
-        <p className="news-archive-lead">
-          West Michigan 지역 소식을 모았습니다. 글쓰기는 관리자만 등록할 수 있습니다.
-        </p>
+        <p className="news-archive-lead">{t('news.lead')}</p>
 
         {rows.length ? (
           <ul className="news-archive-list">
@@ -56,10 +58,14 @@ export default async function NewsArchivePage({ searchParams }) {
               const inner = (
                 <>
                   <div className="wf-featured-meta">
-                    <span>{item.source || '지역 뉴스'}</span>
-                    {item.published_at ? <time dateTime={item.published_at}>{formatNewsDate(item.published_at)}</time> : null}
+                    <span>{item.source || t('news.fallbackSource')}</span>
+                    {item.published_at ? (
+                      <time dateTime={item.published_at}>{formatNewsDate(item.published_at)}</time>
+                    ) : null}
                   </div>
-                  <div className="wf-featured-name">{item.title}</div>
+                  <div className="wf-featured-name">
+                    <AutoTranslatedText text={item.title} />
+                  </div>
                   {host ? <div className="news-archive-host">{host}</div> : null}
                 </>
               );
@@ -83,17 +89,17 @@ export default async function NewsArchivePage({ searchParams }) {
             })}
           </ul>
         ) : (
-          <div className="wf-empty wf-empty--grow">등록된 지역 뉴스가 아직 없습니다.</div>
+          <div className="wf-empty wf-empty--grow">{t('news.empty')}</div>
         )}
 
         {totalPages > 1 ? (
-          <nav className="news-archive-pager" aria-label="페이지 이동">
+          <nav className="news-archive-pager" aria-label={t('news.pager')}>
             {page > 1 ? (
               <Link href={buildPageHref(page - 1)} className="news-archive-page-link">
-                이전
+                {t('news.prev')}
               </Link>
             ) : (
-              <span className="news-archive-page-link is-disabled">이전</span>
+              <span className="news-archive-page-link is-disabled">{t('news.prev')}</span>
             )}
 
             <span className="news-archive-page-status">
@@ -102,10 +108,10 @@ export default async function NewsArchivePage({ searchParams }) {
 
             {page < totalPages ? (
               <Link href={buildPageHref(page + 1)} className="news-archive-page-link">
-                다음
+                {t('news.next')}
               </Link>
             ) : (
-              <span className="news-archive-page-link is-disabled">다음</span>
+              <span className="news-archive-page-link is-disabled">{t('news.next')}</span>
             )}
           </nav>
         ) : null}

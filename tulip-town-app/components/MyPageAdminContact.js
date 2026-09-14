@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { IconMail } from './MyPageIcons';
+import { useLocale } from './LocaleProvider';
 
 export default function MyPageAdminContact() {
+  const { t } = useLocale();
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -18,7 +20,7 @@ export default function MyPageAdminContact() {
     try {
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
-      if (!token) throw new Error('로그인이 필요합니다.');
+      if (!token) throw new Error(t('mypage.needLogin'));
       const res = await fetch('/api/admin-messages', {
         method: 'POST',
         headers: {
@@ -28,9 +30,9 @@ export default function MyPageAdminContact() {
         body: JSON.stringify({ message }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || '전송 실패');
+      if (!res.ok) throw new Error(json.error || t('mypage.adminContactFail'));
       setMessage('');
-      setOk('관리자에게 메시지를 보냈습니다.');
+      setOk(t('mypage.adminContactSent'));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -45,13 +47,13 @@ export default function MyPageAdminContact() {
           <span className="mypage-section-icon" aria-hidden="true">
             <IconMail />
           </span>
-          관리자에게 문의
+          {t('mypage.adminContactTitle')}
         </summary>
         <p className="mypage-list-sub" style={{ marginBottom: 12 }}>
-          문의 내용은 관리자가 확인합니다. (답장 기능은 추후 지원)
+          {t('mypage.adminContactHint')}
         </p>
         <form onSubmit={submit}>
-          <label htmlFor="admin-contact-msg">메시지</label>
+          <label htmlFor="admin-contact-msg">{t('mypage.adminContactMessage')}</label>
           <textarea
             id="admin-contact-msg"
             rows={3}
@@ -63,7 +65,7 @@ export default function MyPageAdminContact() {
           {error ? <div className="error-text">{error}</div> : null}
           {ok ? <div className="hint-text">{ok}</div> : null}
           <button className="btn" type="submit" disabled={busy || !message.trim()}>
-            {busy ? '보내는 중…' : '보내기'}
+            {busy ? t('mypage.adminContactSending') : t('mypage.adminContactSend')}
           </button>
         </form>
       </details>

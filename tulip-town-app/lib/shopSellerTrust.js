@@ -2,7 +2,7 @@ import { TIER, formatMembershipMonths } from './memberTier';
 import { supabaseRest } from './supabaseRest';
 
 /** Load member_tier_view + profiles.created_at for a shop sponsor. */
-export async function loadSellerTrust(seller) {
+export async function loadSellerTrust(seller, locale = 'ko') {
   const profileId = seller?.submitted_by;
   if (!profileId) {
     return { tier: TIER.BRONZE, tenureLabel: null };
@@ -33,6 +33,6 @@ export async function loadSellerTrust(seller) {
 
   return {
     tier,
-    tenureLabel: formatMembershipMonths(createdAt),
+    tenureLabel: formatMembershipMonths(createdAt, locale),
   };
 }

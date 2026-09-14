@@ -3,13 +3,18 @@
 import Link from 'next/link';
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { supabase } from '../../../lib/supabaseClient';
+import ShopContactChannelsEditor from '../../../components/ShopContactChannelsEditor';
 import {
   SELLER_STATUS_LABEL,
   canManageShopProducts,
   formatPriceCents,
   shopProductLimit,
 } from '../../../lib/sellerConstants';
+import {
+  emptyContactChannels,
+  normalizeContactChannels,
+} from '../../../lib/sellerContact';
+import { supabase } from '../../../lib/supabaseClient';
 
 function MyPageShopInner() {
   const router = useRouter();
@@ -23,6 +28,9 @@ function MyPageShopInner() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [busyId, setBusyId] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [contactChannels, setContactChannels] = useState(emptyContactChannels());
+  const [savingContact, setSavingContact] = useState(false);
 
   const authHeaders = useCallback(() => {
     return {
@@ -38,6 +46,14 @@ function MyPageShopInner() {
     if (!meRes.ok) throw new Error(me.error || '불러오기 실패');
     const s = me.sponsor || me.seller;
     setSponsor(s);
+    if (s) {
+      const channels = normalizeContactChannels(s.contact_channels);
+      setContactPhone(channels.phone || String(s.contact || '').trim());
+      setContactChannels(channels);
+    } else {
+      setContactPhone('');
+      setContactChannels(emptyContactChannels());
+    }
 
     if (s && s.status === 'approved') {
       const pRes = await fetch('/api/seller/products', { headers });
@@ -120,6 +136,37 @@ function MyPageShopInner() {
       setError(err.message);
     } finally {
       setBusyId('');
+    }
+  }
+
+  async function saveContact(e) {
+    e.preventDefault();
+    if (!token) return;
+    setError('');
+    setSavingContact(true);
+    try {
+      const res = await fetch('/api/seller/me', {
+        method: 'PATCH',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          phone: contactPhone,
+          contact_channels: contactChannels,
+        }),
+      });
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload.error || '연락처 저장 실패');
+      const next = payload.sponsor || payload.seller;
+      if (next) {
+        setSponsor(next);
+        const channels = normalizeContactChannels(next.contact_channels);
+        setContactPhone(channels.phone || String(next.contact || '').trim());
+        setContactChannels(channels);
+      }
+      setMessage('연락처를 저장했습니다.');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSavingContact(false);
     }
   }
 
@@ -246,6 +293,27 @@ function MyPageShopInner() {
           <Link href="/mypage/shop/apply" className="btn" style={{ marginTop: 12, display: 'inline-flex' }}>
             다시 신청
           </Link>
+        </section>
+      ) : null}
+
+      {sponsor.status !== 'rejected' ? (
+        <section className="mypage-section card">
+          <h2 className="section-title" style={{ fontSize: 16 }}>연락처</h2>
+          <p className="hint-text" style={{ marginTop: 8, marginBottom: 12 }}>
+            WhatsApp · WeChat · Telegram · 카카오톡 아이디/QR과 이메일을 등록해 주세요.
+          </p>
+          <form onSubmit={saveContact}>
+            <ShopContactChannelsEditor
+              phone={contactPhone}
+              onPhoneChange={setContactPhone}
+              value={contactChannels}
+              onChange={setContactChannels}
+              disabled={savingContact}
+            />
+            <button className="btn" type="submit" disabled={savingContact} style={{ marginTop: 14 }}>
+              {savingContact ? '저장 중…' : '연락처 저장'}
+            </button>
+          </form>
         </section>
       ) : null}
 

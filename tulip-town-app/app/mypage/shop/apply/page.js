@@ -3,8 +3,13 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '../../../../lib/supabaseClient';
+import ShopContactChannelsEditor from '../../../../components/ShopContactChannelsEditor';
 import { SELLER_CITIES, isValidEin } from '../../../../lib/sellerConstants';
+import {
+  contactChannelsHaveAny,
+  emptyContactChannels,
+} from '../../../../lib/sellerContact';
+import { supabase } from '../../../../lib/supabaseClient';
 
 const SOS_BUCKET = 'seller-documents';
 const SOS_ACCEPT = 'application/pdf,image/jpeg,image/png,image/webp,image/heic';
@@ -25,7 +30,8 @@ export default function MyPageShopApplyPage() {
     business_address: '',
     ein: '',
     city: 'Holland',
-    contact: '',
+    phone: '',
+    contact_channels: emptyContactChannels(),
     sos_document_path: '',
     description: '',
     agree: false,
@@ -94,8 +100,8 @@ export default function MyPageShopApplyPage() {
         if (!form.business_name.trim()) {
           throw new Error('판매자/상점 이름을 입력해 주세요.');
         }
-        if (!form.contact.trim()) {
-          throw new Error('연락처를 입력해 주세요.');
+        if (!form.phone.trim() && !contactChannelsHaveAny(form.contact_channels)) {
+          throw new Error('전화, 메신저 아이디/QR, 이메일 중 하나 이상 입력해 주세요.');
         }
       }
 
@@ -242,15 +248,19 @@ export default function MyPageShopApplyPage() {
           ))}
         </select>
 
-        <label htmlFor="contact">연락처 {isIndividual ? '*' : '(전화·카톡·이메일 등)'}</label>
-        <input
-          id="contact"
-          value={form.contact}
-          onChange={(e) => update('contact', e.target.value)}
-          placeholder="예: 616-555-0100 / kakao: id"
-          required={isIndividual}
-        />
-        <p className="hint-text">상품 상세에 노출됩니다.</p>
+        <div className="seller-contact-block">
+          <div className="seller-contact-block-label">
+            연락처 {isIndividual ? '*' : '(선택)'}
+          </div>
+          <ShopContactChannelsEditor
+            phone={form.phone}
+            onPhoneChange={(value) => update('phone', value)}
+            value={form.contact_channels}
+            onChange={(value) => update('contact_channels', value)}
+            disabled={saving || uploading}
+          />
+          <p className="hint-text">상품 상세·판매자 스토어에 노출됩니다.</p>
+        </div>
 
         {!isIndividual ? (
           <>

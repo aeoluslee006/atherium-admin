@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import JobLogoField from './JobLogoField';
 import MarketBodyEditor from './MarketBodyEditor';
+import { useLocale } from './LocaleProvider';
 import {
   JOB_HIRE_BODY_TEMPLATE,
   JOB_ROLE_TAGS,
@@ -22,6 +23,11 @@ function plainTextFromHtml(html) {
     .trim();
 }
 
+function tagName(tag, locale) {
+  if (!tag) return '';
+  return locale === 'en' ? tag.nameEn || tag.nameKo : tag.nameKo;
+}
+
 /**
  * ChicagoChinaRen-style jobs compose form: label-left rows, rich body, tag cloud.
  */
@@ -32,6 +38,7 @@ export default function JobsComposeForm({
   listHref = '/board/jobs',
   onSubmit,
 }) {
+  const { locale } = useLocale();
   const [subcategory, setSubcategory] = useState('hire');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState(JOB_HIRE_BODY_TEMPLATE);
@@ -153,7 +160,7 @@ export default function JobsComposeForm({
                       checked={selected}
                       onChange={() => handleTypeChange(tag.slug)}
                     />
-                    <span>{tag.nameKo}</span>
+                    <span>{tagName(tag, locale)}</span>
                   </label>
                 );
               })}
@@ -295,7 +302,7 @@ export default function JobsComposeForm({
                     onClick={() => toggleStatus(tag.slug)}
                     disabled={saving}
                   >
-                    {tag.nameKo}
+                    {tagName(tag, locale)}
                   </button>
                 );
               })}
@@ -319,7 +326,7 @@ export default function JobsComposeForm({
                     onClick={() => toggleRole(tag.slug)}
                     disabled={saving}
                   >
-                    {tag.nameKo}
+                    {tagName(tag, locale)}
                   </button>
                 );
               })}

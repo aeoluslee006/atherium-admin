@@ -1,17 +1,20 @@
 import Link from 'next/link';
+import AutoTranslatedText from '../components/AutoTranslatedText';
 import LocalNewsPanel from '../components/LocalNewsPanel';
 import { getCategory } from '../lib/categories';
 import { pickDailyFeatured, siteDateKey } from '../lib/dailyFeatured';
+import { createServerT, getServerLocale } from '../lib/i18n/server';
+import { localizePostFields } from '../lib/i18n/postLocale';
 import { isExampleLocalNews } from '../lib/localNews';
 import { getSampleClassesPost, SAMPLE_CLASSES_POST_ID } from '../lib/sampleClassesPost';
 import { supabaseRest } from '../lib/supabaseRest';
 
 export const dynamic = 'force-dynamic';
 
-function formatDate(value) {
+function formatDate(value, locale = 'ko') {
   if (!value) return '';
   try {
-    return new Date(value).toLocaleDateString('ko-KR');
+    return new Date(value).toLocaleDateString(locale === 'en' ? 'en-US' : 'ko-KR');
   } catch {
     return '';
   }
@@ -52,9 +55,9 @@ async function safeRest(path) {
 
 async function getHomeData() {
   const featuredSelectWithPaper =
-    'posts?select=id,title,body,category_slug,created_at,is_featured,stationery_id,subcategory&is_featured=eq.true&order=created_at.desc&limit=50';
+    'posts?select=id,title,title_en,body,body_en,category_slug,created_at,is_featured,stationery_id,subcategory&is_featured=eq.true&order=created_at.desc&limit=50';
   const featuredSelectBasic =
-    'posts?select=id,title,body,category_slug,created_at,is_featured&is_featured=eq.true&order=created_at.desc&limit=50';
+    'posts?select=id,title,title_en,body,body_en,category_slug,created_at,is_featured&is_featured=eq.true&order=created_at.desc&limit=50';
 
   const [premiumAds, localNewsRaw, featuredWithPaper, classPosts, marketPosts] = await Promise.all([
     safeRest(
@@ -65,10 +68,10 @@ async function getHomeData() {
     ),
     safeRest(featuredSelectWithPaper),
     safeRest(
-      'posts?select=id,title,created_at&category_slug=eq.classes&order=created_at.desc&limit=6'
+      'posts?select=id,title,title_en,created_at&category_slug=eq.classes&order=created_at.desc&limit=6'
     ),
     safeRest(
-      'posts?select=id,title,created_at&category_slug=eq.market&order=created_at.desc&limit=6'
+      'posts?select=id,title,title_en,created_at&category_slug=eq.market&order=created_at.desc&limit=6'
     ),
   ]);
 
@@ -96,7 +99,7 @@ async function getHomeData() {
     featuredPost,
     featuredPoolCount: featuredPool.length,
     classPosts: classes,
-    marketPosts,
+    marketPosts: Array.isArray(marketPosts) ? marketPosts : [],
   };
 }
 
@@ -106,41 +109,51 @@ function padAds(ads) {
   return rows.slice(0, 2);
 }
 
-function SimpleRows({ posts, empty }) {
+function SimpleRows({ posts, empty, locale }) {
   if (!posts?.length) {
     return <div className="wf-empty">{empty}</div>;
   }
   return (
     <ul className="wf-list">
-      {posts.map((post) => (
-        <li key={post.id}>
-          <Link href={`/post/${post.id}`} className="wf-list-row">
-            <span className="wf-list-title">{post.title}</span>
-            <time className="wf-list-date">{formatDate(post.created_at)}</time>
-          </Link>
-        </li>
-      ))}
+      {posts.map((post) => {
+        const localized = localizePostFields(post, locale);
+        return (
+          <li key={post.id}>
+            <Link href={`/post/${post.id}`} className="wf-list-row">
+              <AutoTranslatedText text={localized.title} as="span" className="wf-list-title" />
+              <time className="wf-list-date">{formatDate(post.created_at, locale)}</time>
+            </Link>
+          </li>
+        );
+      })}
     </ul>
   );
 }
 
 export default async function HomePage() {
+  const locale = getServerLocale();
+  const t = createServerT(locale);
   const { premiumAds, localNews, featuredPost, featuredPoolCount, classPosts, marketPosts } =
     await getHomeData();
   const ads = padAds(premiumAds);
   const cat = featuredPost ? getCategory(featuredPost.category_slug) : null;
-  const bodyText = featuredPost ? letterBody(featuredPost.body) : '';
+  const localizedFeatured = featuredPost ? localizePostFields(featuredPost, locale) : null;
+  const bodyText = localizedFeatured ? letterBody(localizedFeatured.body) : '';
+  const categoryLabel = cat
+    ? locale === 'en'
+      ? cat.nameEn || cat.nameKo
+      : cat.nameKo
+    : t('home.boardFallback');
 
   return (
     <div className="container home-page">
-      {/* 1구역 — 특별광고 50:50 */}
-      <section className="wf-ads" aria-label="특별광고">
+      <section className="wf-ads" aria-label={t('home.premiumAds')}>
         {ads.map((ad, idx) => {
           if (!ad) {
             return (
               <div key={`ad-empty-${idx}`} className="wf-ads-card premium-ad-card wf-ads-card--empty">
                 <div className="wf-ads-kicker">Premium</div>
-                <div className="wf-ads-name wf-ads-name--placeholder">특별광고</div>
+                <div className="wf-ads-name wf-ads-name--placeholder">{t('home.premiumAd')}</div>
               </div>
             );
           }
@@ -152,7 +165,13 @@ export default async function HomePage() {
               <div className="wf-ads-meta">
                 {[ad.category, ad.city].filter(Boolean).join(' · ')}
               </div>
-              {ad.description ? <p className="wf-ads-desc">{excerpt(ad.description, 90)}</p> : null}
+              {ad.description ? (
+                <AutoTranslatedText
+                  text={excerpt(ad.description, 90)}
+                  as="p"
+                  className="wf-ads-desc"
+                />
+              ) : null}
             </>
           );
           return ad.website_url ? (
@@ -173,63 +192,64 @@ export default async function HomePage() {
         })}
       </section>
 
-      {/* 2구역 — 지역뉴스 / 오늘의 좋은글 */}
-        <section className="wf-mid" aria-label="지역뉴스와 좋은글">
+      <section className="wf-mid" aria-label={t('home.midSection')}>
         <LocalNewsPanel items={localNews || []} />
 
         <div className="wf-box wf-featured">
           <div className="panel-header">
-            <h2 className="panel-title">좋은 글</h2>
+            <h2 className="panel-title">{t('home.featured')}</h2>
             <Link href="/board/free?tag=featured" className="panel-more">
-              더보기
+              {t('home.more')}
             </Link>
           </div>
           {featuredPost ? (
             <Link href={`/post/${featuredPost.id}`} className="wf-featured-letter">
               <div className="wf-featured-letter-top">
-                <span className="wf-featured-today">오늘의 글</span>
+                <span className="wf-featured-today">{t('home.todayPost')}</span>
                 <div className="wf-featured-meta">
-                  <span>{cat?.nameKo || featuredPost.category_slug || '게시판'}</span>
-                  <time>{formatDate(featuredPost.created_at)}</time>
+                  <span>{categoryLabel}</span>
+                  <time>{formatDate(featuredPost.created_at, locale)}</time>
                 </div>
               </div>
-              <div className="wf-featured-name">{featuredPost.title}</div>
-              {bodyText ? <p className="wf-featured-letter-body">{bodyText}</p> : null}
+              <AutoTranslatedText
+                text={localizedFeatured?.title || featuredPost.title}
+                as="div"
+                className="wf-featured-name"
+              />
+              {bodyText ? (
+                <AutoTranslatedText text={bodyText} as="p" className="wf-featured-letter-body" />
+              ) : null}
               {featuredPoolCount > 1 ? (
                 <span className="wf-featured-letter-foot">
-                  체크된 좋은글 {featuredPoolCount}편 중 · 매일 다른 글이 바뀝니다
+                  {t('home.featuredFoot', { count: featuredPoolCount })}
                 </span>
               ) : null}
             </Link>
           ) : (
-            <div className="wf-empty wf-empty--grow">
-              아직 홈에 올린 좋은글이 없습니다. 글쓰기에서 「좋은글」선택 후 「홈에 표시」를
-              체크하세요. 체크한 글 중 하루에 한 편이 보입니다.
-            </div>
+            <div className="wf-empty wf-empty--grow">{t('home.emptyFeaturedHelp')}</div>
           )}
         </div>
       </section>
 
-      {/* 3구역 — 수업/교육 / 중고장터 */}
-      <section className="wf-box wf-bottom" aria-label="수업/교육과 중고장터">
+      <section className="wf-box wf-bottom" aria-label={t('home.bottomSection')}>
         <div className="wf-bottom-col classes-latest">
           <div className="panel-header">
-            <h2 className="panel-title">수업/교육 최신 글</h2>
+            <h2 className="panel-title">{t('home.classesLatest')}</h2>
             <Link href="/board/classes" className="panel-more">
-              더보기
+              {t('home.more')}
             </Link>
           </div>
-          <SimpleRows posts={classPosts} empty="수업/교육 게시글이 아직 없습니다." />
+          <SimpleRows posts={classPosts} empty={t('home.emptyClasses')} locale={locale} />
         </div>
         <div className="wf-bottom-divider" aria-hidden="true" />
         <div className="wf-bottom-col market-latest">
           <div className="panel-header">
-            <h2 className="panel-title">중고 장터 최신글</h2>
+            <h2 className="panel-title">{t('home.marketLatest')}</h2>
             <Link href="/board/market" className="panel-more">
-              더보기
+              {t('home.more')}
             </Link>
           </div>
-          <SimpleRows posts={marketPosts} empty="중고장터 게시글이 아직 없습니다." />
+          <SimpleRows posts={marketPosts} empty={t('home.emptyMarket')} locale={locale} />
         </div>
       </section>
     </div>

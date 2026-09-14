@@ -4,7 +4,8 @@ import { containsHangul, detectSourceLang } from './detect';
 export function localizePostFields(post, locale = 'ko') {
   if (!post) return { title: '', body: '', isTranslated: false, sourceLang: 'und' };
   const lang = locale === 'en' ? 'en' : 'ko';
-  const sourceLang = post.source_lang || detectSourceLang(`${post.title || ''}\n${post.body || ''}`);
+  const sourceLang =
+    post.source_lang || detectSourceLang(`${post.title || ''}\n${post.body || ''}`);
 
   if (lang === 'en') {
     const title = post.title_en || post.title || '';

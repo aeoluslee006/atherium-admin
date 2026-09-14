@@ -1,10 +1,13 @@
 import Link from 'next/link';
+import LocalizedPostTitle from './LocalizedPostTitle';
 import { JOB_TAGS, getJobTagLabel, getWorkStatusTags, isValidJobTag } from '../lib/jobTags';
+import { createServerT, getServerLocale } from '../lib/i18n/server';
 import { getSampleJobsPost, SAMPLE_JOBS_POST_ID } from '../lib/sampleJobsPost';
 import { supabaseRest } from '../lib/supabaseRest';
 
-function formatListDate(value) {
+function formatListDate(value, locale) {
   if (!value) return '';
+  const loc = locale === 'en' ? 'en-US' : 'ko-KR';
   try {
     const d = new Date(value);
     const now = new Date();
@@ -13,9 +16,9 @@ function formatListDate(value) {
       d.getMonth() === now.getMonth() &&
       d.getDate() === now.getDate();
     if (sameDay) {
-      return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+      return d.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit', hour12: false });
     }
-    return d.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' });
+    return d.toLocaleDateString(loc, { month: '2-digit', day: '2-digit' });
   } catch {
     return '';
   }
@@ -32,7 +35,14 @@ function initialFrom(name) {
   return s.slice(0, 1).toUpperCase();
 }
 
+function tagLabel(tagItem, locale) {
+  if (!tagItem) return '';
+  return locale === 'en' ? tagItem.nameEn || tagItem.nameKo : tagItem.nameKo;
+}
+
 export default async function JobsBoardPage({ searchParams = {} }) {
+  const locale = getServerLocale();
+  const t = createServerT(locale);
   const rawTag = searchParams.tag || 'all';
   const tag = isValidJobTag(rawTag) ? rawTag : 'all';
 
@@ -40,7 +50,7 @@ export default async function JobsBoardPage({ searchParams = {} }) {
 
   try {
     let path =
-      'posts?select=id,title,body,subcategory,is_pinned,created_at,author_id,view_count,city,company_name,company_logo,pay_text,job_roles&category_slug=eq.jobs';
+      'posts?select=id,title,title_en,body,subcategory,is_pinned,created_at,author_id,view_count,city,company_name,company_logo,pay_text,job_roles&category_slug=eq.jobs';
     if (tag !== 'all') path += `&subcategory=eq.${encodeURIComponent(tag)}`;
     path += '&order=is_pinned.desc,created_at.desc';
 
@@ -75,44 +85,44 @@ export default async function JobsBoardPage({ searchParams = {} }) {
   return (
     <div className="container">
       <header className="jobs-board-head">
-        <h2 className="section-title">구인구직</h2>
+        <h2 className="section-title">{t('board.jobs.title')}</h2>
       </header>
 
       <div className="board-toolbar jobs-toolbar">
-        <div className="tag-chips" role="list" aria-label="구인구직 필터">
+        <div className="tag-chips" role="list" aria-label={t('board.jobs.filterAria')}>
           <Link
             href={buildHref('all')}
             role="listitem"
             className={`free-board-chip${tag === 'all' ? ' is-active' : ''}`}
           >
-            전체
+            {t('board.all')}
           </Link>
-          {JOB_TAGS.map((t) => (
+          {JOB_TAGS.map((tagItem) => (
             <Link
-              key={t.slug}
-              href={buildHref(t.slug)}
+              key={tagItem.slug}
+              href={buildHref(tagItem.slug)}
               role="listitem"
-              className={`free-board-chip${tag === t.slug ? ' is-active' : ''}`}
+              className={`free-board-chip${tag === tagItem.slug ? ' is-active' : ''}`}
             >
-              {t.nameKo}
+              {tagLabel(tagItem, locale)}
             </Link>
           ))}
         </div>
         <Link href="/board/jobs/new" className="btn">
-          글쓰기
+          {t('board.write')}
         </Link>
       </div>
 
       <div className="wf-box jobs-board">
-        <div className="jobs-board-meta">Total {(posts || []).length}건</div>
+        <div className="jobs-board-meta">{t('board.totalCount', { count: (posts || []).length })}</div>
 
         {(posts || []).length ? (
           <ul className="jobs-list">
             {posts.map((post) => {
               const company =
                 post.company_name ||
-                (post.is_pinned ? '공지' : getJobTagLabel(post.subcategory) || '채용');
-              const tagLabel = post.is_pinned ? '공지' : getJobTagLabel(post.subcategory);
+                (post.is_pinned ? t('board.notice') : getJobTagLabel(post.subcategory) || t('board.jobs.hire'));
+              const jobTag = post.is_pinned ? t('board.notice') : getJobTagLabel(post.subcategory);
               const views = Number.isFinite(post.view_count) ? post.view_count : null;
               const workStatuses = getWorkStatusTags(post.job_roles);
               return (
@@ -132,9 +142,9 @@ export default async function JobsBoardPage({ searchParams = {} }) {
 
                     <div className="jobs-row-main">
                       <div className="jobs-company-line">
-                        {tagLabel ? (
+                        {jobTag ? (
                           <span className={`jobs-type-sign jobs-type-sign--${post.subcategory || 'notice'}`}>
-                            {tagLabel}
+                            {jobTag}
                           </span>
                         ) : null}
                         <span className="jobs-company">{company}</span>
@@ -142,23 +152,23 @@ export default async function JobsBoardPage({ searchParams = {} }) {
                       </div>
                       <div className="jobs-title-line">
                         {workStatuses.length
-                          ? workStatuses.map((s) => (
+                          ? workStatuses.map((status) => (
                               <span
-                                key={s.slug}
-                                className={`job-status-badge job-status-badge--${s.slug}`}
+                                key={status.slug}
+                                className={`job-status-badge job-status-badge--${status.slug}`}
                               >
-                                {s.nameKo}
+                                {tagLabel(status, locale)}
                               </span>
                             ))
                           : null}
-                        <span className="jobs-title">{post.title}</span>
+                        <LocalizedPostTitle post={post} className="jobs-title" />
                         {post.pay_text ? <span className="jobs-pay">{post.pay_text}</span> : null}
                       </div>
                     </div>
 
                     <div className="jobs-row-meta">
                       {views != null ? <span className="jobs-views">{views}</span> : null}
-                      <span className="jobs-date">{formatListDate(post.created_at)}</span>
+                      <span className="jobs-date">{formatListDate(post.created_at, locale)}</span>
                     </div>
                   </Link>
                 </li>
@@ -166,7 +176,7 @@ export default async function JobsBoardPage({ searchParams = {} }) {
             })}
           </ul>
         ) : (
-          <div className="empty-state">아직 구인구직 글이 없습니다. 첫 글을 남겨보세요!</div>
+          <div className="empty-state">{t('board.emptyJobs')}</div>
         )}
       </div>
     </div>

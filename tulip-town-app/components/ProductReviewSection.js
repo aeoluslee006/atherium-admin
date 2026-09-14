@@ -3,6 +3,8 @@
 import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../lib/supabaseClient';
+import AutoTranslatedText from './AutoTranslatedText';
+import { useLocale } from './LocaleProvider';
 
 const COMMENT_MAX = 120;
 
@@ -14,10 +16,10 @@ async function authHeaders() {
   };
 }
 
-function formatReviewDate(value) {
+function formatReviewDate(value, locale) {
   if (!value) return '';
   try {
-    return new Date(value).toLocaleDateString('ko-KR', {
+    return new Date(value).toLocaleDateString(locale === 'en' ? 'en-US' : 'ko-KR', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -38,6 +40,7 @@ export default function ProductReviewSection({
   initialMyReview = null,
   sellerUserId = null,
 }) {
+  const { t, locale } = useLocale();
   const router = useRouter();
   const [reviews, setReviews] = useState(initialReviews);
   const [myReview, setMyReview] = useState(initialMyReview);
@@ -58,7 +61,7 @@ export default function ProductReviewSection({
       }
 
       if (sellerUserId && data.session.user.id === sellerUserId) {
-        setError('본인 상품에는 후기를 남길 수 없습니다.');
+        setError(t('shop.reviews.selfError'));
         return;
       }
 
@@ -71,43 +74,43 @@ export default function ProductReviewSection({
           body: JSON.stringify({ product_id: productId, comment }),
         });
         const payload = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(payload.error || '후기 등록 실패');
+        if (!res.ok) throw new Error(payload.error || t('shop.reviews.submitFail'));
         const item = payload.item;
         setMyReview(item);
         setReviews((prev) => [item, ...prev.filter((r) => r.id !== item.id)]);
         setComment('');
       } catch (err) {
-        setError(err.message || '후기 등록 실패');
+        setError(err.message || t('shop.reviews.submitFail'));
       } finally {
         setBusy(false);
       }
     },
-    [busy, comment, myReview, productId, router, sellerUserId]
+    [busy, comment, myReview, productId, router, sellerUserId, t]
   );
 
   return (
     <section className="shop-reviews" aria-labelledby="shop-reviews-title">
       <div className="shop-reviews-head">
-        <h2 id="shop-reviews-title">거래 후기</h2>
+        <h2 id="shop-reviews-title">{t('shop.reviews.title')}</h2>
         <span className="shop-reviews-count">👍 {reviews.length}</span>
       </div>
 
       {!isSold ? (
-        <p className="shop-reviews-hint">판매완료된 상품에만 가벼운 거래 후기를 남길 수 있어요.</p>
+        <p className="shop-reviews-hint">{t('shop.reviews.hintUnsold')}</p>
       ) : myReview ? (
-        <p className="shop-reviews-hint">이 상품에 거래 좋아요를 남겼습니다. 감사합니다!</p>
+        <p className="shop-reviews-hint">{t('shop.reviews.thanks')}</p>
       ) : (
         <form className="shop-review-form" onSubmit={submit}>
           <button type="submit" className="btn shop-review-like-btn" disabled={busy}>
-            👍 거래 좋아요
+            {t('shop.reviews.like')}
           </button>
           <label className="shop-review-comment-field">
-            <span className="shop-review-comment-label">한 줄 후기 (선택)</span>
+            <span className="shop-review-comment-label">{t('shop.reviews.commentLabel')}</span>
             <input
               type="text"
               value={comment}
               maxLength={COMMENT_MAX}
-              placeholder="따뜻했던 거래 한마디"
+              placeholder={t('shop.reviews.commentPlaceholder')}
               onChange={(e) => setComment(e.target.value)}
               disabled={busy}
             />
@@ -124,17 +127,23 @@ export default function ProductReviewSection({
                 <span className="shop-review-like" aria-hidden="true">
                   👍
                 </span>
-                <strong className="shop-review-name">{review.reviewerName || '회원'}</strong>
+                <strong className="shop-review-name">
+                  {review.reviewerName || t('common.member')}
+                </strong>
                 <time className="shop-review-date" dateTime={review.createdAt || undefined}>
-                  {formatReviewDate(review.createdAt)}
+                  {formatReviewDate(review.createdAt, locale)}
                 </time>
               </div>
-              {review.comment ? <p className="shop-review-comment">{review.comment}</p> : null}
+              {review.comment ? (
+                <p className="shop-review-comment">
+                  <AutoTranslatedText text={review.comment} />
+                </p>
+              ) : null}
             </li>
           ))}
         </ul>
       ) : (
-        <p className="shop-reviews-empty">아직 거래 후기가 없습니다.</p>
+        <p className="shop-reviews-empty">{t('shop.reviews.empty')}</p>
       )}
     </section>
   );

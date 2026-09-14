@@ -3,6 +3,7 @@
 import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../lib/supabaseClient';
+import { useLocale } from './LocaleProvider';
 
 async function authHeaders() {
   const { data } = await supabase.auth.getSession();
@@ -20,6 +21,7 @@ export default function ProductFavoriteButton({
   size = 'md',
   onChange,
 }) {
+  const { t } = useLocale();
   const router = useRouter();
   const [favorited, setFavorited] = useState(!!initialFavorited);
   const [busy, setBusy] = useState(false);
@@ -48,7 +50,7 @@ export default function ProductFavoriteButton({
           body: JSON.stringify({ product_id: productId }),
         });
         const payload = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(payload.error || '찜 처리 실패');
+        if (!res.ok) throw new Error(payload.error || 'favorite failed');
         const next = !!payload.favorited;
         setFavorited(next);
         onChange?.(next);
@@ -66,7 +68,7 @@ export default function ProductFavoriteButton({
     <button
       type="button"
       className={`shop-fav-btn ${favorited ? 'is-on' : ''} shop-fav-btn--${size}${className ? ` ${className}` : ''}`}
-      aria-label={favorited ? '찜 해제' : '찜하기'}
+      aria-label={favorited ? t('shop.fav.remove') : t('shop.fav.add')}
       aria-pressed={favorited}
       disabled={busy}
       onClick={toggle}

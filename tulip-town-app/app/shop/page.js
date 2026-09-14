@@ -1,14 +1,19 @@
 import ShopCatalog from '../../components/ShopCatalog';
+import { createServerT, getServerLocale } from '../../lib/i18n/server';
 import { loadFavoriteCountsByProductId } from '../../lib/shopFavoriteCounts';
 import { loadFavoriteProductIds } from '../../lib/shopFavorites';
 import { supabaseRest } from '../../lib/supabaseRest';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata = {
-  title: '튤립가게 · Tulip Town',
-  description: '이웃 판매자의 상품을 둘러보세요',
-};
+export async function generateMetadata() {
+  const locale = getServerLocale();
+  const t = createServerT(locale);
+  return {
+    title: t('shop.metaTitle'),
+    description: t('shop.metaDesc'),
+  };
+}
 
 async function loadShopProducts() {
   const selects = [

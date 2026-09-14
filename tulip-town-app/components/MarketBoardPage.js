@@ -1,11 +1,14 @@
 import Link from 'next/link';
+import LocalizedPostTitle from './LocalizedPostTitle';
 import { MARKET_TAGS, getMarketTagLabel, isValidMarketTag } from '../lib/marketTags';
+import { createServerT, getServerLocale } from '../lib/i18n/server';
 import { collectPostImages } from '../lib/postImages';
 import { getSampleMarketPost, SAMPLE_MARKET_POST_ID } from '../lib/sampleMarketPost';
 import { supabaseRest } from '../lib/supabaseRest';
 
-function formatListDate(value) {
+function formatListDate(value, locale) {
   if (!value) return '';
+  const loc = locale === 'en' ? 'en-US' : 'ko-KR';
   try {
     const d = new Date(value);
     const now = new Date();
@@ -14,9 +17,9 @@ function formatListDate(value) {
       d.getMonth() === now.getMonth() &&
       d.getDate() === now.getDate();
     if (sameDay) {
-      return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+      return d.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit', hour12: false });
     }
-    return d.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' });
+    return d.toLocaleDateString(loc, { month: '2-digit', day: '2-digit' });
   } catch {
     return '';
   }
@@ -27,7 +30,14 @@ function buildHref(tag) {
   return `/board/market?tag=${encodeURIComponent(tag)}`;
 }
 
+function tagLabel(tagItem, locale) {
+  if (!tagItem) return '';
+  return locale === 'en' ? tagItem.nameEn || tagItem.nameKo : tagItem.nameKo;
+}
+
 export default async function MarketBoardPage({ searchParams = {} }) {
+  const locale = getServerLocale();
+  const t = createServerT(locale);
   const rawTag = searchParams.tag || 'all';
   const tag = isValidMarketTag(rawTag) ? rawTag : 'all';
 
@@ -35,7 +45,7 @@ export default async function MarketBoardPage({ searchParams = {} }) {
 
   try {
     let path =
-      'posts?select=id,title,body,subcategory,is_pinned,created_at,city,view_count,price_text,image_urls&category_slug=eq.market';
+      'posts?select=id,title,title_en,body,subcategory,is_pinned,created_at,city,view_count,price_text,image_urls&category_slug=eq.market';
     if (tag !== 'all') path += `&subcategory=eq.${encodeURIComponent(tag)}`;
     path += '&order=is_pinned.desc,created_at.desc';
 
@@ -69,53 +79,55 @@ export default async function MarketBoardPage({ searchParams = {} }) {
   return (
     <div className="container">
       <header className="market-board-head board-heading">
-        <h2 className="section-title">중고장터</h2>
-        <p className="board-heading-desc">팝니다 · 삽니다 · 무료나눔</p>
+        <h2 className="section-title">{t('board.market.title')}</h2>
+        <p className="board-heading-desc">{t('board.market.desc')}</p>
       </header>
 
       <div className="board-toolbar market-toolbar">
-        <div className="tag-chips" role="list" aria-label="중고장터 필터">
+        <div className="tag-chips" role="list" aria-label={t('board.market.filterAria')}>
           <Link
             href={buildHref('all')}
             role="listitem"
             className={`free-board-chip${tag === 'all' ? ' is-active' : ''}`}
           >
-            전체
+            {t('board.all')}
           </Link>
-          {MARKET_TAGS.map((t) => (
+          {MARKET_TAGS.map((tagItem) => (
             <Link
-              key={t.slug}
-              href={buildHref(t.slug)}
+              key={tagItem.slug}
+              href={buildHref(tagItem.slug)}
               role="listitem"
-              className={`free-board-chip${tag === t.slug ? ' is-active' : ''}`}
+              className={`free-board-chip${tag === tagItem.slug ? ' is-active' : ''}`}
             >
-              {t.nameKo}
+              {tagLabel(tagItem, locale)}
             </Link>
           ))}
         </div>
         <Link href="/board/market/new" className="btn">
-          글쓰기
+          {t('board.write')}
         </Link>
       </div>
 
       <div className="wf-box market-board">
         <div className="market-board-meta">
-          Total {(posts || []).length}건 · 사진은 상세에서 갤러리로 확인
+          {t('board.metaPhotos', { count: (posts || []).length })}
         </div>
 
-        <div className="market-table market-table--photos" role="table" aria-label="중고장터 목록">
+        <div className="market-table market-table--photos" role="table" aria-label={t('board.market.listAria')}>
           <div className="market-table-head market-table-head--photos" role="row">
-            <span role="columnheader">사진</span>
-            <span role="columnheader">구분</span>
-            <span role="columnheader">제목</span>
-            <span role="columnheader">가격</span>
-            <span role="columnheader">지역</span>
-            <span role="columnheader">날짜</span>
+            <span role="columnheader">{t('board.col.photo')}</span>
+            <span role="columnheader">{t('board.col.category')}</span>
+            <span role="columnheader">{t('board.col.title')}</span>
+            <span role="columnheader">{t('board.col.price')}</span>
+            <span role="columnheader">{t('board.col.area')}</span>
+            <span role="columnheader">{t('board.col.date')}</span>
           </div>
 
           {(posts || []).length ? (
             posts.map((post) => {
-              const label = post.is_pinned ? '공지' : getMarketTagLabel(post.subcategory) || '일반';
+              const label = post.is_pinned
+                ? t('board.notice')
+                : getMarketTagLabel(post.subcategory) || t('board.general');
               const photos = collectPostImages(post);
               const cover = photos[0] || null;
               return (
@@ -146,7 +158,7 @@ export default async function MarketBoardPage({ searchParams = {} }) {
                     </span>
                   </span>
                   <span className="market-col-title" role="cell">
-                    <span className="market-title-text">{post.title}</span>
+                    <LocalizedPostTitle post={post} className="market-title-text" />
                   </span>
                   <span className="market-col-price" role="cell">
                     {post.price_text || '—'}
@@ -155,13 +167,13 @@ export default async function MarketBoardPage({ searchParams = {} }) {
                     {post.city || '—'}
                   </span>
                   <span className="market-col-date" role="cell">
-                    {formatListDate(post.created_at)}
+                    {formatListDate(post.created_at, locale)}
                   </span>
                 </Link>
               );
             })
           ) : (
-            <div className="empty-state">아직 중고장터 글이 없습니다. 첫 글을 남겨보세요!</div>
+            <div className="empty-state">{t('board.emptyMarket')}</div>
           )}
         </div>
       </div>

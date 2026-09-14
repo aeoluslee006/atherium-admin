@@ -4,8 +4,10 @@ import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { GIFT_SHOP } from '../lib/giftShop';
+import { useLocale } from './LocaleProvider';
 
 function GiftShopNavInner() {
+  const { t } = useLocale();
   const pathname = usePathname() || '';
   const searchParams = useSearchParams();
   const cat = searchParams.get('cat') || '';
@@ -14,33 +16,33 @@ function GiftShopNavInner() {
   const links = [
     {
       href: '/gift',
-      label: '홈',
+      label: t('gift.home'),
       active: pathname === '/gift' && !cat && tab !== 'deals',
     },
     {
       href: '/gift/best',
-      label: '인기 BEST',
+      label: t('gift.best'),
       active: pathname.startsWith('/gift/best'),
     },
     {
       href: '/gift?tab=deals',
-      label: '지금 특가',
+      label: t('gift.deals'),
       active: pathname === '/gift' && tab === 'deals',
     },
     {
       href: '/gift?cat=community',
-      label: '커뮤니티 특가',
+      label: t('gift.community'),
       active: pathname === '/gift' && cat === 'community',
     },
     {
       href: '/mypage/shop',
-      label: '판매자',
+      label: t('gift.seller'),
       active: pathname.startsWith('/mypage/shop') || pathname.startsWith('/seller'),
     },
   ];
 
   return (
-    <nav className="gift-subnav" aria-label={`${GIFT_SHOP.nameKo} 메뉴`}>
+    <nav className="gift-subnav" aria-label={t('gift.menuAria', { name: GIFT_SHOP.nameKo })}>
       <div className="gift-subnav-inner">
         {links.map((link) => (
           <Link key={link.href} href={link.href} className={`gift-subnav-link${link.active ? ' is-active' : ''}`}>

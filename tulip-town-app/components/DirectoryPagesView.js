@@ -3,15 +3,16 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import AutoTranslatedText from './AutoTranslatedText';
 import DirectoryAdSlider from './DirectoryAdSlider';
 import DirectoryPageComposer from './DirectoryPageComposer';
+import { useLocale } from './LocaleProvider';
 import { listDirectoryCategories, getDirectoryCategoryLabel } from '../lib/directoryCategories';
 import {
   buildDirectorySpreads,
   computePageGridSize,
   DIRECTORY_GRID_COLS,
   DIRECTORY_GRID_ROWS,
-  directorySpreadLabel,
   displayCellLabel,
   formatSlotPrice,
   getDisplayMergeFactor,
@@ -37,20 +38,23 @@ function activeAd(slot) {
   return list.find((a) => a && a.status === 'active') || null;
 }
 
-function SideMenu({ side, categories, category, onSelect, showAll, showList }) {
+function SideMenu({ side, categories, category, onSelect, showAll, showList, t, catLabel }) {
   return (
-    <aside className={`dir-side-menu dir-side-menu--${side}`} aria-label={`카테고리 필터 (${side})`}>
+    <aside
+      className={`dir-side-menu dir-side-menu--${side}`}
+      aria-label={t('directory.catFilterSide', { side })}
+    >
       {showAll ? (
         <button
           type="button"
           className={`dir-side-cat${category === 'all' ? ' is-active' : ''}`}
           onClick={() => onSelect('all')}
-          title="전체"
+          title={t('directory.all')}
         >
           <span className="dir-side-cat-icon" aria-hidden="true">
             📋
           </span>
-          <span className="dir-side-cat-label">전체</span>
+          <span className="dir-side-cat-label">{t('directory.all')}</span>
         </button>
       ) : null}
       {categories.map((c) => (
@@ -59,24 +63,24 @@ function SideMenu({ side, categories, category, onSelect, showAll, showList }) {
           type="button"
           className={`dir-side-cat${category === c.slug ? ' is-active' : ''}`}
           onClick={() => onSelect(c.slug)}
-          title={c.nameKo}
+          title={catLabel(c.slug)}
         >
           <span className="dir-side-cat-icon" aria-hidden="true">
             {c.icon}
           </span>
-          <span className="dir-side-cat-label">{c.nameKo}</span>
+          <span className="dir-side-cat-label">{catLabel(c.slug)}</span>
         </button>
       ))}
       {showList ? (
-        <Link href="/directory" className="dir-side-list" title="리스트 보기">
-          리스트
+        <Link href="/directory" className="dir-side-list" title={t('directory.listView')}>
+          {t('directory.list')}
         </Link>
       ) : null}
     </aside>
   );
 }
 
-function DirectoryPaper({ pageData, category, currentUserId }) {
+function DirectoryPaper({ pageData, category, currentUserId, t, catLabel, tierLabel, formatPrice }) {
   const pageNumber = pageData?.pageNumber || 1;
   const slots = pageData?.slots || [];
   const rawSize = computePageGridSize(slots);
@@ -108,9 +112,9 @@ function DirectoryPaper({ pageData, category, currentUserId }) {
         style={{ '--dir-cols': displayCols, '--dir-rows': displayRows }}
       >
         <div className="dir-paper-label">
-          {pageNumber}면 · {displayCols}열×{displayRows}행
+          {t('directory.pageLabel', { page: pageNumber, cols: displayCols, rows: displayRows })}
         </div>
-        <div className="dir-grid" aria-label={`${pageNumber}면 광고 지면`}>
+        <div className="dir-grid" aria-label={t('directory.pageGridAria', { page: pageNumber })}>
           {displayCells.map((cell) => {
             const slot = cell.primary;
             const ad = activeAd(slot);
@@ -132,11 +136,11 @@ function DirectoryPaper({ pageData, category, currentUserId }) {
             const emptyBody = (
               <>
                 <div className="dir-slot-position">{cellLabel}</div>
-                <div className="dir-slot-vacant">빈 자리</div>
+                <div className="dir-slot-vacant">{t('directory.vacant')}</div>
                 <div className="dir-slot-meta">
-                  {sizeTierLabel(slot.size_tier)} · {formatSlotPrice(slot.base_price_cents)}
+                  {tierLabel(slot.size_tier)} · {formatPrice(slot.base_price_cents)}
                 </div>
-                {canApply ? <div className="dir-slot-cta">광고 신청</div> : null}
+                {canApply ? <div className="dir-slot-cta">{t('directory.applyAd')}</div> : null}
               </>
             );
 
@@ -165,28 +169,36 @@ function DirectoryPaper({ pageData, category, currentUserId }) {
                     <Link
                       href={`/directory/pages/edit?ad=${encodeURIComponent(ad.id)}`}
                       className="dir-ad dir-ad--mine"
-                      aria-label={`${ad.ad_title || cellLabel} 수정`}
+                      aria-label={t('directory.editAdAria', { title: ad.ad_title || cellLabel })}
                     >
                       <DirectoryAdSlider ad={ad} />
                       <div className="dir-ad-body">
-                        <div className="dir-ad-title">{ad.ad_title}</div>
-                        {ad.ad_body ? <div className="dir-ad-copy">{ad.ad_body}</div> : null}
-                        <div className="dir-ad-cat">
-                          {getDirectoryCategoryLabel(ad.category_slug)}
+                        <div className="dir-ad-title">
+                          <AutoTranslatedText text={ad.ad_title} />
                         </div>
+                        {ad.ad_body ? (
+                          <div className="dir-ad-copy">
+                            <AutoTranslatedText text={ad.ad_body} />
+                          </div>
+                        ) : null}
+                        <div className="dir-ad-cat">{catLabel(ad.category_slug)}</div>
                         {ad.ad_phone ? <div className="dir-ad-phone">{ad.ad_phone}</div> : null}
-                        <div className="dir-slot-cta">내 광고 수정</div>
+                        <div className="dir-slot-cta">{t('directory.editMine')}</div>
                       </div>
                     </Link>
                   ) : (
                     <div className="dir-ad" aria-disabled="true">
                       <DirectoryAdSlider ad={ad} />
                       <div className="dir-ad-body">
-                        <div className="dir-ad-title">{ad.ad_title}</div>
-                        {ad.ad_body ? <div className="dir-ad-copy">{ad.ad_body}</div> : null}
-                        <div className="dir-ad-cat">
-                          {getDirectoryCategoryLabel(ad.category_slug)}
+                        <div className="dir-ad-title">
+                          <AutoTranslatedText text={ad.ad_title} />
                         </div>
+                        {ad.ad_body ? (
+                          <div className="dir-ad-copy">
+                            <AutoTranslatedText text={ad.ad_body} />
+                          </div>
+                        ) : null}
+                        <div className="dir-ad-cat">{catLabel(ad.category_slug)}</div>
                         {ad.ad_phone ? <div className="dir-ad-phone">{ad.ad_phone}</div> : null}
                       </div>
                     </div>
@@ -195,7 +207,7 @@ function DirectoryPaper({ pageData, category, currentUserId }) {
                   <Link
                     href={`/directory/pages/apply?slot=${encodeURIComponent(applySlot.id)}`}
                     className="dir-cell-empty dir-cell-empty--link"
-                    aria-label={`${cellLabel} 광고 신청`}
+                    aria-label={t('directory.applyAria', { label: cellLabel })}
                   >
                     {emptyBody}
                   </Link>
@@ -213,6 +225,28 @@ function DirectoryPaper({ pageData, category, currentUserId }) {
 
 /** Empty slots link to /directory/pages/apply for image upload + checkout. */
 export default function DirectoryPagesView({ pages: initialPages = [], initialPage = 1 }) {
+  const { t } = useLocale();
+  const catLabel = (slug) => {
+    if (!slug) return '';
+    const key = `directory.cat.${slug}`;
+    const value = t(key);
+    return value === key ? getDirectoryCategoryLabel(slug) : value;
+  };
+  const tierLabel = (tier) => {
+    const key = `directory.tier.${tier}`;
+    const value = t(key);
+    return value === key ? sizeTierLabel(tier) : value;
+  };
+  const formatPrice = (cents) => {
+    const base = formatSlotPrice(cents);
+    if (!base || base === '—') return base;
+    return base.replace('/월', t('directory.perMonth')).replace('/mo', t('directory.perMonth'));
+  };
+  const spreadLabel = (s) => {
+    if (!s) return '';
+    if (s.right != null) return t('directory.spreadRange', { left: s.left, right: s.right });
+    return t('directory.pageN', { n: s.left });
+  };
   const router = useRouter();
   const [livePages, setLivePages] = useState(initialPages);
   const [canCompose, setCanCompose] = useState(false);
@@ -234,7 +268,7 @@ export default function DirectoryPagesView({ pages: initialPages = [], initialPa
       key: `${s.left}-${s.right ?? 'x'}`,
       kind: 'spread',
       index: i,
-      label: directorySpreadLabel(s),
+      label: spreadLabel(s),
     }));
     if (canCompose) {
       items.push({
@@ -245,7 +279,7 @@ export default function DirectoryPagesView({ pages: initialPages = [], initialPa
       });
     }
     return items;
-  }, [spreads, canCompose]);
+  }, [spreads, canCompose, t]);
 
   const initialSpreadIndex = useMemo(() => {
     const n = Number(initialPage) || 1;
@@ -371,14 +405,14 @@ export default function DirectoryPagesView({ pages: initialPages = [], initialPa
 
   return (
     <div className={`dir-pages${mobileMode === 'list' ? ' is-list-mode' : ''}`}>
-      <div className="dir-cat-rail" role="toolbar" aria-label="카테고리 필터">
+      <div className="dir-cat-rail" role="toolbar" aria-label={t('directory.catFilter')}>
         <button
           type="button"
           className={`dir-cat-rail-item${category === 'all' ? ' is-active' : ''}`}
           onClick={() => setCategory('all')}
         >
           <span aria-hidden="true">📋</span>
-          <span>전체</span>
+          <span>{t('directory.all')}</span>
         </button>
         {allCategories.map((c) => (
           <button
@@ -388,7 +422,7 @@ export default function DirectoryPagesView({ pages: initialPages = [], initialPa
             onClick={() => setCategory(c.slug)}
           >
             <span aria-hidden="true">{c.icon}</span>
-            <span>{c.nameKo}</span>
+            <span>{catLabel(c.slug)}</span>
           </button>
         ))}
       </div>
@@ -400,6 +434,8 @@ export default function DirectoryPagesView({ pages: initialPages = [], initialPa
           category={category}
           onSelect={setCategory}
           showAll
+          t={t}
+          catLabel={catLabel}
         />
 
         <div
@@ -425,6 +461,10 @@ export default function DirectoryPagesView({ pages: initialPages = [], initialPa
                     pageData={leftPage}
                     category={category}
                     currentUserId={currentUserId}
+                    t={t}
+                    catLabel={catLabel}
+                    tierLabel={tierLabel}
+                    formatPrice={formatPrice}
                   />
                 ) : null}
                 {rightPage ? (
@@ -432,6 +472,10 @@ export default function DirectoryPagesView({ pages: initialPages = [], initialPa
                     pageData={rightPage}
                     category={category}
                     currentUserId={currentUserId}
+                    t={t}
+                    catLabel={catLabel}
+                    tierLabel={tierLabel}
+                    formatPrice={formatPrice}
                   />
                 ) : null}
               </>
@@ -445,11 +489,13 @@ export default function DirectoryPagesView({ pages: initialPages = [], initialPa
           category={category}
           onSelect={setCategory}
           showList={false}
+          t={t}
+          catLabel={catLabel}
         />
       </div>
 
       <div className="dir-pages-controls">
-        <div className="dir-pages-nav" role="tablist" aria-label="지면 페이지">
+        <div className="dir-pages-nav" role="tablist" aria-label={t('directory.pagesNav')}>
           <button
             type="button"
             className="btn btn-outline dir-pages-arrow"
@@ -474,7 +520,7 @@ export default function DirectoryPagesView({ pages: initialPages = [], initialPa
                     : ''
               }`}
               onClick={() => selectNav(item)}
-              title={item.kind === 'compose' ? '새 페이지 추가 (블랙)' : undefined}
+              title={item.kind === 'compose' ? t('directory.addPage') : undefined}
             >
               {item.label}
             </button>
@@ -488,13 +534,13 @@ export default function DirectoryPagesView({ pages: initialPages = [], initialPa
             →
           </button>
         </div>
-        <div className="dir-zoom" role="group" aria-label="지면 확대">
+        <div className="dir-zoom" role="group" aria-label={t('directory.zoom')}>
           <button
             type="button"
             className="btn btn-outline dir-zoom-btn"
             onClick={() => setZoom((z) => clampZoom(z - ZOOM_STEP))}
             disabled={zoom <= ZOOM_MIN}
-            aria-label="축소"
+            aria-label={t('directory.zoomOut')}
           >
             −
           </button>
@@ -506,39 +552,39 @@ export default function DirectoryPagesView({ pages: initialPages = [], initialPa
             step={ZOOM_STEP}
             value={zoom}
             onChange={(e) => setZoom(clampZoom(e.target.value))}
-            aria-label="확대 비율"
+            aria-label={t('directory.zoomRatio')}
           />
           <button
             type="button"
             className="btn btn-outline dir-zoom-btn"
             onClick={() => setZoom((z) => clampZoom(z + ZOOM_STEP))}
             disabled={zoom >= ZOOM_MAX}
-            aria-label="확대"
+            aria-label={t('directory.zoomIn')}
           >
             +
           </button>
           <span className="dir-zoom-pct">{Math.round(zoom * 100)}%</span>
         </div>
-        <div className="dir-mobile-toggle" role="group" aria-label="모바일 보기 방식">
+        <div className="dir-mobile-toggle" role="group" aria-label={t('directory.mobileView')}>
           <button
             type="button"
             className={`dir-pages-tab${mobileMode === 'grid' ? ' is-active' : ''}`}
             onClick={() => setMobileMode('grid')}
           >
-            그리드
+            {t('directory.grid')}
           </button>
           <button
             type="button"
             className={`dir-pages-tab${mobileMode === 'list' ? ' is-active' : ''}`}
             onClick={() => setMobileMode('list')}
           >
-            리스트
+            {t('directory.list')}
           </button>
         </div>
       </div>
 
       {mobileMode === 'list' && !composeMode ? (
-        <div className="dir-mobile-list card" aria-label="현재 면 슬롯 리스트">
+        <div className="dir-mobile-list card" aria-label={t('directory.slotListAria')}>
           {listSlots.map((slot) => {
             const ad = activeAd(slot);
             const occupied = slot.status === 'occupied' && ad;
@@ -549,17 +595,21 @@ export default function DirectoryPagesView({ pages: initialPages = [], initialPa
             const row = (
               <>
                 <strong>{slot.position_label}</strong>
-                <span>{sizeTierLabel(slot.size_tier)}</span>
+                <span>{tierLabel(slot.size_tier)}</span>
                 <span>
-                  {occupied
-                    ? `${ad.ad_title} · ${getDirectoryCategoryLabel(ad.category_slug)}${
-                        isMine ? ' · 내 광고' : ''
-                      }`
-                    : canApply
-                      ? '빈 자리 · 신청'
-                      : '빈 자리'}
+                  {occupied ? (
+                    <>
+                      <AutoTranslatedText text={ad.ad_title} />
+                      {` · ${catLabel(ad.category_slug)}`}
+                      {isMine ? ` · ${t('directory.myAd')}` : ''}
+                    </>
+                  ) : canApply ? (
+                    t('directory.vacantApply')
+                  ) : (
+                    t('directory.vacant')
+                  )}
                 </span>
-                <span>{formatSlotPrice(slot.base_price_cents)}</span>
+                <span>{formatPrice(slot.base_price_cents)}</span>
               </>
             );
             if (canApply) {

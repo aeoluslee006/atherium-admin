@@ -1,16 +1,21 @@
 import DirectoryPagesView from '../../components/DirectoryPagesView';
 import DirectorySpecialSlider from '../../components/DirectorySpecialSlider';
 import { SPECIAL_AD_CAPACITY } from '../../lib/directorySpecialAds';
+import { createServerT, getServerLocale } from '../../lib/i18n/server';
 import { loadDirectoryPages } from '../../lib/loadDirectoryPages';
 import { tryAdminSupabase } from '../../lib/apiAuth';
 import { supabaseRest } from '../../lib/supabaseRest';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata = {
-  title: '업체 디렉토리 지면 · Tulip Town',
-  description: '교차로 스타일 지면에서 빈 자리를 눌러 광고를 신청하세요',
-};
+export async function generateMetadata() {
+  const locale = getServerLocale();
+  const t = createServerT(locale);
+  return {
+    title: t('directory.metaTitle'),
+    description: t('directory.metaDesc'),
+  };
+}
 
 async function loadLiveSpecialAds() {
   try {
@@ -39,6 +44,8 @@ async function loadLiveSpecialAds() {
 }
 
 export default async function DirectoryPage({ searchParams }) {
+  const locale = getServerLocale();
+  const t = createServerT(locale);
   const [pages, specialAds] = await Promise.all([loadDirectoryPages(), loadLiveSpecialAds()]);
   const initialPage = Number(searchParams?.page) || pages[0]?.pageNumber || 1;
 
@@ -50,9 +57,7 @@ export default async function DirectoryPage({ searchParams }) {
           <DirectoryPagesView pages={pages} initialPage={initialPage} />
         </>
       ) : (
-        <div className="card empty-state">
-          아직 등록된 지면 자리가 없습니다. 관리자가 페이지를 추가하면 여기에 표시됩니다.
-        </div>
+        <div className="card empty-state">{t('directory.empty')}</div>
       )}
     </div>
   );

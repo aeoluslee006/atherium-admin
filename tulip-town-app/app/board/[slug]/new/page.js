@@ -12,6 +12,7 @@ import { HOUSING_TAGS, HOUSING_TYPES, isValidHousingTag } from '../../../../lib/
 import { MARKET_TAGS, isValidMarketTag } from '../../../../lib/marketTags';
 import { serializeImageUrls } from '../../../../lib/postImages';
 import { requestPostTranslation } from '../../../../lib/i18n/postLocale';
+import { useLocale } from '../../../../components/LocaleProvider';
 import { SETTLEMENT_CITY_NAMES, isValidSettlementCity } from '../../../../lib/settlementTowns';
 import { supabase } from '../../../../lib/supabaseClient';
 
@@ -27,10 +28,16 @@ function plainTextFromHtml(html) {
     .trim();
 }
 
+function tagLabel(tagItem, locale) {
+  if (!tagItem) return '';
+  return locale === 'en' ? tagItem.nameEn || tagItem.nameKo : tagItem.nameKo;
+}
+
 export default function NewPostPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t, locale } = useLocale();
   const category = getCategory(params.slug);
   const isFree = params.slug === 'free';
   const isMarket = params.slug === 'market';
@@ -91,7 +98,7 @@ export default function NewPostPage() {
   async function assertCanWrite() {
     const { data: sessionData } = await supabase.auth.getSession();
     if (!sessionData.session) {
-      throw new Error('글을 쓰려면 로그인이 필요합니다.');
+      throw new Error(t('compose.needLogin'));
     }
     const { data: profile } = await supabase
       .from('profiles')
@@ -99,10 +106,13 @@ export default function NewPostPage() {
       .eq('id', sessionData.session.user.id)
       .maybeSingle();
     if (profile?.is_banned) {
-      throw new Error(profile.banned_reason || '이용이 제한된 계정입니다.');
+      throw new Error(profile.banned_reason || t('compose.accountBanned'));
     }
     if (profile?.suspended_until && new Date(profile.suspended_until).getTime() > Date.now()) {
-      throw new Error(`계정이 ${new Date(profile.suspended_until).toLocaleString('ko-KR')}까지 정지되었습니다.`);
+      const until = new Date(profile.suspended_until).toLocaleString(
+        locale === 'en' ? 'en-US' : 'ko-KR'
+      );
+      throw new Error(t('compose.accountSuspended', { date: until }));
     }
     return sessionData.session.user.id;
   }
@@ -190,7 +200,7 @@ export default function NewPostPage() {
       requestPostTranslation(data.id, { wait: false });
       router.push(`/post/${data.id}`);
     } catch (err) {
-      setError(err.message || '등록에 실패했습니다.');
+      setError(err.message || t('compose.fail'));
     } finally {
       setSaving(false);
     }
@@ -202,15 +212,15 @@ export default function NewPostPage() {
     setSaving(true);
     try {
       if (isFree && !isValidFreeBoardWriteTag(subcategory)) {
-        setError('서브카테고리를 선택해 주세요.');
+        setError(t('compose.needSubcat'));
         return;
       }
       if (isMarket && !isValidMarketTag(subcategory)) {
-        setError('구분(팝니다/삽니다 등)을 선택해 주세요.');
+        setError(t('compose.needMarketType'));
         return;
       }
       if (isHousing && !isValidHousingTag(subcategory)) {
-        setError('구분(렌트/매매/룸메이트)을 선택해 주세요.');
+        setError(t('compose.needHousingType'));
         return;
       }
       if (
@@ -219,7 +229,7 @@ export default function NewPostPage() {
         !/<img\s/i.test(body) &&
         !(marketPhotos && marketPhotos.length)
       ) {
-        setError('내용 또는 상품 사진을 넣어 주세요.');
+        setError(t('compose.needMarketBody'));
         return;
       }
       if (
@@ -228,11 +238,11 @@ export default function NewPostPage() {
         !/<img\s/i.test(body) &&
         !(housingPhotos && housingPhotos.length)
       ) {
-        setError('상세 설명 또는 매물 사진을 넣어 주세요.');
+        setError(t('compose.needHousingBody'));
         return;
       }
       if (isGuide && !isValidSettlementCity(city)) {
-        setError('지역을 목록에서 선택해 주세요.');
+        setError(t('compose.needCity'));
         return;
       }
 
@@ -357,7 +367,7 @@ export default function NewPostPage() {
       requestPostTranslation(data.id, { wait: false });
       router.push(`/post/${data.id}`);
     } catch (err) {
-      setError(err.message || '등록에 실패했습니다.');
+      setError(err.message || t('compose.fail'));
     } finally {
       setSaving(false);
     }
@@ -366,7 +376,7 @@ export default function NewPostPage() {
   if (!category) {
     return (
       <div className="container">
-        <div className="card empty-state">존재하지 않는 게시판입니다.</div>
+        <div className="card empty-state">{t('board.notFound')}</div>
       </div>
     );
   }
@@ -374,7 +384,7 @@ export default function NewPostPage() {
   if (!authReady) {
     return (
       <div className="container">
-        <div className="card empty-state">로그인 확인 중…</div>
+        <div className="card empty-state">{t('auth.loading')}</div>
       </div>
     );
   }
@@ -396,35 +406,36 @@ export default function NewPostPage() {
   const writeTags = isMarket
     ? MARKET_TAGS
     : isHousing
-      ? HOUSING_TAGS.filter((t) => t.slug !== 'done')
+      ? HOUSING_TAGS.filter((tagItem) => tagItem.slug !== 'done')
       : isFree
         ? FREE_BOARD_WRITE_TAGS
         : null;
   const needsSubcategory = isFree || isMarket || isHousing;
   const isFeaturedWrite = isFree && subcategory === 'featured';
+  const categoryName = locale === 'en' ? category.nameEn || category.nameKo : category.nameKo;
 
   return (
     <div className="container">
       <div className="row-between">
-        <h2 className="section-title">{category.nameKo} 글쓰기</h2>
+        <h2 className="section-title">{t('board.writeTitle', { name: categoryName })}</h2>
         <Link href={`/board/${params.slug}`} className="btn btn-outline">
-          목록
+          {t('board.list')}
         </Link>
       </div>
       <form className="card form-card form-card--wide" onSubmit={handleSubmit}>
         {writeTags ? (
           <fieldset className="free-subcat-fieldset">
             <legend>
-              구분 <span className="required-mark">필수</span>
+              {t('compose.subcategory')} <span className="required-mark">{t('common.required')}</span>
             </legend>
             <p className="hint-text free-subcat-hint">
               {isMarket
-                ? '팝니다 / 삽니다 / 무료나눔 / 완료 중 하나를 선택하세요.'
+                ? t('compose.pickMarket')
                 : isHousing
-                  ? '렌트 / 매매 / 룸메이트 중 하나를 선택하세요.'
-                  : '글을 쓰기 전에 주제를 먼저 선택해 주세요.'}
+                  ? t('compose.pickHousing')
+                  : t('compose.pickTopic')}
             </p>
-            <div className="free-subcat-options" role="radiogroup" aria-label="구분">
+            <div className="free-subcat-options" role="radiogroup" aria-label={t('compose.subcategory')}>
               {writeTags.map((tag) => {
                 const selected = subcategory === tag.slug;
                 return (
@@ -445,7 +456,7 @@ export default function NewPostPage() {
                       }}
                       required
                     />
-                    <span>{tag.nameKo}</span>
+                    <span>{tagLabel(tag, locale)}</span>
                   </label>
                 );
               })}
@@ -462,28 +473,25 @@ export default function NewPostPage() {
               disabled={saving}
             />
             <span>
-              홈에 <strong>좋은 글</strong> 후보로 올리기
-              <em className="dashboard-feature-hint">
-                체크한 글 중에서 하루에 한 편이 홈에 랜덤으로 보입니다. 좋은글 게시판에는 모두
-                남습니다.
-              </em>
+              {t('compose.featureHome')}
+              <em className="dashboard-feature-hint">{t('compose.featureHint')}</em>
             </span>
           </label>
         ) : null}
 
         {isHousing ? (
           <>
-            <label htmlFor="housingType">매물 유형</label>
+            <label htmlFor="housingType">{t('compose.housingType')}</label>
             <select id="housingType" value={housingType} onChange={(e) => setHousingType(e.target.value)}>
-              {HOUSING_TYPES.map((t) => (
-                <option key={t.slug} value={t.slug}>
-                  {t.nameKo}
+              {HOUSING_TYPES.map((typeItem) => (
+                <option key={typeItem.slug} value={typeItem.slug}>
+                  {tagLabel(typeItem, locale)}
                 </option>
               ))}
             </select>
             <div className="housing-form-grid">
               <div>
-                <label htmlFor="rentPriceText">월세/가격</label>
+                <label htmlFor="rentPriceText">{t('compose.rentPrice')}</label>
                 <input
                   id="rentPriceText"
                   value={rentPriceText}
@@ -491,7 +499,7 @@ export default function NewPostPage() {
                 />
               </div>
               <div>
-                <label htmlFor="depositText">보증금/디파짓</label>
+                <label htmlFor="depositText">{t('compose.deposit')}</label>
                 <input
                   id="depositText"
                   value={depositText}
@@ -499,33 +507,33 @@ export default function NewPostPage() {
                 />
               </div>
               <div>
-                <label htmlFor="beds">침실</label>
+                <label htmlFor="beds">{t('compose.beds')}</label>
                 <input id="beds" value={beds} onChange={(e) => setBeds(e.target.value)} />
               </div>
               <div>
-                <label htmlFor="baths">욕실</label>
+                <label htmlFor="baths">{t('compose.baths')}</label>
                 <input id="baths" value={baths} onChange={(e) => setBaths(e.target.value)} />
               </div>
             </div>
-            <label htmlFor="addressText">주소/위치</label>
+            <label htmlFor="addressText">{t('compose.address')}</label>
             <input
               id="addressText"
               value={addressText}
               onChange={(e) => setAddressText(e.target.value)}
             />
-            <label htmlFor="availableText">입주 가능일</label>
+            <label htmlFor="availableText">{t('compose.available')}</label>
             <input
               id="availableText"
               value={availableText}
               onChange={(e) => setAvailableText(e.target.value)}
             />
-            <label htmlFor="contactText">연락처</label>
+            <label htmlFor="contactText">{t('compose.contact')}</label>
             <input
               id="contactText"
               value={contactText}
               onChange={(e) => setContactText(e.target.value)}
             />
-            <label>매물 사진</label>
+            <label>{t('compose.housingPhotos')}</label>
             <HousingPhotosField
               value={housingPhotos}
               onChange={setHousingPhotos}
@@ -536,19 +544,19 @@ export default function NewPostPage() {
 
         {isMarket ? (
           <>
-            <label htmlFor="marketPriceText">가격</label>
+            <label htmlFor="marketPriceText">{t('compose.price')}</label>
             <input
               id="marketPriceText"
               value={marketPriceText}
               onChange={(e) => setMarketPriceText(e.target.value)}
             />
-            <label htmlFor="marketContactText">연락처</label>
+            <label htmlFor="marketContactText">{t('compose.contact')}</label>
             <input
               id="marketContactText"
               value={contactText}
               onChange={(e) => setContactText(e.target.value)}
             />
-            <label>상품 사진</label>
+            <label>{t('compose.itemPhotos')}</label>
             <HousingPhotosField
               value={marketPhotos}
               onChange={setMarketPhotos}
@@ -558,7 +566,13 @@ export default function NewPostPage() {
         ) : null}
 
         <label htmlFor="title">
-          {isHousing ? '매물 제목' : isMarket ? '상품 제목' : isClasses ? '수업 · 교육 제목' : '제목'}
+          {isHousing
+            ? t('compose.listingTitle')
+            : isMarket
+              ? t('compose.itemTitle')
+              : isClasses
+                ? t('compose.classTitle')
+                : t('compose.title')}
         </label>
         <input
           id="title"
@@ -566,7 +580,7 @@ export default function NewPostPage() {
           onChange={(e) => setTitle(e.target.value)}
           required
         />
-        <label htmlFor="city">지역</label>
+        <label htmlFor="city">{t('compose.city')}</label>
         <select id="city" value={city} onChange={(e) => setCity(e.target.value)} required>
           {cityOptions.map((c) => (
             <option key={c} value={c}>
@@ -574,19 +588,17 @@ export default function NewPostPage() {
             </option>
           ))}
         </select>
-        {isGuide ? (
-          <p className="hint-text">정착 가이드 지도와 동일한 도시명만 선택할 수 있습니다.</p>
-        ) : null}
+        {isGuide ? <p className="hint-text">{t('compose.guideCityHint')}</p> : null}
 
         {isClasses ? (
           <>
-            <label htmlFor="classesAddressText">수업 장소</label>
+            <label htmlFor="classesAddressText">{t('compose.classVenue')}</label>
             <input
               id="classesAddressText"
               value={addressText}
               onChange={(e) => setAddressText(e.target.value)}
             />
-            <label htmlFor="classesContactText">연락처</label>
+            <label htmlFor="classesContactText">{t('compose.contact')}</label>
             <input
               id="classesContactText"
               value={contactText}
@@ -596,7 +608,7 @@ export default function NewPostPage() {
         ) : null}
 
         <label htmlFor={isMarket || isHousing ? undefined : 'body'}>
-          {isHousing || isMarket ? '상세 설명' : '내용'}
+          {isHousing || isMarket ? t('compose.detail') : t('compose.body')}
         </label>
         {isMarket || isHousing ? (
           <MarketBodyEditor
@@ -604,12 +616,14 @@ export default function NewPostPage() {
             onChange={setBody}
             disabled={saving}
             showUploadButton
-            ariaLabel={isHousing ? '부동산 상세 설명' : isMarket ? '중고장터 상세 설명' : '본문'}
-            helpText={
-              isHousing || isMarket
-                ? '위에 올린 사진은 갤러리로 보입니다. 본문에도 추가 사진을 넣을 수 있습니다.'
-                : undefined
+            ariaLabel={
+              isHousing
+                ? t('compose.housingBodyAria')
+                : isMarket
+                  ? t('compose.marketBodyAria')
+                  : t('compose.body')
             }
+            helpText={isHousing || isMarket ? t('compose.bodyHelp') : undefined}
           />
         ) : (
           <textarea id="body" value={body} onChange={(e) => setBody(e.target.value)} required />
@@ -621,7 +635,7 @@ export default function NewPostPage() {
           type="submit"
           disabled={saving || (needsSubcategory && !subcategory)}
         >
-          {saving ? '등록 중…' : '등록'}
+          {saving ? t('compose.submitting') : t('common.submit')}
         </button>
       </form>
     </div>

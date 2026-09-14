@@ -2,8 +2,10 @@
 
 import { useEffect, useId, useRef, useState } from 'react';
 import { paymentLinkHostname } from '../lib/paymentLink';
+import { useLocale } from './LocaleProvider';
 
 export default function ShopPaymentLinkButton({ paymentLink }) {
+  const { t } = useLocale();
   const [open, setOpen] = useState(false);
   const titleId = useId();
   const continueRef = useRef(null);
@@ -42,10 +44,10 @@ export default function ShopPaymentLinkButton({ paymentLink }) {
         className="btn shop-pay-btn"
         onClick={() => setOpen(true)}
       >
-        💳 온라인으로 결제하기
+        {t('shop.pay.button')}
       </button>
       <p className="shop-pay-disclaimer">
-        ⚠ 외부 결제 서비스로 연결되며, TTKC는 결제에 관여하지 않습니다.
+        {t('shop.pay.disclaimer')}
       </p>
 
       {open ? (
@@ -62,12 +64,12 @@ export default function ShopPaymentLinkButton({ paymentLink }) {
             onClick={(e) => e.stopPropagation()}
           >
             <h2 id={titleId} className="shop-pay-modal-title">
-              TTKC를 벗어납니다
+              {t('shop.pay.leaving')}
             </h2>
             <p className="shop-pay-modal-body">
-              판매자가 연결한 외부 결제 페이지
-              {hostname ? `(${hostname})` : ''}로 이동합니다. 결제는 해당 서비스에서
-              처리되며, TTKC는 이 거래에 관여하지 않습니다.
+              {hostname
+                ? t('shop.pay.modalBodyHost', { host: hostname })
+                : t('shop.pay.modalBody')}
             </p>
             <div className="shop-pay-modal-actions">
               <button
@@ -75,7 +77,7 @@ export default function ShopPaymentLinkButton({ paymentLink }) {
                 className="btn btn-outline"
                 onClick={() => setOpen(false)}
               >
-                취소
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
@@ -83,7 +85,7 @@ export default function ShopPaymentLinkButton({ paymentLink }) {
                 ref={continueRef}
                 onClick={handleContinue}
               >
-                계속하기
+                {t('common.continue')}
               </button>
             </div>
           </div>

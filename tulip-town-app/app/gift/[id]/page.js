@@ -3,10 +3,14 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import GiftShopNav from '../../../components/GiftShopNav';
+import AutoTranslatedText from '../../../components/AutoTranslatedText';
+import { useLocale } from '../../../components/LocaleProvider';
 import { discountPercent, formatUsd, getGiftProduct, GIFT_SHOP } from '../../../lib/giftShop';
 import { supabase } from '../../../lib/supabaseClient';
 
 export default function GiftProductPage({ params }) {
+  const { t, locale } = useLocale();
+  const shopName = locale === 'en' ? GIFT_SHOP.nameEn : GIFT_SHOP.nameKo;
   const staticProduct = getGiftProduct(params.id);
   const [product, setProduct] = useState(staticProduct);
   const [loading, setLoading] = useState(!staticProduct);
@@ -23,7 +27,7 @@ export default function GiftProductPage({ params }) {
         const data = await res.json();
         const found = (data.products || []).find((p) => p.id === params.id);
         if (!cancelled) {
-          if (!found) setError('상품을 찾을 수 없습니다.');
+          if (!found) setError(t('gift.notFound'));
           else setProduct(found);
         }
       } catch (err) {
@@ -35,7 +39,7 @@ export default function GiftProductPage({ params }) {
     return () => {
       cancelled = true;
     };
-  }, [params.id, staticProduct]);
+  }, [params.id, staticProduct, t]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -45,7 +49,7 @@ export default function GiftProductPage({ params }) {
 
   async function buy() {
     if (!product?.source || product.source !== 'marketplace') {
-      setError('이 상품은 곧 결제 연결됩니다.');
+      setError(t('gift.paySoon'));
       return;
     }
     setBusy(true);
@@ -62,7 +66,7 @@ export default function GiftProductPage({ params }) {
         body: JSON.stringify({ product_id: product.id, email }),
       });
       const payload = await res.json();
-      if (!res.ok) throw new Error(payload.error || '결제 시작 실패');
+      if (!res.ok) throw new Error(payload.error || t('gift.payFail'));
       window.location.href = payload.url;
     } catch (err) {
       setError(err.message);
@@ -73,7 +77,7 @@ export default function GiftProductPage({ params }) {
   if (loading) {
     return (
       <div className="container">
-        <div className="card empty-state">로딩 중…</div>
+        <div className="card empty-state">{t('gift.loading')}</div>
       </div>
     );
   }
@@ -81,9 +85,9 @@ export default function GiftProductPage({ params }) {
   if (!product) {
     return (
       <div className="container">
-        <div className="card empty-state">{error || '상품 없음'}</div>
+        <div className="card empty-state">{error || t('gift.none')}</div>
         <Link href="/gift" className="btn btn-outline">
-          {GIFT_SHOP.nameKo}로
+          {t('gift.backHome', { name: shopName })}
         </Link>
       </div>
     );
@@ -91,6 +95,14 @@ export default function GiftProductPage({ params }) {
 
   const pct = discountPercent(product);
   const isMarket = product.source === 'marketplace';
+  const displayName =
+    locale === 'en' && (product.nameEn || product.name_en)
+      ? product.nameEn || product.name_en
+      : product.nameKo || product.name_ko;
+  const altName =
+    locale === 'en'
+      ? product.nameKo || product.name_ko
+      : product.nameEn || product.name_en;
 
   return (
     <div className="gift-page">
@@ -100,13 +112,19 @@ export default function GiftProductPage({ params }) {
         <div className="gift-detail-grid">
           <div className="gift-detail-media">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={product.image} alt={product.nameKo} />
+            <img src={product.image} alt={displayName || ''} />
           </div>
           <div className="gift-detail-info">
-            <p className="gift-detail-vendor">{product.vendor}</p>
-            <h1 className="gift-detail-title">{product.nameKo}</h1>
-            {product.nameEn ? <p className="gift-detail-en">{product.nameEn}</p> : null}
-            <p className="gift-detail-blurb">{product.blurb}</p>
+            <p className="gift-detail-vendor">
+              <AutoTranslatedText text={product.vendor || t('gift.vendorFallback')} />
+            </p>
+            <h1 className="gift-detail-title">{displayName}</h1>
+            {altName && altName !== displayName ? (
+              <p className="gift-detail-en">{altName}</p>
+            ) : null}
+            <p className="gift-detail-blurb">
+              <AutoTranslatedText text={product.blurb} />
+            </p>
             <div className="gift-detail-price">
               {pct ? <span className="gift-card-pct">{pct}%</span> : null}
               <span className="gift-detail-now">{formatUsd(product.priceUsd)}</span>
@@ -115,14 +133,16 @@ export default function GiftProductPage({ params }) {
               ) : null}
             </div>
             <div className="gift-detail-flags">
-              {product.giftOnly ? <span className="gift-flag">선물하기 가능</span> : null}
-              {product.onlineOnly ? <span className="gift-flag">온라인 전용</span> : null}
-              {isMarket ? <span className="gift-flag">입점 판매자 · 수수료 2%</span> : null}
+              {product.giftOnly ? <span className="gift-flag">{t('gift.giftIt')}</span> : null}
+              {product.onlineOnly ? <span className="gift-flag">{t('gift.onlineOnly')}</span> : null}
+              {isMarket ? (
+                <span className="gift-flag">{t('gift.vendorFallback')} · 2%</span>
+              ) : null}
             </div>
 
             {isMarket ? (
               <div className="gift-buy-box">
-                <label htmlFor="buyer_email">받는/구매 이메일</label>
+                <label htmlFor="buyer_email">{t('gift.buyerEmail')}</label>
                 <input
                   id="buyer_email"
                   type="email"
@@ -131,25 +151,23 @@ export default function GiftProductPage({ params }) {
                   required
                 />
                 <button type="button" className="btn" onClick={buy} disabled={busy || !email}>
-                  {busy ? '결제 준비 중…' : '구매하기'}
+                  {busy ? t('common.loading') : t('gift.buyNow')}
                 </button>
               </div>
             ) : (
               <div className="gift-detail-actions">
                 <button type="button" className="btn" disabled>
-                  선물하기 (공식 상품 · 준비 중)
+                  {t('gift.giftIt')}
                 </button>
                 <Link href="/gift" className="btn btn-outline">
-                  목록으로
+                  {t('shop.backToList')}
                 </Link>
               </div>
             )}
 
             {error ? <p className="error-text">{error}</p> : null}
             <p className="gift-detail-note">
-              {isMarket
-                ? '결제 시 Stripe Connect로 판매자에게 98%, 튤립가게에 2%가 자동 분배됩니다.'
-                : '공식 큐레이션 상품입니다. 입점 판매 상품은 바로 결제할 수 있어요.'}
+              {isMarket ? t('gift.paySplit') : t('gift.curatedNote')}
             </p>
           </div>
         </div>

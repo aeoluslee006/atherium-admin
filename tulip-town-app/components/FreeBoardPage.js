@@ -6,10 +6,10 @@ import { createServerT, getServerLocale } from '../lib/i18n/server';
 import { getSampleFreeClubPost, SAMPLE_FREE_CLUB_POST_ID } from '../lib/sampleFreeClubPost';
 import { supabaseRest } from '../lib/supabaseRest';
 
-function formatDate(value) {
+function formatDate(value, locale) {
   if (!value) return '';
   try {
-    return new Date(value).toLocaleDateString('ko-KR');
+    return new Date(value).toLocaleDateString(locale === 'en' ? 'en-US' : 'ko-KR');
   } catch {
     return '';
   }
@@ -66,16 +66,12 @@ export default async function FreeBoardPage({ searchParams = {} }) {
   return (
     <div className="container">
       <header className="free-board-head board-heading">
-        <h2 className="section-title">
-          {locale === 'en' ? 'Free Board' : '자유게시판'}
-        </h2>
-        <p className="board-heading-desc">
-          {locale === 'en' ? 'Talk freely with neighbors' : '자유롭게 이야기해요'}
-        </p>
+        <h2 className="section-title">{t('board.free.title')}</h2>
+        <p className="board-heading-desc">{t('board.free.desc')}</p>
       </header>
 
       <div className="board-toolbar">
-        <div className="tag-chips" role="list" aria-label={locale === 'en' ? 'Category filter' : '카테고리 필터'}>
+        <div className="tag-chips" role="list" aria-label={t('board.filterAria')}>
           <Link
             href={buildHref('all')}
             role="listitem"
@@ -88,7 +84,7 @@ export default async function FreeBoardPage({ searchParams = {} }) {
             role="listitem"
             className={`free-board-chip${tag === 'featured' ? ' is-active' : ''}`}
           >
-            {locale === 'en' ? 'Featured' : '좋은글'}
+            {t('board.featured')}
           </Link>
           {FREE_BOARD_TAGS.map((tagItem) => (
             <Link
@@ -117,20 +113,16 @@ export default async function FreeBoardPage({ searchParams = {} }) {
                     {label ? <span className="subcat-badge">{label}</span> : null}
                     <LocalizedPostTitle post={post} className="free-board-row-title" />
                   </span>
-                  <span className="post-meta">{formatDate(post.created_at)}</span>
+                  <span className="post-meta">{formatDate(post.created_at, locale)}</span>
                 </Link>
               );
             })
           ) : (
             <div className="empty-state">
               {isFeaturedFilter
-                ? locale === 'en'
-                  ? 'No featured posts yet. Choose Featured when writing.'
-                  : '아직 좋은글이 없습니다. 글쓰기에서 「좋은글」을 선택해 등록해 보세요.'
+                ? t('board.free.emptyFeatured')
                 : tag !== 'all'
-                  ? locale === 'en'
-                    ? 'No posts with this tag yet.'
-                    : '이 태그로 등록된 글이 아직 없습니다.'
+                  ? t('board.free.emptyTag')
                   : t('board.empty')}
             </div>
           )}

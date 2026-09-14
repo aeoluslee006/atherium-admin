@@ -1,11 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useLocale } from './LocaleProvider';
 
 /**
  * Housing detail photo gallery — main image + thumbnail strip.
  */
-export default function HousingPhotoGallery({ images = [], title = '매물 사진' }) {
+export default function HousingPhotoGallery({ images = [], title }) {
+  const { t } = useLocale();
+  const displayTitle = title || t('photo.housingDefault');
   const list = Array.isArray(images) ? images.filter(Boolean) : [];
   const [index, setIndex] = useState(0);
 
@@ -40,14 +43,14 @@ export default function HousingPhotoGallery({ images = [], title = '매물 사�
     <div className="housing-gallery">
       <div className="housing-gallery-main">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={current} alt={`${title} ${safeIndex + 1}`} />
+        <img src={current} alt={`${displayTitle} ${safeIndex + 1}`} />
         {list.length > 1 ? (
           <>
             <button
               type="button"
               className="housing-gallery-nav housing-gallery-nav--prev"
               onClick={() => go(-1)}
-              aria-label="이전 사진"
+              aria-label={t('photo.prev')}
             >
               ‹
             </button>
@@ -55,7 +58,7 @@ export default function HousingPhotoGallery({ images = [], title = '매물 사�
               type="button"
               className="housing-gallery-nav housing-gallery-nav--next"
               onClick={() => go(1)}
-              aria-label="다음 사진"
+              aria-label={t('photo.next')}
             >
               ›
             </button>
@@ -75,7 +78,7 @@ export default function HousingPhotoGallery({ images = [], title = '매물 사�
               role="listitem"
               className={`housing-gallery-thumb${i === safeIndex ? ' is-active' : ''}`}
               onClick={() => setIndex(i)}
-              aria-label={`사진 ${i + 1}`}
+              aria-label={t('photo.n', { n: i + 1 })}
               aria-current={i === safeIndex ? 'true' : undefined}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}

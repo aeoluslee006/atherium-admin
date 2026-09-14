@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useLocale } from '../../components/LocaleProvider';
 import { supabase } from '../../lib/supabaseClient';
 
 function normalizeUsername(value) {
@@ -28,14 +29,22 @@ async function upsertProfile(userId, profile) {
 }
 
 export default function SignupPage() {
+  const { t } = useLocale();
   return (
-    <Suspense fallback={<div className="container"><div className="card empty-state">로딩 중…</div></div>}>
+    <Suspense
+      fallback={
+        <div className="container">
+          <div className="card empty-state">{t('common.loading')}</div>
+        </div>
+      }
+    >
       <SignupPageContent />
     </Suspense>
   );
 }
 
 function SignupPageContent() {
+  const { t } = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [step, setStep] = useState('form');
@@ -57,11 +66,11 @@ function SignupPageContent() {
   useEffect(() => {
     const linkError = searchParams.get('error');
     if (linkError === 'link_expired') {
-      setError('인증 링크가 만료되었거나 이미 사용되었습니다. 아래에서 인증 코드를 다시 받아 주세요.');
+      setError(t('auth.linkExpired'));
     } else if (linkError === 'invalid_link') {
-      setError('유효하지 않은 인증 링크입니다. 인증 코드로 다시 시도해 주세요.');
+      setError(t('auth.invalidLink'));
     }
-  }, [searchParams]);
+  }, [searchParams, t]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -76,19 +85,19 @@ function SignupPageContent() {
 
     try {
       if (!first || !last) {
-        setError('First name과 Last name을 모두 입력해 주세요.');
+        setError(t('auth.needNames'));
         return;
       }
       if (!phoneValue) {
-        setError('전화번호를 입력해 주세요.');
+        setError(t('auth.needPhone'));
         return;
       }
       if (!/^[a-z0-9._-]{3,20}$/.test(publicId)) {
-        setError('아이디는 영문 소문자/숫자/._- 3~20자로 입력해 주세요.');
+        setError(t('auth.usernameInvalid'));
         return;
       }
       if (password !== passwordConfirm) {
-        setError('비밀번호 확인이 일치하지 않습니다.');
+        setError(t('auth.passwordMismatch'));
         return;
       }
 
@@ -97,7 +106,7 @@ function SignupPageContent() {
         supabase.from('profiles').select('id').eq('display_name', publicId).maybeSingle(),
       ]);
       if (takenByUsername?.id || takenByDisplay?.id) {
-        setError('이미 사용 중인 아이디입니다.');
+        setError(t('auth.usernameTaken'));
         return;
       }
 
@@ -143,9 +152,9 @@ function SignupPageContent() {
       setPendingProfile(profilePayload);
       setOtp('');
       setStep('verify');
-      setMessage(`${email}(으)로 인증 코드(6자리)를 보냈습니다. 아래에 입력해 주세요.`);
+      setMessage(t('auth.otpSent', { email }));
     } catch (err) {
-      setError(err.message || '회원가입에 실패했습니다.');
+      setError(err.message || t('auth.signupFailed'));
     } finally {
       setSaving(false);
     }
@@ -159,7 +168,7 @@ function SignupPageContent() {
 
     const code = otp.replace(/\D/g, '');
     if (code.length !== 6) {
-      setError('6자리 인증 코드를 입력해 주세요.');
+      setError(t('auth.otpInvalid'));
       setSaving(false);
       return;
     }
@@ -180,7 +189,7 @@ function SignupPageContent() {
       router.push('/');
       router.refresh();
     } catch (err) {
-      setError(err.message || '인증 코드가 올바르지 않거나 만료되었습니다.');
+      setError(err.message || t('auth.otpWrong'));
     } finally {
       setSaving(false);
     }
@@ -196,9 +205,9 @@ function SignupPageContent() {
         email,
       });
       if (resendError) throw resendError;
-      setMessage(`${email}(으)로 인증 코드를 다시 보냈습니다.`);
+      setMessage(t('auth.otpResent', { email }));
     } catch (err) {
-      setError(err.message || '인증 코드 재전송에 실패했습니다.');
+      setError(err.message || t('auth.otpResendFailed'));
     } finally {
       setResending(false);
     }
@@ -214,11 +223,11 @@ function SignupPageContent() {
   if (step === 'verify') {
     return (
       <div className="container">
-        <h2 className="section-title">이메일 인증 · Verify email</h2>
+        <h2 className="section-title">{t('auth.verifyTitle')}</h2>
         <form className="card form-card" onSubmit={handleVerifyOtp}>
-          <p className="hint-text">{message || `${email}(으)로 인증 코드(6자리)를 보냈습니다.`}</p>
+          <p className="hint-text">{message || t('auth.otpSentShort', { email })}</p>
 
-          <label htmlFor="otp">인증 코드</label>
+          <label htmlFor="otp">{t('auth.otpLabel')}</label>
           <input
             id="otp"
             inputMode="numeric"
@@ -232,7 +241,7 @@ function SignupPageContent() {
 
           {error ? <div className="error-text">{error}</div> : null}
           <button className="btn" type="submit" disabled={saving}>
-            {saving ? '확인 중…' : '인증 완료'}
+            {saving ? t('auth.verifying') : t('auth.verifyDone')}
           </button>
           <button
             className="btn btn-outline"
@@ -240,10 +249,10 @@ function SignupPageContent() {
             onClick={handleResendCode}
             disabled={resending}
           >
-            {resending ? '재전송 중…' : '코드 다시 받기'}
+            {resending ? t('auth.resending') : t('auth.resendCode')}
           </button>
           <button className="btn btn-outline" type="button" onClick={handleBackToForm}>
-            ← 회원가입으로 돌아가기
+            {t('auth.backToSignup')}
           </button>
         </form>
       </div>
@@ -252,11 +261,11 @@ function SignupPageContent() {
 
   return (
     <div className="container">
-      <h2 className="section-title">회원가입 · Sign up</h2>
+      <h2 className="section-title">{t('auth.signupTitle')}</h2>
       <form className="card form-card" onSubmit={handleSubmit}>
         <div className="form-row-2">
           <div>
-            <label htmlFor="firstName">First name · 이름</label>
+            <label htmlFor="firstName">{t('auth.firstName')}</label>
             <input
               id="firstName"
               value={firstName}
@@ -266,7 +275,7 @@ function SignupPageContent() {
             />
           </div>
           <div>
-            <label htmlFor="lastName">Last name · 성</label>
+            <label htmlFor="lastName">{t('auth.lastName')}</label>
             <input
               id="lastName"
               value={lastName}
@@ -277,7 +286,7 @@ function SignupPageContent() {
           </div>
         </div>
 
-        <label htmlFor="phone">전화번호</label>
+        <label htmlFor="phone">{t('auth.phone')}</label>
         <input
           id="phone"
           type="tel"
@@ -288,7 +297,7 @@ function SignupPageContent() {
           required
         />
 
-        <label htmlFor="email">이메일</label>
+        <label htmlFor="email">{t('auth.email')}</label>
         <input
           id="email"
           type="email"
@@ -298,7 +307,7 @@ function SignupPageContent() {
           required
         />
 
-        <label htmlFor="username">아이디</label>
+        <label htmlFor="username">{t('auth.username')}</label>
         <input
           id="username"
           value={username}
@@ -309,9 +318,9 @@ function SignupPageContent() {
           maxLength={20}
           required
         />
-        <p className="field-help">글을 올릴 때 이 아이디가 공개됩니다. (로그인 이메일이 아닙니다)</p>
+        <p className="field-help">{t('auth.usernameHelp')}</p>
 
-        <label htmlFor="password">비밀번호</label>
+        <label htmlFor="password">{t('auth.password')}</label>
         <input
           id="password"
           type="password"
@@ -322,7 +331,7 @@ function SignupPageContent() {
           required
         />
 
-        <label htmlFor="passwordConfirm">비밀번호 확인</label>
+        <label htmlFor="passwordConfirm">{t('auth.passwordConfirm')}</label>
         <input
           id="passwordConfirm"
           type="password"
@@ -336,10 +345,10 @@ function SignupPageContent() {
         {error ? <div className="error-text">{error}</div> : null}
         {message ? <div className="hint-text">{message}</div> : null}
         <button className="btn" type="submit" disabled={saving}>
-          {saving ? '가입 중…' : '회원가입'}
+          {saving ? t('auth.signingUp') : t('auth.signup')}
         </button>
         <p className="hint-text" style={{ marginTop: 14 }}>
-          이미 계정이 있나요? <Link href="/login">로그인</Link>
+          {t('auth.hasAccount')} <Link href="/login">{t('auth.login')}</Link>
         </p>
       </form>
     </div>

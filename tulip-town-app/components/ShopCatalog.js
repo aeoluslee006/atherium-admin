@@ -13,11 +13,12 @@ import {
   isPopularShopProduct,
   presentShopCategories,
   productImageList,
-  shopCategoryLabel,
   shopShippingLabel,
 } from '../lib/shopCatalog';
+import AutoTranslatedText from './AutoTranslatedText';
 import ProductFavoriteButton from './ProductFavoriteButton';
 import ShopPromoGrid from './ShopPromoGrid';
+import { useLocale } from './LocaleProvider';
 
 function placeholderImage(seed) {
   return `https://images.unsplash.com/photo-1513885535751-8b9238bd345a?auto=format&fit=crop&w=800&q=80&sig=${encodeURIComponent(seed || 'shop')}`;
@@ -114,22 +115,14 @@ const CATEGORY_ICONS = {
   ),
 };
 
-const SHORT_CATEGORY_LABELS = {
-  food: '식품',
-  fashion: '패션',
-  home: '생활',
-  beauty: '뷰티',
-  kids: '키즈',
-  other: '기타',
-};
-
-
 function ProductCard({
   item,
   showSellerLink,
   favSet,
   setFavSet,
   compact = false,
+  t,
+  shippingLabel,
 }) {
   const seller = item.sponsor || item.sponsors;
   const thumb = productImageList(item)[0] || placeholderImage(item.id);
@@ -145,11 +138,11 @@ function ProductCard({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={thumb} alt="" loading="lazy" />
           </div>
-          {isSold ? <span className="shop-card-sold-badge">판매완료</span> : null}
+          {isSold ? <span className="shop-card-sold-badge">{t('shop.sold')}</span> : null}
           {!isSold && (isNew || isPopular) ? (
             <div className="shop-card-badges" aria-hidden="true">
               {isNew ? <span className="shop-card-badge shop-card-badge--new">NEW</span> : null}
-              {isPopular ? <span className="shop-card-badge shop-card-badge--hot">인기</span> : null}
+              {isPopular ? <span className="shop-card-badge shop-card-badge--hot">{t('shop.popular')}</span> : null}
             </div>
           ) : null}
         </Link>
@@ -170,20 +163,28 @@ function ProductCard({
       <div className="shop-card-body">
         <div className="shop-card-price">{formatPriceCents(item.price_cents)}</div>
         <Link href={`/shop/${item.id}`} className="shop-card-title">
-          {item.title}
+          <AutoTranslatedText text={item.title} />
         </Link>
         {!compact ? (
           <div className="shop-card-meta shop-card-meta--row">
             {showSellerLink && seller?.id && seller?.business_name ? (
               <Link href={`/shop/seller/${seller.id}`} className="shop-card-seller">
-                {seller.business_name}
+                <AutoTranslatedText text={seller.business_name} />
               </Link>
             ) : (
-              <span>{seller?.business_name || (showSellerLink ? '판매자' : '')}</span>
+              <span>
+                {seller?.business_name ? (
+                  <AutoTranslatedText text={seller.business_name} />
+                ) : showSellerLink ? (
+                  t('shop.seller')
+                ) : (
+                  ''
+                )}
+              </span>
             )}
             {seller?.city || item.shipping_scope ? (
               <span className="shop-card-shipping">
-                {[seller?.city, shopShippingLabel(item.shipping_scope)]
+                {[seller?.city, shippingLabel(item.shipping_scope)]
                   .filter(Boolean)
                   .join(' · ')}
               </span>
@@ -197,12 +198,18 @@ function ProductCard({
 
 export default function ShopCatalog({
   items = [],
-  sectionTitle = '상품',
+  sectionTitle,
   showSellerLink = true,
   showToolbar = true,
   showBrandHeader = false,
   favoriteIds = [],
 }) {
+  const { t } = useLocale();
+  const resolvedSectionTitle = sectionTitle || t('shop.products');
+  const categoryLabelOf = (id) => t(`shop.cat.${id}`);
+  const sortLabelOf = (id) => t(`shop.sort.${id}`);
+  const shipLabelOf = (id) => (id === 'local' || id === 'nationwide' ? t(`shop.ship.${id}`) : shopShippingLabel(id));
+  const cityLabelOf = (id) => (id === 'all' ? t('shop.city.all') : id);
   const [category, setCategory] = useState('all');
   const [sort, setSort] = useState('newest');
   const [q, setQ] = useState('');
@@ -242,23 +249,28 @@ export default function ShopCatalog({
   const showCategoryStrip = liveCategories.length >= 3;
   const categoryShortcuts = useMemo(() => {
     if (!showCategoryStrip) return [];
+    const shortKey = (id) => {
+      const key = `shop.catShort.${id}`;
+      const value = t(key);
+      return value === key ? categoryLabelOf(id) : value;
+    };
     return [
-      { id: 'all', label: '전체', category: 'all' },
-      { id: 'new', label: '신상', category: 'all', emphasize: true },
+      { id: 'all', label: t('shop.cat.all'), category: 'all' },
+      { id: 'new', label: t('shop.newArrivals'), category: 'all', emphasize: true },
       ...liveCategories.map((c) => ({
         id: c.id,
-        label: SHORT_CATEGORY_LABELS[c.id] || c.label,
+        label: shortKey(c.id),
         category: c.id,
       })),
     ];
-  }, [liveCategories, showCategoryStrip]);
+  }, [liveCategories, showCategoryStrip, t]);
 
   const showNewestRail = browsingHome && newestItems.length >= 3 && items.length >= 4;
 
   const extraFilterCount = (shipping !== 'all' ? 1 : 0) + (city !== 'all' ? 1 : 0);
   const categoryActive = category !== 'all';
   const categoryLabel =
-    SHOP_CATEGORIES.find((c) => c.id === category)?.label || '카테고리';
+    category === 'all' ? t('shop.cat.all') : (SHOP_CATEGORIES.find((c) => c.id === category) ? categoryLabelOf(category) : t('shop.category'));
 
   useEffect(() => {
     if (!filterOpen && !categoryOpen && !sortOpen && !searchOpen) return undefined;
@@ -294,8 +306,8 @@ export default function ShopCatalog({
 
   useEffect(() => {
     if (!searchOpen) return undefined;
-    const t = window.setTimeout(() => searchInputRef.current?.focus(), 0);
-    return () => window.clearTimeout(t);
+    const timerId = window.setTimeout(() => searchInputRef.current?.focus(), 0);
+    return () => window.clearTimeout(timerId);
   }, [searchOpen]);
 
   function scrollToProducts() {
@@ -327,13 +339,13 @@ export default function ShopCatalog({
         <div className="shop-topbar">
           <div className="shop-brand-row">
             {showBrandHeader ? (
-              <div className="shop-brand-inline" aria-label="튤립가게">
+              <div className="shop-brand-inline" aria-label={t('shop.home')}>
                 <p className="shop-kicker">Tulip Town Marketplace</p>
-                <h1 className="shop-brand">튤립가게</h1>
+                <h1 className="shop-brand">{t('shop.home')}</h1>
               </div>
             ) : (
               <div className="shop-section-head shop-section-head--inline">
-                <h2 className="shop-section-title">{sectionTitle}</h2>
+                <h2 className="shop-section-title">{resolvedSectionTitle}</h2>
               </div>
             )}
 
@@ -344,8 +356,8 @@ export default function ShopCatalog({
                   className={`shop-icon-trigger${searchOpen || q ? ' is-active' : ''}`}
                   aria-expanded={searchOpen}
                   aria-haspopup="dialog"
-                  aria-label="검색"
-                  title="검색"
+                  aria-label={t('shop.search')}
+                  title={t('shop.search')}
                   onClick={() => {
                     setSearchOpen((open) => !open);
                     setCategoryOpen(false);
@@ -365,17 +377,17 @@ export default function ShopCatalog({
                   <div
                     className="shop-filter-popover shop-search-popover"
                     role="dialog"
-                    aria-label="상품 검색"
+                    aria-label={t('shop.searchProducts')}
                   >
                     <label className="shop-toolbar-field">
-                      <span className="shop-toolbar-label">검색</span>
+                      <span className="shop-toolbar-label">{t('shop.search')}</span>
                       <input
                         ref={searchInputRef}
                         type="search"
                         value={q}
                         onChange={(e) => setQ(e.target.value)}
-                        placeholder="상품명 · 판매자"
-                        aria-label="상품 검색"
+                        placeholder={t('shop.searchPlaceholder')}
+                        aria-label={t('shop.searchProducts')}
                       />
                     </label>
                     {q ? (
@@ -384,7 +396,7 @@ export default function ShopCatalog({
                         className="shop-filter-clear"
                         onClick={() => setQ('')}
                       >
-                        지우기
+                        {t('common.clear')}
                       </button>
                     ) : null}
                   </div>
@@ -397,7 +409,7 @@ export default function ShopCatalog({
                   className={`shop-icon-trigger${categoryActive ? ' is-active' : ''}`}
                   aria-expanded={categoryOpen}
                   aria-haspopup="dialog"
-                  aria-label={categoryActive ? `카테고리: ${categoryLabel}` : '카테고리'}
+                  aria-label={categoryActive ? t('shop.categoryOf', { label: categoryLabel }) : t('shop.category')}
                   title={categoryLabel}
                   onClick={() => {
                     setCategoryOpen((open) => !open);
@@ -418,9 +430,9 @@ export default function ShopCatalog({
                   <div
                     className="shop-filter-popover shop-category-popover"
                     role="dialog"
-                    aria-label="카테고리"
+                    aria-label={t('shop.category')}
                   >
-                    <div className="shop-category-options" role="listbox" aria-label="카테고리 선택">
+                    <div className="shop-category-options" role="listbox" aria-label={t('shop.selectCategory')}>
                       {SHOP_CATEGORIES.map((c) => {
                         const selected = category === c.id;
                         return (
@@ -432,7 +444,7 @@ export default function ShopCatalog({
                             className={`shop-category-option${selected ? ' is-selected' : ''}`}
                             onClick={() => selectCategory(c.id)}
                           >
-                            {c.label}
+                            {categoryLabelOf(c.id)}
                           </button>
                         );
                       })}
@@ -447,8 +459,8 @@ export default function ShopCatalog({
                   className={`shop-icon-trigger${sort !== 'newest' ? ' is-active' : ''}`}
                   aria-expanded={sortOpen}
                   aria-haspopup="dialog"
-                  aria-label={`정렬: ${SHOP_SORTS.find((s) => s.id === sort)?.label || '정렬'}`}
-                  title={SHOP_SORTS.find((s) => s.id === sort)?.label || '정렬'}
+                  aria-label={t('shop.sortOf', { label: sortLabelOf(sort) })}
+                  title={sortLabelOf(sort)}
                   onClick={() => {
                     setSortOpen((open) => !open);
                     setCategoryOpen(false);
@@ -464,8 +476,8 @@ export default function ShopCatalog({
                   </svg>
                 </button>
                 {sortOpen ? (
-                  <div className="shop-filter-popover shop-sort-popover" role="dialog" aria-label="정렬">
-                    <div className="shop-category-options" role="listbox" aria-label="정렬 선택">
+                  <div className="shop-filter-popover shop-sort-popover" role="dialog" aria-label={t('shop.sort')}>
+                    <div className="shop-category-options" role="listbox" aria-label={t('shop.selectSort')}>
                       {SHOP_SORTS.map((s) => {
                         const selected = sort === s.id;
                         return (
@@ -480,7 +492,7 @@ export default function ShopCatalog({
                               setSortOpen(false);
                             }}
                           >
-                            {s.label}
+                            {sortLabelOf(s.id)}
                           </button>
                         );
                       })}
@@ -495,8 +507,8 @@ export default function ShopCatalog({
                   className={`shop-icon-trigger${extraFilterCount ? ' is-active' : ''}`}
                   aria-expanded={filterOpen}
                   aria-haspopup="dialog"
-                  aria-label="필터"
-                  title="필터"
+                  aria-label={t('shop.filter')}
+                  title={t('shop.filter')}
                   onClick={() => {
                     setFilterOpen((open) => !open);
                     setCategoryOpen(false);
@@ -515,31 +527,31 @@ export default function ShopCatalog({
                   ) : null}
                 </button>
                 {filterOpen ? (
-                  <div className="shop-filter-popover" role="dialog" aria-label="추가 필터">
+                  <div className="shop-filter-popover" role="dialog" aria-label={t('shop.extraFilters')}>
                     <label className="shop-toolbar-field">
-                      <span className="shop-toolbar-label">배송범위</span>
+                      <span className="shop-toolbar-label">{t('shop.shippingScope')}</span>
                       <select
                         value={shipping}
                         onChange={(e) => setShipping(e.target.value)}
-                        aria-label="배송범위"
+                        aria-label={t('shop.shippingScope')}
                       >
                         {SHOP_SHIPPING_FILTERS.map((s) => (
                           <option key={s.id} value={s.id}>
-                            {s.label}
+                            {s.id === 'all' ? t('shop.ship.all') : t(`shop.ship.${s.id}`)}
                           </option>
                         ))}
                       </select>
                     </label>
                     <label className="shop-toolbar-field">
-                      <span className="shop-toolbar-label">지역</span>
+                      <span className="shop-toolbar-label">{t('shop.region')}</span>
                       <select
                         value={city}
                         onChange={(e) => setCity(e.target.value)}
-                        aria-label="지역"
+                        aria-label={t('shop.region')}
                       >
                         {SHOP_CITY_FILTERS.map((c) => (
                           <option key={c.id} value={c.id}>
-                            {c.label}
+                            {cityLabelOf(c.id)}
                           </option>
                         ))}
                       </select>
@@ -553,7 +565,7 @@ export default function ShopCatalog({
                           setCity('all');
                         }}
                       >
-                        초기화
+                        {t('common.reset')}
                       </button>
                     ) : null}
                   </div>
@@ -561,26 +573,26 @@ export default function ShopCatalog({
               </div>
 
               <p className="shop-toolbar-count" aria-live="polite">
-                상품 {filtered.length}개
+                {t('shop.productCount', { count: filtered.length })}
               </p>
             </div>
           </div>
         </div>
       ) : (
         <div className="shop-section-head">
-          <h2 className="shop-section-title">{sectionTitle}</h2>
-          <p className="shop-section-desc">상품 {filtered.length}개</p>
+          <h2 className="shop-section-title">{resolvedSectionTitle}</h2>
+          <p className="shop-section-desc">{t('shop.productCount', { count: filtered.length })}</p>
         </div>
       )}
 
       {showBrandHeader ? (
         <>
           <p className="shop-trust-line">
-            등록된 판매자의 상품입니다. 판매자에게 직접 연락해 거래하세요.
+            {t('shop.trustLine')}
           </p>
 
           {showCategoryStrip ? (
-            <nav className="shop-cat-rail shop-cat-rail--dense" aria-label="카테고리 바로가기">
+            <nav className="shop-cat-rail shop-cat-rail--dense" aria-label={t('shop.categoryShortcuts')}>
               {categoryShortcuts.map((c) => {
                 const selected = activeShortcut === c.id;
                 return (
@@ -608,9 +620,9 @@ export default function ShopCatalog({
             <section className="shop-rail-section" aria-labelledby="shop-newest-heading">
               <div className="shop-section-head">
                 <h2 id="shop-newest-heading" className="shop-section-title">
-                  새로 들어왔어요
+                  {t('shop.justIn')}
                 </h2>
-                <p className="shop-section-desc">최신 등록</p>
+                <p className="shop-section-desc">{t('shop.latestListed')}</p>
               </div>
               <div className="shop-rail">
                 {newestItems.map((item) => (
@@ -621,6 +633,8 @@ export default function ShopCatalog({
                     favSet={favSet}
                     setFavSet={setFavSet}
                     compact
+                    t={t}
+                    shippingLabel={shipLabelOf}
                   />
                 ))}
               </div>
@@ -633,9 +647,9 @@ export default function ShopCatalog({
         {showBrandHeader ? (
           <div className="shop-section-head">
             <h2 className="shop-section-title">
-              {categoryActive ? categoryLabel : '전체 상품'}
+              {categoryActive ? categoryLabel : t('shop.allProducts')}
             </h2>
-            <p className="shop-section-desc">상품 {filtered.length}개</p>
+            <p className="shop-section-desc">{t('shop.productCount', { count: filtered.length })}</p>
           </div>
         ) : null}
 
@@ -648,21 +662,23 @@ export default function ShopCatalog({
                 showSellerLink={showSellerLink}
                 favSet={favSet}
                 setFavSet={setFavSet}
+                t={t}
+                shippingLabel={shipLabelOf}
               />
             ))}
           </div>
         ) : (
           <div className="card empty-state shop-empty">
             {items.length ? (
-              <p>검색 조건에 맞는 상품이 없습니다.</p>
+              <p>{t('shop.noMatch')}</p>
             ) : (
               <>
-                <p>아직 등록된 상품이 없습니다.</p>
+                <p>{t('shop.noProducts')}</p>
                 {showSellerLink ? (
                   <p className="hint-text" style={{ marginTop: 10 }}>
-                    판매자이신가요?{' '}
+                    {t('shop.sellerCta')}{' '}
                     <Link href="/mypage/shop" className="shop-seller-link">
-                      마이페이지에서 입점하기
+                      {t('shop.joinFromMypage')}
                     </Link>
                   </p>
                 ) : null}

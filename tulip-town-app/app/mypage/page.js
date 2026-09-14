@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import AutoTranslatedText from '../../components/AutoTranslatedText';
 import MemberTierBadge from '../../components/MemberTierBadge';
 import MyPageAccountPanel from '../../components/MyPageAccountPanel';
 import MyPageAdminContact from '../../components/MyPageAdminContact';
@@ -31,13 +32,14 @@ import {
 } from '../../lib/sellerConstants';
 import { productImageList } from '../../lib/shopCatalog';
 import { loadFavoriteProducts } from '../../lib/shopFavorites';
+import { createServerT, getServerLocale } from '../../lib/i18n/server';
 import { createServerSupabase } from '../../lib/supabaseServer';
 
 export const dynamic = 'force-dynamic';
 
-function boardLabel(slug) {
+function boardLabel(slug, t) {
   const cat = CATEGORIES.find((c) => c.slug === slug);
-  return cat?.nameKo || slug || '게시판';
+  return cat?.nameKo || slug || t('home.boardFallback');
 }
 
 function excerpt(text, max = 80) {
@@ -140,7 +142,7 @@ export default async function MyPage() {
       .select('id, display_name, username')
       .in('id', commentAuthorIds);
     for (const a of authors || []) {
-      authorNameById[a.id] = a.display_name || a.username || '회원';
+      authorNameById[a.id] = a.display_name || a.username || 'member';
     }
   }
 
@@ -199,6 +201,23 @@ export default async function MyPage() {
     Boolean(shopSponsor) || hasActiveShopSubscription(subscriptions);
   const favoriteProducts = await loadFavoriteProducts();
   const isIndividualSeller = shopSponsor?.seller_kind === 'individual';
+  const locale = getServerLocale();
+  const t = createServerT(locale);
+  const statusLabel = (status) => {
+    const key = `mypage.status.${status}`;
+    const value = t(key);
+    return value === key ? (STATUS_LABELS[status] || status) : value;
+  };
+  const productLabel = (type) => {
+    const key = `mypage.product.${type}`;
+    const value = t(key);
+    return value === key ? (PRODUCT_LABELS[type] || type) : value;
+  };
+  const sellerStatusLabel = (status) => {
+    const key = `mypage.sellerStatus.${status}`;
+    const value = t(key);
+    return value === key ? (SELLER_STATUS_LABEL[status] || status) : value;
+  };
 
   return (
     <div className="container mypage">
@@ -206,50 +225,50 @@ export default async function MyPage() {
         <div className="mypage-hero-text">
           <p className="mypage-kicker">My Page</p>
           <h1 className="mypage-title">{name}</h1>
-          <p className="mypage-meta">가입일 {formatJoinedDate(safeProfile.created_at)}</p>
+          <p className="mypage-meta">{t('mypage.joined', { date: formatJoinedDate(safeProfile.created_at) })}</p>
         </div>
         <MemberTierBadge tier={tier} />
       </header>
 
       <div className="mypage-shell">
-        <nav className="mypage-side-nav" aria-label="마이페이지 메뉴">
-          <p className="mypage-side-label">메뉴</p>
+        <nav className="mypage-side-nav" aria-label={t('mypage.menuAria')}>
+          <p className="mypage-side-label">{t('mypage.menu')}</p>
           <a href="#mypage-account" className="mypage-side-item">
             <span className="mypage-side-icon"><IconUser /></span>
-            <span>내 정보</span>
+            <span>{t('mypage.nav.account')}</span>
           </a>
           <a href="#mypage-favorites" className="mypage-side-item">
             <span className="mypage-side-icon"><IconHeart /></span>
-            <span>찜</span>
+            <span>{t('mypage.nav.favorites')}</span>
             {favoriteProducts.length ? <em>{favoriteProducts.length}</em> : null}
           </a>
           <a href="#mypage-shop" className="mypage-side-item">
             <span className="mypage-side-icon"><IconStore /></span>
-            <span>가게</span>
+            <span>{t('mypage.nav.shop')}</span>
           </a>
           <a href="#mypage-ads" className="mypage-side-item">
             <span className="mypage-side-icon"><IconAd /></span>
-            <span>광고</span>
+            <span>{t('mypage.nav.ads')}</span>
             {myDirectoryAds.length ? <em>{myDirectoryAds.length}</em> : null}
           </a>
           <a href="#mypage-subs" className="mypage-side-item">
             <span className="mypage-side-icon"><IconCard /></span>
-            <span>구독</span>
+            <span>{t('mypage.nav.subs')}</span>
             {activeSubs.length ? <em>{activeSubs.length}</em> : null}
           </a>
           <a href="#mypage-posts" className="mypage-side-item">
             <span className="mypage-side-icon"><IconPost /></span>
-            <span>내 글</span>
+            <span>{t('mypage.nav.posts')}</span>
             {posts.length ? <em>{posts.length}</em> : null}
           </a>
           <a href="#mypage-comments" className="mypage-side-item">
             <span className="mypage-side-icon"><IconChat /></span>
-            <span>댓글</span>
+            <span>{t('mypage.nav.comments')}</span>
             {commentsOnMyPosts.length ? <em>{commentsOnMyPosts.length}</em> : null}
           </a>
           <a href="#mypage-contact" className="mypage-side-item">
             <span className="mypage-side-icon"><IconMail /></span>
-            <span>문의</span>
+            <span>{t('mypage.nav.contact')}</span>
           </a>
         </nav>
 
@@ -266,7 +285,7 @@ export default async function MyPage() {
         <div className="mypage-section-head">
           <h2 id="mypage-favorites-title" className="mypage-section-title">
             <span className="mypage-section-icon" aria-hidden="true"><IconHeart /></span>
-            찜한 상품
+            {t('mypage.favorites')}
           </h2>
           <span className="mypage-count">{favoriteProducts.length}</span>
         </div>
@@ -281,7 +300,9 @@ export default async function MyPage() {
                     style={thumb ? { backgroundImage: `url(${thumb})` } : undefined}
                   />
                   <span className="mypage-fav-meta">
-                    <strong>{item.title || '상품'}</strong>
+                    <strong>
+                      {item.title ? <AutoTranslatedText text={item.title} /> : t('mypage.product')}
+                    </strong>
                     <em>{formatPriceCents(item.price_cents)}</em>
                   </span>
                 </Link>
@@ -290,8 +311,8 @@ export default async function MyPage() {
           </div>
         ) : (
           <div className="mypage-empty">
-            <p>찜한 상품이 없습니다.</p>
-            <Link href="/shop" className="btn btn-outline">튤립가게</Link>
+            <p>{t('mypage.noFavorites')}</p>
+            <Link href="/shop" className="btn btn-outline">{t('shop.home')}</Link>
           </div>
         )}
       </section>
@@ -300,42 +321,46 @@ export default async function MyPage() {
         <div className="mypage-section-head">
           <h2 id="mypage-shop-title" className="mypage-section-title">
             <span className="mypage-section-icon" aria-hidden="true"><IconStore /></span>
-            내 가게
+            {t('mypage.myShop')}
           </h2>
           <span className="mypage-count">
             {shopSponsor
-              ? `${SELLER_STATUS_LABEL[shopSponsor.status] || shopSponsor.status}${
-                  isIndividualSeller ? ' · 개인' : shopSponsor.seller_kind === 'business' ? ' · 사업자' : ''
+              ? `${sellerStatusLabel(shopSponsor.status)}${
+                  isIndividualSeller
+                    ? ` · ${t('mypage.individual')}`
+                    : shopSponsor.seller_kind === 'business'
+                      ? ` · ${t('mypage.business')}`
+                      : ''
                 }`
               : showShopManage
-                ? '구독 중'
-                : '미등록'}
+                ? t('mypage.subscribing')
+                : t('mypage.unregistered')}
           </span>
         </div>
         {showShopManage ? (
           <div className="mypage-action-row">
             <Link href="/mypage/shop" className="mypage-action-chip">
               <IconStore />
-              <span>가게 관리</span>
+              <span>{t('mypage.shopManage')}</span>
             </Link>
             <Link href="/shop" className="mypage-action-chip mypage-action-chip--ghost">
               <IconHeart />
-              <span>공개 가게</span>
+              <span>{t('mypage.publicShop')}</span>
             </Link>
           </div>
         ) : (
           <>
             <p className="mypage-list-sub" style={{ marginBottom: 12 }}>
-              개인·사업자 모두 상품을 올릴 수 있습니다. 직접 연락·외부 결제 링크로 거래하세요.
+              {t('mypage.shopHint')}
             </p>
             <div className="mypage-action-row">
               <Link href="/mypage/shop/apply" className="mypage-action-chip">
                 <IconStore />
-                <span>판매 시작</span>
+                <span>{t('mypage.startSelling')}</span>
               </Link>
               <Link href="/mypage/shop" className="mypage-action-chip mypage-action-chip--ghost">
                 <IconPost />
-                <span>가게 관리</span>
+                <span>{t('mypage.shopManage')}</span>
               </Link>
             </div>
           </>
@@ -347,12 +372,12 @@ export default async function MyPage() {
           <div className="mypage-section-head">
             <h2 id="mypage-dir-title" className="mypage-section-title">
               <span className="mypage-section-icon" aria-hidden="true"><IconAd /></span>
-              지면 관리
+              {t('mypage.pageManage')}
             </h2>
           </div>
           <div className="mypage-action-row">
-            <Link href="/directory" className="mypage-action-chip">디렉토리</Link>
-            <Link href="/mypage/directory-pages" className="mypage-action-chip mypage-action-chip--ghost">배치</Link>
+            <Link href="/directory" className="mypage-action-chip">{t('mypage.directory')}</Link>
+            <Link href="/mypage/directory-pages" className="mypage-action-chip mypage-action-chip--ghost">{t('mypage.layout')}</Link>
           </div>
         </section>
       ) : null}
@@ -361,7 +386,7 @@ export default async function MyPage() {
         <div className="mypage-section-head">
           <h2 id="mypage-dir-ads-title" className="mypage-section-title">
             <span className="mypage-section-icon" aria-hidden="true"><IconAd /></span>
-            내 광고
+            {t('mypage.myAds')}
           </h2>
           <span className="mypage-count">{myDirectoryAds.length}</span>
         </div>
@@ -371,12 +396,17 @@ export default async function MyPage() {
               const slot = ad.directory_slots;
               const pageLabel =
                 slot?.page_number != null
-                  ? `${slot.page_number}면 ${slot.position_label || ''}`.trim()
-                  : '슬롯';
+                  ? t('mypage.pageFace', {
+                      page: slot.page_number,
+                      label: slot.position_label || '',
+                    }).trim()
+                  : t('mypage.slot');
               return (
                 <li key={ad.id} className="mypage-list-row">
                   <div>
-                    <strong>{ad.ad_title || pageLabel}</strong>
+                    <strong>
+                      {ad.ad_title ? <AutoTranslatedText text={ad.ad_title} /> : pageLabel}
+                    </strong>
                     <p className="mypage-list-sub">
                       {pageLabel}
                       {ad.period_end ? ` · ${formatJoinedDate(ad.period_end)}` : ''}
@@ -384,14 +414,14 @@ export default async function MyPage() {
                   </div>
                   <div className="mypage-row-actions">
                     <span className={`mypage-status mypage-status--${ad.status || 'expired'}`}>
-                      {STATUS_LABELS[ad.status] || ad.status}
+                      {statusLabel(ad.status)}
                     </span>
                     {ad.status === 'active' ? (
                       <Link
                         href={`/directory/pages/edit?ad=${ad.id}`}
                         className="mypage-icon-btn"
-                        title="수정"
-                        aria-label="수정"
+                        title={t('common.edit')}
+                        aria-label={t('common.edit')}
                       >
                         <IconPencil />
                       </Link>
@@ -403,8 +433,8 @@ export default async function MyPage() {
           </ul>
         ) : (
           <div className="mypage-empty">
-            <p>신청한 지면 광고가 없습니다.</p>
-            <Link href="/directory" className="btn btn-outline">업체 디렉토리</Link>
+            <p>{t('mypage.noAds')}</p>
+            <Link href="/directory" className="btn btn-outline">{t('nav.directory')}</Link>
           </div>
         )}
       </section>
@@ -413,7 +443,7 @@ export default async function MyPage() {
         <div className="mypage-section-head">
           <h2 id="mypage-subs-title" className="mypage-section-title">
             <span className="mypage-section-icon" aria-hidden="true"><IconCard /></span>
-            구독
+            {t('mypage.subs')}
           </h2>
           <span className="mypage-count">{activeSubs.length}</span>
         </div>
@@ -422,21 +452,21 @@ export default async function MyPage() {
             {subscriptions.map((sub) => (
               <li key={sub.id} className="mypage-list-row">
                 <div>
-                  <strong>{PRODUCT_LABELS[sub.product_type] || sub.product_type}</strong>
+                  <strong>{productLabel(sub.product_type)}</strong>
                   <p className="mypage-list-sub">
-                    {STATUS_LABELS[sub.status] || sub.status}
+                    {statusLabel(sub.status)}
                     {sub.period_end ? ` · ${formatJoinedDate(sub.period_end)}` : ''}
                   </p>
                 </div>
                 <span className={`mypage-status mypage-status--${sub.status || 'expired'}`}>
-                  {STATUS_LABELS[sub.status] || sub.status}
+                  {statusLabel(sub.status)}
                 </span>
               </li>
             ))}
           </ul>
         ) : (
           <div className="mypage-empty">
-            <p>구독 중인 상품이 없습니다.</p>
+            <p>{t('mypage.noSubs')}</p>
           </div>
         )}
       </section>
@@ -445,7 +475,7 @@ export default async function MyPage() {
         <div className="mypage-section-head">
           <h2 id="mypage-posts-title" className="mypage-section-title">
             <span className="mypage-section-icon" aria-hidden="true"><IconPost /></span>
-            내가 쓴 글
+            {t('mypage.myPosts')}
           </h2>
           <span className="mypage-count">{posts.length}</span>
         </div>
@@ -455,10 +485,10 @@ export default async function MyPage() {
               <li key={post.id} className="mypage-list-row">
                 <div>
                   <Link href={`/post/${post.id}`} className="mypage-post-link">
-                    {post.title || '(제목 없음)'}
+                    {post.title ? <AutoTranslatedText text={post.title} /> : t('mypage.untitled')}
                   </Link>
                   <p className="mypage-list-sub">
-                    {boardLabel(post.category_slug)} · {formatDateTime(post.created_at)}
+                    {boardLabel(post.category_slug, t)} · {formatDateTime(post.created_at)}
                   </p>
                 </div>
               </li>
@@ -466,8 +496,8 @@ export default async function MyPage() {
           </ul>
         ) : (
           <div className="mypage-empty">
-            <p>작성한 글이 없습니다.</p>
-            <Link href="/board/free/new" className="btn btn-outline">글쓰기</Link>
+            <p>{t('mypage.noPosts')}</p>
+            <Link href="/board/free/new" className="btn btn-outline">{t('board.write')}</Link>
           </div>
         )}
       </section>
@@ -476,7 +506,7 @@ export default async function MyPage() {
         <div className="mypage-section-head">
           <h2 id="mypage-comments-title" className="mypage-section-title">
             <span className="mypage-section-icon" aria-hidden="true"><IconChat /></span>
-            내 글 댓글
+            {t('mypage.commentsOnMine')}
           </h2>
           <span className="mypage-count">{commentsOnMyPosts.length}</span>
         </div>
@@ -484,17 +514,25 @@ export default async function MyPage() {
           <ul className="mypage-list">
             {commentsOnMyPosts.map((c) => (
               <li key={c.id} className="mypage-list-row mypage-list-row--stack">
-                <p className="mypage-comment-body">{excerpt(c.body, 100)}</p>
+                <p className="mypage-comment-body">
+                  <AutoTranslatedText text={excerpt(c.body, 100)} />
+                </p>
                 <p className="mypage-list-sub">
-                  {authorNameById[c.author_id] || '회원'} · {formatDateTime(c.created_at)} ·{' '}
-                  <Link href={`/post/${c.post_id}`}>{postTitleById[c.post_id] || '원글'}</Link>
+                  {authorNameById[c.author_id] || t('common.member')} · {formatDateTime(c.created_at)} ·{' '}
+                  <Link href={`/post/${c.post_id}`}>
+                    {postTitleById[c.post_id] ? (
+                      <AutoTranslatedText text={postTitleById[c.post_id]} />
+                    ) : (
+                      t('mypage.originalPost')
+                    )}
+                  </Link>
                 </p>
               </li>
             ))}
           </ul>
         ) : (
           <div className="mypage-empty">
-            <p>아직 댓글이 없습니다.</p>
+            <p>{t('mypage.noComments')}</p>
           </div>
         )}
       </section>

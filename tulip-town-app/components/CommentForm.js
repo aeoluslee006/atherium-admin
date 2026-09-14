@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { useLocale } from './LocaleProvider';
 import { supabase } from '../lib/supabaseClient';
 
 export default function CommentForm({ postId }) {
+  const { t, locale } = useLocale();
   const [body, setBody] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -15,7 +17,7 @@ export default function CommentForm({ postId }) {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
-        setError('댓글을 쓰려면 로그인이 필요합니다.');
+        setError(t('comment.loginRequired'));
         return;
       }
       const { data: profile } = await supabase
@@ -24,11 +26,14 @@ export default function CommentForm({ postId }) {
         .eq('id', sessionData.session.user.id)
         .maybeSingle();
       if (profile?.is_banned) {
-        setError(profile.banned_reason || '이용이 제한된 계정입니다.');
+        setError(profile.banned_reason || t('comment.banned'));
         return;
       }
       if (profile?.suspended_until && new Date(profile.suspended_until).getTime() > Date.now()) {
-        setError(`계정이 ${new Date(profile.suspended_until).toLocaleString('ko-KR')}까지 정지되었습니다.`);
+        const until = new Date(profile.suspended_until).toLocaleString(
+          locale === 'en' ? 'en-US' : 'ko-KR'
+        );
+        setError(t('comment.suspended', { date: until }));
         return;
       }
       const { error: insertError } = await supabase.from('comments').insert({
@@ -40,7 +45,7 @@ export default function CommentForm({ postId }) {
       setBody('');
       window.location.reload();
     } catch (err) {
-      setError(err.message || '댓글 등록에 실패했습니다.');
+      setError(err.message || t('comment.fail'));
     } finally {
       setSaving(false);
     }
@@ -48,7 +53,7 @@ export default function CommentForm({ postId }) {
 
   return (
     <form onSubmit={handleSubmit} style={{ marginTop: 16 }}>
-      <label htmlFor="comment">댓글</label>
+      <label htmlFor="comment">{t('comment.label')}</label>
       <textarea
         id="comment"
         value={body}
@@ -57,7 +62,7 @@ export default function CommentForm({ postId }) {
       />
       {error ? <div className="error-text">{error}</div> : null}
       <button className="btn" type="submit" disabled={saving}>
-        {saving ? '등록 중…' : '댓글 등록'}
+        {saving ? t('comment.submitting') : t('comment.submit')}
       </button>
     </form>
   );

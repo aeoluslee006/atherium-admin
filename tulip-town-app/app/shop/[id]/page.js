@@ -1,18 +1,20 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import AutoTranslatedText from '../../../components/AutoTranslatedText';
 import MemberTierBadge from '../../../components/MemberTierBadge';
 import ProductFavoriteButton from '../../../components/ProductFavoriteButton';
 import ProductReviewSection from '../../../components/ProductReviewSection';
 import ShopContactChannels from '../../../components/ShopContactChannels';
 import ShopDetailGallery from '../../../components/ShopDetailGallery';
 import ShopPaymentLinkButton from '../../../components/ShopPaymentLinkButton';
+import { createServerT, getServerLocale } from '../../../lib/i18n/server';
 import { getTierMeta } from '../../../lib/memberTier';
 import {
   contactChannelsHaveAny,
   primaryContactHref,
 } from '../../../lib/sellerContact';
 import { formatPriceCents } from '../../../lib/sellerConstants';
-import { productImageList, shopCategoryLabel } from '../../../lib/shopCatalog';
+import { productImageList } from '../../../lib/shopCatalog';
 import { loadFavoriteProductIds } from '../../../lib/shopFavorites';
 import {
   loadMyProductReview,
@@ -54,15 +56,19 @@ async function loadProduct(id) {
 }
 
 export async function generateMetadata({ params }) {
+  const locale = getServerLocale();
+  const t = createServerT(locale);
   const item = await loadProduct(params.id);
-  if (!item) return { title: '튤립가게' };
+  if (!item) return { title: t('shop.home') };
   return {
-    title: `${item.title} · 튤립가게`,
-    description: item.description || '튤립가게 상품',
+    title: `${item.title} · ${t('shop.home')}`,
+    description: item.description || t('shop.productFallback'),
   };
 }
 
 export default async function ShopDetailPage({ params }) {
+  const locale = getServerLocale();
+  const t = createServerT(locale);
   const item = await loadProduct(params.id);
   if (!item) notFound();
 
@@ -78,6 +84,14 @@ export default async function ShopDetailPage({ params }) {
   const gallery = images.length ? images : [placeholderImage(item.id)];
   const sellerTrust = await loadSellerTrust(item.seller);
   const tierMeta = getTierMeta(sellerTrust.tier);
+  const tierLabel = t(`tier.${sellerTrust.tier}`) !== `tier.${sellerTrust.tier}`
+    ? t(`tier.${sellerTrust.tier}`)
+    : tierMeta.labelKo;
+  const categoryLabel = item.category
+    ? (t(`shop.cat.${item.category}`) !== `shop.cat.${item.category}`
+      ? t(`shop.cat.${item.category}`)
+      : item.category)
+    : '';
   const hasContact =
     Boolean(String(item.seller.contact || '').trim()) ||
     contactChannelsHaveAny(item.seller.contact_channels);
@@ -86,7 +100,7 @@ export default async function ShopDetailPage({ params }) {
     <div className="container shop-detail">
       <div className="row-between" style={{ marginBottom: 16 }}>
         <Link href="/shop" className="btn btn-outline">
-          목록으로
+          {t('shop.backToList')}
         </Link>
         <ProductFavoriteButton
           productId={item.id}
@@ -99,35 +113,47 @@ export default async function ShopDetailPage({ params }) {
       <div className="shop-detail-grid">
         <div className="shop-detail-media-wrap">
           <ShopDetailGallery images={gallery} title={item.title} />
-          {isSold ? <span className="shop-card-sold-badge shop-card-sold-badge--detail">판매완료</span> : null}
+          {isSold ? (
+            <span className="shop-card-sold-badge shop-card-sold-badge--detail">
+              {t('shop.sold')}
+            </span>
+          ) : null}
         </div>
         <div>
           <div className="shop-detail-price">{formatPriceCents(item.price_cents)}</div>
-          <h1 className="shop-detail-title">{item.title}</h1>
+          <h1 className="shop-detail-title">
+            <AutoTranslatedText text={item.title} />
+          </h1>
           <div className="shop-detail-meta">
-            판매자:{' '}
+            {t('shop.sellerPrefix')}{' '}
             <Link href={`/shop/seller/${item.seller.id}`} className="shop-seller-link">
-              {item.seller.business_name}
+              <AutoTranslatedText text={item.seller.business_name} />
             </Link>
             {item.seller.city ? ` · ${item.seller.city}` : ''}
-            {item.category ? ` · ${shopCategoryLabel(item.category)}` : ''}
+            {categoryLabel ? ` · ${categoryLabel}` : ''}
           </div>
 
-          <div className="shop-seller-trust" aria-label="판매자 등급">
+          <div className="shop-seller-trust" aria-label={t('shop.sellerTierAria')}>
             <MemberTierBadge tier={sellerTrust.tier} />
             <span className="shop-seller-trust-text">
-              {tierMeta.labelKo} 등급
+              {t('shop.sellerTier', { tier: tierLabel })}
               {sellerTrust.tenureLabel ? ` · ${sellerTrust.tenureLabel}` : ''}
             </span>
           </div>
 
-          <p className="shop-detail-desc">{item.description || '설명이 없습니다.'}</p>
+          <p className="shop-detail-desc">
+            {item.description ? (
+              <AutoTranslatedText text={item.description} />
+            ) : (
+              t('shop.noDescription')
+            )}
+          </p>
 
           <div className="shop-contact-box">
-            <div className="shop-contact-label">판매자에게 직접 연락해 거래하세요</div>
+            <div className="shop-contact-label">{t('shop.contactDirect')}</div>
             {isSold ? (
               <p className="hint-text" style={{ marginTop: 8 }}>
-                이 상품은 판매가 완료되었습니다.
+                {t('shop.soldDone')}
               </p>
             ) : hasContact ? (
               <ShopContactChannels
@@ -136,7 +162,7 @@ export default async function ShopDetailPage({ params }) {
               />
             ) : (
               <p id="shop-seller-contact" className="hint-text" style={{ marginTop: 8 }}>
-                연락처는 판매자 스토어에서 확인해 주세요.
+                {t('shop.contactOnStore')}
               </p>
             )}
 
@@ -149,25 +175,23 @@ export default async function ShopDetailPage({ params }) {
                   })}
                   className="btn shop-contact-cta"
                 >
-                  판매자에게 연락하기
+                  {t('shop.contactSeller')}
                 </a>
                 <ShopPaymentLinkButton paymentLink={item.payment_link || null} />
               </div>
             ) : null}
 
-            <p className="shop-safety-note">
-              안전한 거래를 위해 공공장소에서 만나 직접 확인 후 거래하시길 권장합니다.
-            </p>
+            <p className="shop-safety-note">{t('shop.safetyNote')}</p>
 
             <Link
               href={`/shop/seller/${item.seller.id}`}
               className="btn btn-outline"
               style={{ marginTop: 12, display: 'inline-flex' }}
             >
-              {item.seller.business_name} 상품 더보기
+              {t('shop.moreFromSeller', { name: item.seller.business_name })}
             </Link>
             <p className="hint-text" style={{ marginTop: 8 }}>
-              앱에서 결제하지 않습니다. 판매자와 직접 거래하세요.
+              {t('shop.noAppPayment')}
             </p>
           </div>
         </div>

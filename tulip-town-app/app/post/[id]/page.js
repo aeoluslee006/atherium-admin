@@ -175,10 +175,10 @@ export default async function PostPage({ params }) {
   const isClasses = post.category_slug === 'classes';
   const freeTagLabel =
     post.category_slug === 'free' ? getFreeBoardTagLabel(post.subcategory, locale) : '';
-  const marketTagLabel = isMarket ? getMarketTagLabel(post.subcategory) : '';
-  const jobTagLabel = isJobs ? getJobTagLabel(post.subcategory) : '';
-  const housingTagLabel = isHousing ? getHousingTagLabel(post.subcategory) : '';
-  const housingTypeLabel = isHousing ? getHousingTypeLabel(post.housing_type) : '';
+  const marketTagLabel = isMarket ? getMarketTagLabel(post.subcategory, locale) : '';
+  const jobTagLabel = isJobs ? getJobTagLabel(post.subcategory, locale) : '';
+  const housingTagLabel = isHousing ? getHousingTagLabel(post.subcategory, locale) : '';
+  const housingTypeLabel = isHousing ? getHousingTypeLabel(post.housing_type, locale) : '';
   const htmlBody = isHtmlBody(post.body);
   const categoryName = category
     ? locale === 'en'
@@ -218,7 +218,7 @@ export default async function PostPage({ params }) {
         [t('post.field.category'), jobTagLabel || '—'],
         [t('post.field.company'), post.company_name || '—'],
         [t('post.field.pay'), post.pay_text || '—'],
-        [t('post.field.workType'), formatWorkStatus(post.job_roles) || '—'],
+        [t('post.field.workType'), formatWorkStatus(post.job_roles, locale) || '—'],
         [
           t('post.field.roles'),
           getIndustryRoleTags(post.job_roles)

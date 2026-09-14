@@ -1,20 +1,20 @@
 /** Housing / rent-sale board tags (posts.subcategory when category_slug=housing). */
 export const HOUSING_TAGS = [
-  { slug: 'rent', nameKo: '렌트' },
-  { slug: 'sale', nameKo: '매매' },
-  { slug: 'roommate', nameKo: '룸메이트' },
-  { slug: 'done', nameKo: '완료' },
+  { slug: 'rent', nameKo: '렌트', nameEn: 'Rent' },
+  { slug: 'sale', nameKo: '매매', nameEn: 'Sale' },
+  { slug: 'roommate', nameKo: '룸메이트', nameEn: 'Roommate' },
+  { slug: 'done', nameKo: '완료', nameEn: 'Closed' },
 ];
 
 export const HOUSING_TYPES = [
-  { slug: 'studio', nameKo: '스튜디오' },
-  { slug: '1br', nameKo: '1베드' },
-  { slug: '2br', nameKo: '2베드' },
-  { slug: '3br', nameKo: '3베드+' },
-  { slug: 'house', nameKo: '하우스' },
-  { slug: 'condo', nameKo: '콘도/타운홈' },
-  { slug: 'room', nameKo: '방/룸쉐어' },
-  { slug: 'commercial', nameKo: '상가/기타' },
+  { slug: 'studio', nameKo: '스튜디오', nameEn: 'Studio' },
+  { slug: '1br', nameKo: '1베드', nameEn: '1 bed' },
+  { slug: '2br', nameKo: '2베드', nameEn: '2 bed' },
+  { slug: '3br', nameKo: '3베드+', nameEn: '3+ bed' },
+  { slug: 'house', nameKo: '하우스', nameEn: 'House' },
+  { slug: 'condo', nameKo: '콘도/타운홈', nameEn: 'Condo / townhome' },
+  { slug: 'room', nameKo: '방/룸쉐어', nameEn: 'Room / share' },
+  { slug: 'commercial', nameKo: '상가/기타', nameEn: 'Commercial / other' },
 ];
 
 export function getHousingTag(slug) {
@@ -22,8 +22,10 @@ export function getHousingTag(slug) {
   return HOUSING_TAGS.find((t) => t.slug === slug) || null;
 }
 
-export function getHousingTagLabel(slug) {
-  return getHousingTag(slug)?.nameKo || '';
+export function getHousingTagLabel(slug, locale = 'ko') {
+  const tag = getHousingTag(slug);
+  if (!tag) return '';
+  return locale === 'en' ? tag.nameEn || tag.nameKo : tag.nameKo;
 }
 
 export function isValidHousingTag(slug) {
@@ -35,6 +37,8 @@ export function getHousingType(slug) {
   return HOUSING_TYPES.find((t) => t.slug === slug) || null;
 }
 
-export function getHousingTypeLabel(slug) {
-  return getHousingType(slug)?.nameKo || '';
+export function getHousingTypeLabel(slug, locale = 'ko') {
+  const type = getHousingType(slug);
+  if (!type) return '';
+  return locale === 'en' ? type.nameEn || type.nameKo : type.nameKo;
 }

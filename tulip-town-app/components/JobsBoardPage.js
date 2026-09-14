@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import AutoTranslatedText from './AutoTranslatedText';
 import LocalizedPostTitle from './LocalizedPostTitle';
 import { JOB_TAGS, getJobTagLabel, getWorkStatusTags, isValidJobTag } from '../lib/jobTags';
 import { createServerT, getServerLocale } from '../lib/i18n/server';
@@ -121,8 +122,12 @@ export default async function JobsBoardPage({ searchParams = {} }) {
             {posts.map((post) => {
               const company =
                 post.company_name ||
-                (post.is_pinned ? t('board.notice') : getJobTagLabel(post.subcategory) || t('board.jobs.hire'));
-              const jobTag = post.is_pinned ? t('board.notice') : getJobTagLabel(post.subcategory);
+                (post.is_pinned
+                  ? t('board.notice')
+                  : getJobTagLabel(post.subcategory, locale) || t('board.jobs.hire'));
+              const jobTag = post.is_pinned
+                ? t('board.notice')
+                : getJobTagLabel(post.subcategory, locale);
               const views = Number.isFinite(post.view_count) ? post.view_count : null;
               const workStatuses = getWorkStatusTags(post.job_roles);
               return (
@@ -162,7 +167,11 @@ export default async function JobsBoardPage({ searchParams = {} }) {
                             ))
                           : null}
                         <LocalizedPostTitle post={post} className="jobs-title" />
-                        {post.pay_text ? <span className="jobs-pay">{post.pay_text}</span> : null}
+                        {post.pay_text ? (
+                          <span className="jobs-pay">
+                            <AutoTranslatedText text={post.pay_text} />
+                          </span>
+                        ) : null}
                       </div>
                     </div>
 

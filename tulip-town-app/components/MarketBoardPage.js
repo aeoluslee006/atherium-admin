@@ -127,7 +127,7 @@ export default async function MarketBoardPage({ searchParams = {} }) {
             posts.map((post) => {
               const label = post.is_pinned
                 ? t('board.notice')
-                : getMarketTagLabel(post.subcategory) || t('board.general');
+                : getMarketTagLabel(post.subcategory, locale) || t('board.general');
               const photos = collectPostImages(post);
               const cover = photos[0] || null;
               return (

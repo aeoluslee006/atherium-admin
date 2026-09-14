@@ -35,9 +35,11 @@ function buildHref(tag) {
   return `/board/housing?tag=${encodeURIComponent(tag)}`;
 }
 
-function roomLabel(post) {
+function roomLabel(post, locale) {
   const parts = [];
-  if (post.housing_type) parts.push(getHousingTypeLabel(post.housing_type) || post.housing_type);
+  if (post.housing_type) {
+    parts.push(getHousingTypeLabel(post.housing_type, locale) || post.housing_type);
+  }
   if (post.beds) parts.push(`${post.beds}bed`);
   if (post.baths) parts.push(`${post.baths}ba`);
   return parts.join(' · ');
@@ -139,8 +141,8 @@ export default async function HousingBoardPage({ searchParams = {} }) {
 
           {(posts || []).length ? (
             posts.map((post) => {
-              const label = getHousingTagLabel(post.subcategory) || t('board.other');
-              const rooms = roomLabel(post);
+              const label = getHousingTagLabel(post.subcategory, locale) || t('board.other');
+              const rooms = roomLabel(post, locale);
               const photos = collectPostImages(post);
               const cover = photos[0] || null;
               return (

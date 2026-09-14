@@ -11,6 +11,7 @@ import { FREE_BOARD_WRITE_TAGS, isValidFreeBoardWriteTag } from '../../../../lib
 import { HOUSING_TAGS, HOUSING_TYPES, isValidHousingTag } from '../../../../lib/housingTags';
 import { MARKET_TAGS, isValidMarketTag } from '../../../../lib/marketTags';
 import { serializeImageUrls } from '../../../../lib/postImages';
+import { requestPostTranslation } from '../../../../lib/i18n/postLocale';
 import { SETTLEMENT_CITY_NAMES, isValidSettlementCity } from '../../../../lib/settlementTowns';
 import { supabase } from '../../../../lib/supabaseClient';
 
@@ -186,6 +187,7 @@ export default function NewPostPage() {
       }
 
       if (insertError) throw insertError;
+      requestPostTranslation(data.id, { wait: false });
       router.push(`/post/${data.id}`);
     } catch (err) {
       setError(err.message || '등록에 실패했습니다.');
@@ -352,6 +354,7 @@ export default function NewPostPage() {
         insertError = retry.error;
       }
       if (insertError) throw insertError;
+      requestPostTranslation(data.id, { wait: false });
       router.push(`/post/${data.id}`);
     } catch (err) {
       setError(err.message || '등록에 실패했습니다.');

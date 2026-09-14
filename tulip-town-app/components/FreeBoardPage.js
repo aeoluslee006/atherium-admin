@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import LocalizedPostTitle from './LocalizedPostTitle';
 import { FREE_BOARD_TAGS, getFreeBoardTagLabel, isValidFreeBoardTag } from '../lib/freeBoardTags';
+import { createServerT, getServerLocale } from '../lib/i18n/server';
 import { getSampleFreeClubPost, SAMPLE_FREE_CLUB_POST_ID } from '../lib/sampleFreeClubPost';
 import { supabaseRest } from '../lib/supabaseRest';
 
@@ -19,6 +21,8 @@ function buildHref(tag) {
 }
 
 export default async function FreeBoardPage({ searchParams = {} }) {
+  const locale = getServerLocale();
+  const t = createServerT(locale);
   const rawTag = searchParams.tag || 'all';
   // Legacy 동호회 tag → 모임/동호회
   if (rawTag === 'club') {
@@ -30,7 +34,7 @@ export default async function FreeBoardPage({ searchParams = {} }) {
   let posts = [];
   try {
     let path =
-      'posts?select=id,title,subcategory,created_at,is_featured&category_slug=eq.free';
+      'posts?select=id,title,title_en,subcategory,created_at,is_featured&category_slug=eq.free';
     if (isFeaturedFilter) {
       // All 좋은글 posts (board), not only home-dashboard selections
       path += '&or=(subcategory.eq.featured,is_featured.eq.true)';
@@ -62,39 +66,43 @@ export default async function FreeBoardPage({ searchParams = {} }) {
   return (
     <div className="container">
       <header className="free-board-head board-heading">
-        <h2 className="section-title">자유게시판 · Free Board</h2>
-        <p className="board-heading-desc">자유롭게 이야기해요 · General talk</p>
+        <h2 className="section-title">
+          {locale === 'en' ? 'Free Board' : '자유게시판'}
+        </h2>
+        <p className="board-heading-desc">
+          {locale === 'en' ? 'Talk freely with neighbors' : '자유롭게 이야기해요'}
+        </p>
       </header>
 
       <div className="board-toolbar">
-        <div className="tag-chips" role="list" aria-label="카테고리 필터">
+        <div className="tag-chips" role="list" aria-label={locale === 'en' ? 'Category filter' : '카테고리 필터'}>
           <Link
             href={buildHref('all')}
             role="listitem"
             className={`free-board-chip${tag === 'all' ? ' is-active' : ''}`}
           >
-            전체
+            {t('board.all')}
           </Link>
           <Link
             href={buildHref('featured')}
             role="listitem"
             className={`free-board-chip${tag === 'featured' ? ' is-active' : ''}`}
           >
-            좋은글
+            {locale === 'en' ? 'Featured' : '좋은글'}
           </Link>
-          {FREE_BOARD_TAGS.map((t) => (
+          {FREE_BOARD_TAGS.map((tagItem) => (
             <Link
-              key={t.slug}
-              href={buildHref(t.slug)}
+              key={tagItem.slug}
+              href={buildHref(tagItem.slug)}
               role="listitem"
-              className={`free-board-chip${tag === t.slug ? ' is-active' : ''}`}
+              className={`free-board-chip${tag === tagItem.slug ? ' is-active' : ''}`}
             >
-              {t.nameKo}
+              {locale === 'en' ? tagItem.nameEn || tagItem.nameKo : tagItem.nameKo}
             </Link>
           ))}
         </div>
         <Link href="/board/free/new" className="btn">
-          글쓰기
+          {t('board.write')}
         </Link>
       </div>
 
@@ -102,12 +110,12 @@ export default async function FreeBoardPage({ searchParams = {} }) {
         <div className="free-board-list">
           {posts?.length ? (
             posts.map((post) => {
-              const label = getFreeBoardTagLabel(post.subcategory);
+              const label = getFreeBoardTagLabel(post.subcategory, locale);
               return (
                 <Link key={post.id} href={`/post/${post.id}`} className="free-board-row">
                   <span className="free-board-row-main">
                     {label ? <span className="subcat-badge">{label}</span> : null}
-                    <span className="free-board-row-title">{post.title}</span>
+                    <LocalizedPostTitle post={post} className="free-board-row-title" />
                   </span>
                   <span className="post-meta">{formatDate(post.created_at)}</span>
                 </Link>
@@ -116,10 +124,14 @@ export default async function FreeBoardPage({ searchParams = {} }) {
           ) : (
             <div className="empty-state">
               {isFeaturedFilter
-                ? '아직 좋은글이 없습니다. 글쓰기에서 「좋은글」을 선택해 등록해 보세요.'
+                ? locale === 'en'
+                  ? 'No featured posts yet. Choose Featured when writing.'
+                  : '아직 좋은글이 없습니다. 글쓰기에서 「좋은글」을 선택해 등록해 보세요.'
                 : tag !== 'all'
-                  ? '이 태그로 등록된 글이 아직 없습니다.'
-                  : '아직 게시글이 없습니다. 첫 글을 남겨보세요!'}
+                  ? locale === 'en'
+                    ? 'No posts with this tag yet.'
+                    : '이 태그로 등록된 글이 아직 없습니다.'
+                  : t('board.empty')}
             </div>
           )}
         </div>

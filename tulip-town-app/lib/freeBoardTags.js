@@ -2,16 +2,17 @@
 export const FREE_BOARD_FEATURED_TAG = {
   slug: 'featured',
   nameKo: '좋은글',
+  nameEn: 'Featured',
 };
 
 export const FREE_BOARD_TAGS = [
-  { slug: 'daily', nameKo: '일상/잡담' },
-  { slug: 'info', nameKo: '정보공유' },
-  { slug: 'question', nameKo: '궁금해요' },
-  { slug: 'recommend', nameKo: '추천' },
-  { slug: 'meetup', nameKo: '모임/동호회' },
-  { slug: 'lostfound', nameKo: '분실/습득' },
-  { slug: 'etc', nameKo: '기타' },
+  { slug: 'daily', nameKo: '일상/잡담', nameEn: 'Daily chat' },
+  { slug: 'info', nameKo: '정보공유', nameEn: 'Info share' },
+  { slug: 'question', nameKo: '궁금해요', nameEn: 'Questions' },
+  { slug: 'recommend', nameKo: '추천', nameEn: 'Recommend' },
+  { slug: 'meetup', nameKo: '모임/동호회', nameEn: 'Meetup / clubs' },
+  { slug: 'lostfound', nameKo: '분실/습득', nameEn: 'Lost & found' },
+  { slug: 'etc', nameKo: '기타', nameEn: 'Other' },
 ];
 
 /** Write-form options: 좋은글 + subcategory tags (matches list filter chips). */
@@ -25,8 +26,10 @@ export function getFreeBoardTag(slug) {
   return FREE_BOARD_TAGS.find((t) => t.slug === slug) || null;
 }
 
-export function getFreeBoardTagLabel(slug) {
-  return getFreeBoardTag(slug)?.nameKo || slug || '';
+export function getFreeBoardTagLabel(slug, locale = 'ko') {
+  const tag = getFreeBoardTag(slug);
+  if (!tag) return slug || '';
+  return locale === 'en' ? tag.nameEn || tag.nameKo : tag.nameKo;
 }
 
 export function isValidFreeBoardTag(slug) {

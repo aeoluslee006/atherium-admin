@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import CommentForm from '../../../components/CommentForm';
 import HousingPhotoGallery from '../../../components/HousingPhotoGallery';
+import LocalizedPostContent from '../../../components/LocalizedPostContent';
 import { getCategory } from '../../../lib/categories';
 import { getFreeBoardTagLabel } from '../../../lib/freeBoardTags';
 import { getHousingTagLabel, getHousingTypeLabel } from '../../../lib/housingTags';
@@ -275,12 +276,12 @@ export default async function PostPage({ params }) {
               </div>
               <div>
                 {post.company_name ? <div className="job-detail-company">{post.company_name}</div> : null}
-                <h2 className="section-title" style={{ marginBottom: 4 }}>
+                <div className="section-title" style={{ marginBottom: 4 }}>
                   {jobTagLabel ? (
                     <span className={`job-badge job-badge--${post.subcategory}`}>{jobTagLabel}</span>
                   ) : null}{' '}
-                  {post.title}
-                </h2>
+                  <LocalizedPostContent post={post} as="span" className="" />
+                </div>
                 {post.pay_text ? <div className="job-detail-pay">{post.pay_text}</div> : null}
               </div>
             </div>
@@ -294,7 +295,7 @@ export default async function PostPage({ params }) {
               {housingTagLabel ? (
                 <span className={`housing-badge housing-badge--${post.subcategory}`}>{housingTagLabel}</span>
               ) : null}{' '}
-              {post.title}
+              <LocalizedPostContent post={post} as="span" />
             </h2>
           )}
 

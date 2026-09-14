@@ -1,6 +1,8 @@
 import './globals.css';
 import Header from '../components/Header';
+import { LocaleProvider } from '../components/LocaleProvider';
 import VisitTracker from '../components/VisitTracker';
+import { getServerLocale } from '../lib/i18n/server';
 import { Caveat } from 'next/font/google';
 
 const caveat = Caveat({
@@ -23,8 +25,10 @@ export const viewport = {
 };
 
 export default function RootLayout({ children }) {
+  const locale = getServerLocale();
+
   return (
-    <html lang="ko" className={caveat.variable}>
+    <html lang={locale === 'en' ? 'en' : 'ko'} className={caveat.variable}>
       <head>
         <link
           rel="stylesheet"
@@ -38,14 +42,16 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body>
-        <VisitTracker />
-        <Header />
-        <main>{children}</main>
-        <footer className="footer">
-          <div className="container">
-            © 2026 Tulip Town Korean Community · Serving Holland, Grand Rapids &amp; West Michigan
-          </div>
-        </footer>
+        <LocaleProvider initialLocale={locale}>
+          <VisitTracker />
+          <Header />
+          <main>{children}</main>
+          <footer className="footer">
+            <div className="container">
+              © 2026 Tulip Town Korean Community · Serving Holland, Grand Rapids &amp; West Michigan
+            </div>
+          </footer>
+        </LocaleProvider>
       </body>
     </html>
   );

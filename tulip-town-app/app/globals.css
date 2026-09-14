@@ -223,6 +223,56 @@ a {
   z-index: 1;
 }
 
+.lang-switcher {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+  background: #fff;
+  margin-right: 2px;
+}
+
+.lang-switcher-btn {
+  border: 0;
+  background: transparent;
+  padding: 4px 9px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--ink-soft);
+  cursor: pointer;
+  line-height: 1.2;
+}
+
+.lang-switcher-btn.is-active,
+.lang-switcher-btn[aria-pressed='true'] {
+  background: var(--leaf, #2f6b52);
+  color: #fff;
+}
+
+.shop-shell-bar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.shop-shell-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.localized-post-status {
+  margin: 6px 0 0;
+  font-size: 12px;
+}
+
+.localized-post-toggle {
+  margin-top: 8px;
+}
+
 .auth-email {
   max-width: 160px;
   overflow: hidden;

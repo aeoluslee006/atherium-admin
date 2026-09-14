@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { supabase } from '../lib/supabaseClient';
+import LanguageSwitcher from './LanguageSwitcher';
+import { useLocale } from './LocaleProvider';
 import { CATEGORIES } from '../lib/categories';
+import { supabase } from '../lib/supabaseClient';
 
 const NAV_ICONS = {
   notice: (
@@ -87,40 +89,50 @@ const NAV_ICONS = {
   ),
 };
 
-/** Board categories + 지역뉴스 inserted after 자유게시판 */
-function buildMainNav() {
-  const items = [];
-  for (const cat of CATEGORIES) {
-    items.push({
-      key: cat.slug,
-      nameKo: cat.nameKo,
-      href: `/board/${cat.slug}`,
-    });
-    if (cat.slug === 'free') {
-      items.push({
-        key: 'news',
-        nameKo: '지역뉴스',
-        href: '/news',
-      });
-    }
-  }
-  return items;
-}
-
-const MAIN_NAV = buildMainNav();
-
 function isNavActive(pathname, href) {
   if (!pathname || !href) return false;
   if (href === '/') return pathname === '/';
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+const NAV_KEY_BY_SLUG = {
+  notice: 'nav.notice',
+  guide: 'nav.guide',
+  free: 'nav.free',
+  housing: 'nav.housing',
+  market: 'nav.market',
+  jobs: 'nav.jobs',
+  classes: 'nav.classes',
+};
+
 export default function Header() {
+  const { t, locale } = useLocale();
   const [session, setSession] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const router = useRouter();
   const pathname = usePathname() || '';
+
+  const mainNav = useMemo(() => {
+    const items = [];
+    for (const cat of CATEGORIES) {
+      items.push({
+        key: cat.slug,
+        label:
+          t(NAV_KEY_BY_SLUG[cat.slug]) ||
+          (locale === 'en' ? cat.nameEn || cat.nameKo : cat.nameKo),
+        href: `/board/${cat.slug}`,
+      });
+      if (cat.slug === 'free') {
+        items.push({
+          key: 'news',
+          label: t('nav.news'),
+          href: '/news',
+        });
+      }
+    }
+    return items;
+  }, [t, locale]);
 
   useEffect(() => {
     async function loadProfile(userId) {
@@ -168,36 +180,37 @@ export default function Header() {
           </Link>
 
           <div className="auth-area">
+            <LanguageSwitcher />
             {loaded && session ? (
               <>
                 {isAdmin ? (
                   <Link href="/admin" className="admin-link">
-                    관리자
+                    {t('auth.admin')}
                   </Link>
                 ) : null}
                 <Link
                   href="/mypage"
                   className={`mypage-link${isNavActive(pathname, '/mypage') ? ' is-active' : ''}`}
                 >
-                  마이페이지
+                  {t('auth.mypage')}
                 </Link>
                 <button type="button" onClick={handleLogout}>
-                  로그아웃
+                  {t('auth.logout')}
                 </button>
               </>
             ) : loaded ? (
               <>
-                <Link href="/login">로그인</Link>
+                <Link href="/login">{t('auth.login')}</Link>
                 <Link href="/signup" className="signup-link">
-                  회원가입
+                  {t('auth.signup')}
                 </Link>
               </>
             ) : null}
           </div>
         </div>
 
-        <nav className="main-nav" aria-label="주요 게시판">
-          {MAIN_NAV.map((item) => {
+        <nav className="main-nav" aria-label={t('nav.main')}>
+          {mainNav.map((item) => {
             const active = isNavActive(pathname, item.href);
             return (
               <Link
@@ -209,7 +222,7 @@ export default function Header() {
                 <span className="nav-icon" aria-hidden="true">
                   {NAV_ICONS[item.key]}
                 </span>
-                <span>{item.nameKo}</span>
+                <span>{item.label}</span>
               </Link>
             );
           })}
@@ -221,7 +234,7 @@ export default function Header() {
             <span className="nav-icon" aria-hidden="true">
               {NAV_ICONS.gift}
             </span>
-            <span>튤립가게</span>
+            <span>{t('nav.shop')}</span>
           </Link>
           <Link
             href="/directory"
@@ -231,7 +244,7 @@ export default function Header() {
             <span className="nav-icon" aria-hidden="true">
               {NAV_ICONS.directory}
             </span>
-            <span>업체 디렉토리</span>
+            <span>{t('nav.directory')}</span>
           </Link>
         </nav>
       </div>

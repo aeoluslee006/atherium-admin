@@ -6,10 +6,10 @@ export function isExampleLocalNews(row) {
   return false;
 }
 
-export function formatNewsDate(value) {
+export function formatNewsDate(value, locale = 'ko') {
   if (!value) return '';
   try {
-    return new Date(value).toLocaleDateString('ko-KR');
+    return new Date(value).toLocaleDateString(locale === 'en' ? 'en-US' : 'ko-KR');
   } catch {
     return '';
   }

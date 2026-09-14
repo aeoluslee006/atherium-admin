@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import AutoTranslatedText from './AutoTranslatedText';
+import { useLocale } from './LocaleProvider';
 import { formatNewsDate, hostnameOf } from '../lib/localNews';
 
 const DEMO_NEWS = [
@@ -44,6 +46,7 @@ const DEMO_NEWS = [
 ];
 
 export default function LocalNewsPanel({ items = [] }) {
+  const { t, locale } = useLocale();
   const usingDemo = !Array.isArray(items) || items.length === 0;
 
   const slots = useMemo(() => {
@@ -64,14 +67,14 @@ export default function LocalNewsPanel({ items = [] }) {
   return (
     <div className="wf-box wf-news">
       <div className="panel-header">
-        <h2 className="panel-title">지역 뉴스</h2>
+        <h2 className="panel-title">{t('home.localNews')}</h2>
         <Link href="/news" className="panel-more">
-          더보기
+          {t('home.more')}
         </Link>
       </div>
 
       <div className="wf-news-body">
-        <div className="wf-news-thumbs" role="tablist" aria-label="지역뉴스 목록">
+        <div className="wf-news-thumbs" role="tablist" aria-label={t('news.listAria')}>
           {slots.map((item, index) => {
             const n = index + 1;
             const isActive = active === index;
@@ -83,15 +86,17 @@ export default function LocalNewsPanel({ items = [] }) {
                 aria-selected={isActive}
                 aria-controls="wf-news-panel"
                 id={`wf-news-tab-${n}`}
-                aria-label={item?.title || `지역 뉴스 ${n}`}
+                aria-label={item?.title || `${t('home.localNews')} ${n}`}
                 className={`wf-news-thumb${isActive ? ' is-active' : ''}${item ? '' : ' is-empty'}`}
                 onClick={() => setActive(index)}
                 disabled={!item}
               >
                 {item ? (
-                  <span className="wf-news-thumb-title">{item.title}</span>
+                  <AutoTranslatedText text={item.title} as="span" className="wf-news-thumb-title" />
                 ) : (
-                  <span className="wf-news-thumb-title wf-news-thumb-title--muted">비어 있음</span>
+                  <span className="wf-news-thumb-title wf-news-thumb-title--muted">
+                    {t('news.emptySlot')}
+                  </span>
                 )}
               </button>
             );
@@ -113,18 +118,24 @@ export default function LocalNewsPanel({ items = [] }) {
                   {selected.published_at ? (
                     <>
                       <span aria-hidden="true">·</span>
-                      <time dateTime={selected.published_at}>{formatNewsDate(selected.published_at)}</time>
+                      <time dateTime={selected.published_at}>
+                        {formatNewsDate(selected.published_at, locale)}
+                      </time>
                     </>
                   ) : null}
                 </div>
-                <h3 className="wf-news-detail-title">{selected.title}</h3>
+                <AutoTranslatedText text={selected.title} as="h3" className="wf-news-detail-title" />
               </div>
 
               <div className="wf-news-article-body">
-                {summary ? <p className="wf-news-article-summary">{summary}</p> : null}
+                {summary ? (
+                  <AutoTranslatedText text={summary} as="p" className="wf-news-article-summary" />
+                ) : null}
 
                 <div className="wf-news-article-card" data-slot={active + 1}>
-                  <div className="wf-news-article-card-source">{selected.source || '지역 뉴스'}</div>
+                  <div className="wf-news-article-card-source">
+                    {selected.source || t('news.fallbackSource')}
+                  </div>
                   {hostnameOf(selected.url) ? (
                     <div className="wf-news-article-card-host">{hostnameOf(selected.url)}</div>
                   ) : null}
@@ -135,17 +146,17 @@ export default function LocalNewsPanel({ items = [] }) {
                       rel="noopener noreferrer"
                       className="wf-news-detail-cta"
                     >
-                      원문 새 창으로 보기
+                      {t('news.openOriginal')}
                     </a>
                   ) : (
-                    <p className="wf-news-article-missing">연결할 뉴스 주소가 없습니다.</p>
+                    <p className="wf-news-article-missing">{t('news.noUrl')}</p>
                   )}
                 </div>
               </div>
             </article>
           ) : (
             <div className="wf-news-detail-empty">
-              <div className="wf-news-placeholder">지역 뉴스 내용보기</div>
+              <div className="wf-news-placeholder">{t('news.placeholder')}</div>
             </div>
           )}
         </div>
